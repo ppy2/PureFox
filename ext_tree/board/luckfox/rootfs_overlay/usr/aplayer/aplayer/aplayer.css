@@ -1,0 +1,260 @@
+#Image {
+width:auto;
+max-width:100%;
+max-height:100%;
+height:auto;
+vertical-align: middle;
+}
+
+#all 
+{ 
+ -webkit-transform-origin: 0 0;
+ -o-transform-origin: 0 0;
+ -ms-transform-origin: 0 0;
+ -moz-transform-origin: 0 0;
+ transform-origin: 0 0; 
+}
+select::-webkit-scrollbar {width:6px;}
+select::-webkit-scrollbar-track {background-color:rgb(120,120,120)}
+select::-webkit-scrollbar-thumb {border-radius:3px;background-color:rgb(180,180,180)}
+#SongsBlock::-webkit-scrollbar {width:6px;}
+#SongsBlock::-webkit-scrollbar-track {background-color:rgb(120,120,120)}
+#SongsBlock::-webkit-scrollbar-thumb {border-radius:3px;background-color:rgb(180,180,180)}
+
+body
+{
+  background-color : rgb(86, 86, 86);
+}
+
+.cell
+ {
+  border-right: 1px solid rgb(30,30,30);
+  padding-right: 2px;   
+  background: rgb(68,68,68);
+}
+
+.data
+{    
+ text-align: right;
+ color:rgb(191,255,255)
+}
+
+.error
+{
+  color : red;
+  font-weight : bold
+}
+
+.btn
+{
+    margin: 6px    
+}
+
+option:checked 
+{
+    background: rgb(104,104,104);
+}
+
+.list
+{
+     background-color : rgb(68, 68, 68);         
+}
+
+.narrowList
+{   
+    background-color : rgb(68, 68, 68);  
+    width: 100%;
+}
+
+.wideList
+{     
+    background-color : rgb(68, 68, 68);  
+    width: 100%;
+}
+
+.list::-webkit-scrollbar {display:none;}
+.list::-o-scrollbar {display:none;}
+.list::-google-ms-scrollbar {display:none;}
+.list::-khtml-scrollbar {display:none;}
+
+input[type=range] 
+{
+    -webkit-appearance: none;
+     background: rgb(68,68,68);
+     /*background: transparent; */
+}
+input[type=range]::-webkit-slider-runnable-track 
+{   
+   height: 20px; 
+   background: rgb(68,68,68);
+   border: none;
+   border-radius: 12px;
+}
+input[type=range]::-webkit-slider-thumb 
+{
+   -webkit-appearance: none;
+   border: none;
+   height: 20px;
+   width: 20px;
+   border-radius: 50%;
+   background:  rgb(191,191,191);
+}
+input[type=range]:focus 
+{
+   outline: none;
+}
+input[type=range]:focus::-webkit-slider-runnable-track 
+{
+    background: rgb(68,68,68);
+}
+input[type=range]::-moz-range-track 
+{ 
+   height: 20px; 
+   background: rgb(68,68,68);
+   border: none;
+   border-radius: 12px;
+}
+input[type=range]::-moz-range-thumb 
+{
+   border: none;
+   height: 20px;
+   width: 20px;
+   border-radius: 50%;
+   background:  rgb(191,191,191);
+}
+input[type=range]:-moz-focusring
+{
+   outline: 1px solid transparent;
+   outline-offset: -1px;
+}
+
+#Search, #PlaylistName
+{
+    background: rgb(128,128,128);
+}
+
+.wait
+{
+    width: 64px;
+    height: 64px;
+    position: absolute;
+    top: 200px;
+    left: 200px;
+}
+
+/* Config */
+#config_body 
+{ 
+ -webkit-transform-origin: 0 0;
+ -o-transform-origin: 0 0;
+ -ms-transform-origin: 0 0;
+ -moz-transform-origin: 0 0;
+ transform-origin: 0 0; 
+ margin: 0; font-family: arial, verdana, sans-serif; background : rgb(224, 224, 224);
+ display: none;
+}
+
+.confbutton 
+ {
+   width: 66px;
+   height: 30px;
+   margin: 10px;
+ }
+
+.val
+{
+    width:40px;
+    text-align: right;
+}
+
+.val2
+{
+    width:60px;
+    text-align: right;
+}
+
+.conf_section
+{
+    border: 1px solid gray;  
+    padding : 2px;
+    text-align: left;
+    margin:3px;
+    width:300px
+}
+
+.conf_section2
+{
+    border: 1px solid gray;  
+    padding : 2px;
+    margin:3px;
+    width:220px
+}
+
+.conf_section3
+{
+    border: 1px solid gray;  
+    padding : 2px;
+    text-align: left;
+    margin:2px;
+    width:412px;
+    display: inline-block;
+}
+
+ul, li {margin: 0; padding: 0; list-style: none;}
+a, a:hover {text-decoration: none;}
+.wrapper {width: 480px; height: 480px; margin: 0}
+
+#header {padding: 3px 0; margin-bottom: 5px; background: #ddd; border-bottom: 1px solid #eee}
+#header h1 {padding-left: 20px; margin: 0;}
+#header h1 a {color: #fff;}
+#header h1 a:hover {color: #efefef;}
+
+/* Tabs */
+#tabs {border: 1px solid #ccc; border-radius: 8px}
+#tabs .tabs {overflow: hidden; border-bottom: 1px solid #ccc}
+#tabs .tabs li {float: left;}
+#tabs .tabs li + li {border-left: 1px solid #ccc}
+#tabs .tabs li a {display: block; padding: 8px; font-size: 16px; line-height: 21px; color: #999;}
+#tabs .tabs li a.active,
+#tabs .tabs li a:hover {color: #666;}
+
+#tabs .tabs-content {padding: 2px; font-size: 16px; line-height: 21px;}
+
+#config_label, h3 {margin-left: 20px;}
+
+#status table tr {font-size: 14px;line-height:16px}
+
+.playing {}
+
+select {
+  -webkit-appearance: listbox !important;
+  padding-left: 4px;   
+}
+#dsp table
+{
+    text-align: right;    
+}
+#redit
+{
+    display: none;
+    line-height: 22px;
+    text-align: left;
+    width: 240px;
+    height: 240px;
+    color: rgb(191,255,255);
+    vertical-align: top;
+}
+#redit input
+{
+    color:  rgb(146,255,127);
+    background-color: rgb(120,120,120);
+}
+
+#redit button
+{
+    color:  rgb(28, 240, 240);
+    border-color:  rgb(28, 240, 240);
+    background-color:rgb(120,120,120);
+    width: 60px;
+    height: 30px;
+}

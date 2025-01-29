@@ -1,0 +1,26 @@
+#!/bin/sh
+
+start() {
+    printf "Starting Aplayer: "
+    sync
+	cd /usr/aplayer/aplayer
+    /usr/aplayer/aplayer/aplayer
+    renice -15 `pidof aplayer`
+    }
+stop() {
+    killall -9 aplayer
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

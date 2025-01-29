@@ -1,0 +1,9 @@
+﻿#EXTM3U
+#EXTINF:-1,Classical Jazz (192kbps) 
+https://cast1.torontocast.com:1655/stream
+#EXTINF:-1,Jazz Vespers (192kbps)
+https://kathy.torontocast.com:4325/stream
+#EXTINF:-1,Jazz Lovers (192kbps)
+https://kathy.torontocast.com:3535/stream
+#EXTINF:-1,Gospel Jazz (192kbps)
+https://kathy.torontocast.com:3375/stream
