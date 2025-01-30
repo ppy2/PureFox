@@ -6,7 +6,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000,115200 console=ttyS2,115200 root=/dev/mmcblk1p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=128 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk1p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=128 coherent_pool=0";
 	};
 
 /*
