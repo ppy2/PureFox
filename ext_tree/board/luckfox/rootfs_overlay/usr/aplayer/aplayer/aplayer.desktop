@@ -1,7 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=APlayer
-Icon=
-Exec=sudo bash -c  'cd /usr/aplayer && /usr/aplayer/aplayer'
-Terminal=true

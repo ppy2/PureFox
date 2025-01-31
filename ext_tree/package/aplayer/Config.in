@@ -1,0 +1,4 @@
+config BR2_PACKAGE_APLAYER
+	bool "applayer"
+        help
+	  "aplayer"

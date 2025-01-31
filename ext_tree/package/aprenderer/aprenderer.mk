@@ -4,15 +4,17 @@
 #
 ################################################################################
 
-#APRENDERER_SITE = http://albumplayer.ru/linux
-#APRENDERER_SOURCE = aprenderer-arm32.tar.gz
+APRENDERER_SOURCE = aprenderer-arm32.tar.gz
+APRENDERER_SITE = https://albumplayer.ru/linux
+APRENDERER_DL_SUBDIR = aprenderer
+
+define APRENDERER_EXTRACT_CMDS
+    $(TAR) -xzf $(DL_DIR)/$(APRENDERER_DL_SUBDIR)/$(APRENDERER_SOURCE) -C $(@D)
+endef
 
 define APRENDERER_INSTALL_TARGET_CMDS
-#	mkdir -p $(TARGET_DIR)/usr/aprenderer/
-#	mkdir -p $(TARGET_DIR)/usr/aprenderer/upnp/
-#	cp -r $(@D)/* -t $(TARGET_DIR)/usr/aprenderer/
-	cp -r $(BR2_EXTERNAL_ext_tree_PATH)/package/aprenderer/aprenderer   $(TARGET_DIR)/usr/
+    $(INSTALL) -d -m 0755 $(TARGET_DIR)/usr
+    $(TAR) -xzf $(DL_DIR)/$(APRENDERER_DL_SUBDIR)/$(APRENDERER_SOURCE) -C $(TARGET_DIR)/usr
 endef
 
 $(eval $(generic-package))
-

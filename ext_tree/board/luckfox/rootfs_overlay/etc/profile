@@ -1,0 +1,23 @@
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+
+if [ "$PS1" ]; then
+    if [ "`id -u`" -eq 0 ]; then
+	export PS1='# '
+    else
+	export PS1='$ '
+    fi
+fi
+
+export EDITOR='/bin/mcedit'
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+export LC_CTYPE=C.UTF-8
+
+
+# Source configuration files from /etc/profile.d
+for i in /etc/profile.d/*.sh ; do
+    if [ -r "$i" ]; then
+	. $i
+    fi
+done
+unset i
