@@ -9,6 +9,7 @@ if [ "$PS1" ]; then
 fi
 
 export EDITOR='/bin/mcedit'
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8

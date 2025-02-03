@@ -1,14 +1,17 @@
 #!/bin/sh
 
 start() {
-    printf "Starting Aplayer: "
+    printf "Starting mpd: "
     sync
-	cd /usr/aplayer/aplayer
-    /usr/aplayer/aplayer/aplayer
-    renice -15 `pidof aplayer`
+    ln -s /etc/rc.pure/S95upmpdcli /etc/init.d/S95upmpdcli
+    /etc/init.d/S95upmpdcli start
+    /usr/bin/mpd
+    renice -15 `pidof mpd`
     }
 stop() {
-    killall -9 aplayer
+    killall -9 mpd
+    killall -9 upmpdcli
+    rm -f /etc/init.d/S95upmpdcli
 }
 restart() {
 	stop
