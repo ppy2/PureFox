@@ -92,7 +92,7 @@ $(document).ready(function () {
             data: { card: cardType },
             success: function() {
                 checkAlsaState();
-                alert('Успешно переключено на ' + cardType.toUpperCase());
+            <!-- alert('Успешно переключено на ' + cardType.toUpperCase()); -->
             },
             error: function() {
                 alert('Ошибка при переключении ALSA');
