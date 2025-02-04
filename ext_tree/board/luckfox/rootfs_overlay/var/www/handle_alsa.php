@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Запись изменений обратно в файл
         file_put_contents($asoundConfPath, $newContent);
 
-        // Перезапуск ALSA для применения изменений
-        shell_exec('sudo alsactl restore');
+        // Перезапуск плеера для применения изменений
+        shell_exec('/usr/bin/sudo /etc/init.d/S95* restart');
 
         echo $message;
     } else {
