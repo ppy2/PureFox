@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -gc963bd6a-dirty Configuration
+# Buildroot -g4080417b Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -1399,7 +1399,7 @@ BR2_PACKAGE_OPENJDK_ARCH_SUPPORTS=y
 BR2_PACKAGE_PHP_ARCH_SUPPORTS=y
 BR2_PACKAGE_PHP=y
 BR2_PACKAGE_PHP_SAPI_CGI=y
-# BR2_PACKAGE_PHP_SAPI_CLI is not set
+BR2_PACKAGE_PHP_SAPI_CLI=y
 # BR2_PACKAGE_PHP_SAPI_FPM is not set
 
 #

@@ -143,8 +143,8 @@ $(document).ready(function () {
     checkActiveService();
     checkAlsaState();
 
-    // Периодическая проверка каждую минуту только для сервисов
-    setInterval(checkActiveService, 60000);
+    // Периодическая проверка для сервисов раз в 5 сек
+    setInterval(checkActiveService, 5000);
 });
 
 </script>
