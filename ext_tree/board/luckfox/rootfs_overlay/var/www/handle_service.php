@@ -19,7 +19,7 @@ function executeCommand($command) {
 $players = [
     'naa' => ['process' => 'networkaudiod', 'script' => 'S95naa'],
     'raat' => ['process' => 'raat_app', 'script' => 'S95roonready'],
-//    'upnp-mpd' => ['process' => 'mpd', 'script' => 'S95mpd'],
+    'mpd' => ['process' => 'mpd', 'script' => 'S95mpd'],
 //    'upnp-aplayer' => ['process' => 'aplayer', 'script' => 'S95upnp-aplayer'],
     'shairport' => ['process' => 'shairport-sync', 'script' => 'S95shairport'],
     'lms' => ['process' => 'squeezelite', 'script' => 'S95squeezelite'],

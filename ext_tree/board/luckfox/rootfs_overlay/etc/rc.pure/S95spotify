@@ -1,6 +1,7 @@
 #!/bin/sh
 
 start() {
+    /etc/init.d/S48sntp start
     printf "Starting Spotify: "
     NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
     /usr/bin/librespot --dither none --disable-audio-cache --bitrate 320 --name $NAME > /dev/null 2>&1 &

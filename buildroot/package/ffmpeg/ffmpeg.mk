@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FFMPEG_VERSION = 6.1.2
+FFMPEG_VERSION = 4.4.4
 FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.xz
 FFMPEG_SITE = https://ffmpeg.org/releases
 FFMPEG_INSTALL_STAGING = YES
@@ -32,6 +32,10 @@ FFMPEG_CONF_OPTS = \
 	--disable-gray \
 	--enable-swscale-alpha \
 	--disable-small \
+	--enable-dct \
+	--enable-fft \
+	--enable-mdct \
+	--enable-rdft \
 	--disable-crystalhd \
 	--disable-dxva2 \
 	--enable-runtime-cpudetect \
@@ -52,7 +56,12 @@ FFMPEG_CONF_OPTS = \
 	--disable-libilbc \
 	--disable-libvo-amrwbenc \
 	--disable-symver \
-	--disable-doc
+	--disable-doc \
+	--disable-neon \
+	--disable-vfp \
+	--disable-decoder=mlp \
+	--disable-encoder=mlp \
+	--disable-parser=mlp
 
 FFMPEG_DEPENDENCIES += host-pkgconf
 
@@ -97,6 +106,12 @@ FFMPEG_DEPENDENCIES += libv4l
 FFMPEG_CONF_OPTS += --enable-libv4l2
 else
 FFMPEG_CONF_OPTS += --disable-libv4l2
+endif
+
+ifeq ($(BR2_PACKAGE_FFMPEG_AVRESAMPLE),y)
+FFMPEG_CONF_OPTS += --enable-avresample
+else
+FFMPEG_CONF_OPTS += --disable-avresample
 endif
 
 ifeq ($(BR2_PACKAGE_FFMPEG_FFPROBE),y)
@@ -331,14 +346,11 @@ else
 FFMPEG_CONF_OPTS += --disable-libbluray
 endif
 
-ifeq ($(BR2_PACKAGE_LIBVPL),y)
-FFMPEG_CONF_OPTS += --enable-libvpl --disable-libmfx
-FFMPEG_DEPENDENCIES += libvpl
-else ifeq ($(BR2_PACKAGE_INTEL_MEDIASDK),y)
-FFMPEG_CONF_OPTS += --disable-libvpl --enable-libmfx
+ifeq ($(BR2_PACKAGE_INTEL_MEDIASDK),y)
+FFMPEG_CONF_OPTS += --enable-libmfx
 FFMPEG_DEPENDENCIES += intel-mediasdk
 else
-FFMPEG_CONF_OPTS += --disable-libvpl --disable-libmfx
+FFMPEG_CONF_OPTS += --disable-libmfx
 endif
 
 ifeq ($(BR2_PACKAGE_RTMPDUMP),y)
@@ -398,20 +410,6 @@ FFMPEG_CONF_OPTS += --enable-fontconfig
 FFMPEG_DEPENDENCIES += fontconfig
 else
 FFMPEG_CONF_OPTS += --disable-fontconfig
-endif
-
-ifeq ($(BR2_PACKAGE_HARFBUZZ),y)
-FFMPEG_CONF_OPTS += --enable-libharfbuzz
-FFMPEG_DEPENDENCIES += harfbuzz
-else
-FFMPEG_CONF_OPTS += --disable-libharfbuzz
-endif
-
-ifeq ($(BR2_PACKAGE_LIBFRIBIDI),y)
-FFMPEG_CONF_OPTS += --enable-libfribidi
-FFMPEG_DEPENDENCIES += libfribidi
-else
-FFMPEG_CONF_OPTS += --disable-libfribidi
 endif
 
 ifeq ($(BR2_PACKAGE_OPENJPEG),y)
@@ -543,11 +541,6 @@ else
 FFMPEG_CONF_OPTS += --disable-altivec
 endif
 
-# Fix build failure on several missing assembly instructions
-ifeq ($(BR2_RISCV_32),y)
-FFMPEG_CONF_OPTS += --disable-rvv --disable-asm
-endif
-
 # Uses __atomic_fetch_add_4
 ifeq ($(BR2_TOOLCHAIN_HAS_LIBATOMIC),y)
 FFMPEG_CONF_OPTS += --extra-libs=-latomic
@@ -572,11 +565,6 @@ endif
 FFMPEG_CFLAGS = $(TARGET_CFLAGS)
 
 ifeq ($(BR2_TOOLCHAIN_HAS_GCC_BUG_85180),y)
-FFMPEG_CONF_OPTS += --disable-optimizations
-FFMPEG_CFLAGS += -O0
-endif
-
-ifeq ($(BR2_TOOLCHAIN_HAS_GCC_BUG_68485),y)
 FFMPEG_CONF_OPTS += --disable-optimizations
 FFMPEG_CFLAGS += -O0
 endif
