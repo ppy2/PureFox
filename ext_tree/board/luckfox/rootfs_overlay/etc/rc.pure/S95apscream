@@ -1,0 +1,27 @@
+#!/bin/sh
+
+start() {
+    touch /var/log/apscream.log
+    ln -s -f /var/log/apscream.log /usr/apscream/apscream.log
+    printf "Starting APscream: "
+    cd /usr/apscream; ./apscream > /dev/null 2>&1 && echo "OK" || echo "FAIL"
+    renice -15 `pidof apscream`
+    sync
+    }
+stop() {
+    killall -9 apscream
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

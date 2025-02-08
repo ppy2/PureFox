@@ -8,14 +8,14 @@ start() {
     NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
     sed -i -e "s/<mac>.*<\/mac>/<mac>$MAC<\/mac>/g" /usr/aprenderer/upnp/config.xml
     sed -i -e "s/<name>.*<\/name>/<name>$NAME<\/name>/g" /usr/aprenderer/upnp/config.xml
-    chown pure:pure /usr/aprenderer/*
-    /usr/aprenderer/upnp/squeeze2upnp -z -k -x /usr/aprenderer/upnp/config.xml > /dev/null 2>&1
+#    chown pure:pure /usr/aprenderer/*
+#    /usr/aprenderer/upnp/squeeze2upnp -z -k -x /usr/aprenderer/upnp/config.xml > /dev/null 2>&1
     cd /usr/aprenderer; ./ap2renderer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
     renice -15 `pidof ap2renderer`
     sync
     }
 stop() {
-    killall -9 ap2renderer squeeze2upnp
+    killall -9 ap2renderer
 }
 restart() {
 	stop

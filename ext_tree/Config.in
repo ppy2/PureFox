@@ -2,7 +2,7 @@
 menu "Audio Renderers"
 	source "../ext_tree/package/aprenderer/Config.in"
 	source "../ext_tree/package/aplayer/Config.in"
-	source "../ext_tree/package/librespot/Config.in"
+	source "../ext_tree/package/raspotify/Config.in"
 	source "../ext_tree/package/naa/Config.in"
 	source "../ext_tree/package/roonready/Config.in"
 	source "../ext_tree/package/apscream/Config.in"
