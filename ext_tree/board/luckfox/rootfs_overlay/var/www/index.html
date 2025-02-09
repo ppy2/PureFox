@@ -19,139 +19,161 @@
             </div>
         </div>
 
-        <!-- Кнопки для управления плеерами -->
+        <!-- Кнопки управления плеерами -->
         <button class="btn-custom primary" data-service="naa" data-process="naa_process">NAA (HQPlayer)</button>
-        <button class="btn-custom danger"  data-service="raat" data-process="raat_process">RAAT (Roon)</button>
-	<button class="btn-custom success" data-service="mpd" data-process="mpd">UPNP (Mpd)</button>        
-	<button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
-	<button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
-	<button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
-	<button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
+        <button class="btn-custom danger" data-service="raat" data-process="raat_process">RAAT (Roon)</button>
+        <button class="btn-custom success" data-service="mpd" data-process="mpd">UPNP (Mpd)</button>        
+        <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
+        <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
+        <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
+        <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
         <button class="btn-custom danger" data-service="lms" data-process="squeezelite">LMS (Squeezelite)</button>
-        
-<!--    <button class="btn-custom primary" data-service="naa" data-process="naa_process">NAA (HoPlayer)</button>
-        <button class="btn-custom success" data-service="raat" data-process="raat_process">RAAT (Roon)</button>
-        <button class="btn-custom warning" data-service="upnp-mpd" data-process="mpd">UPNP (MPD)</button>
-        <button class="btn-custom danger" data-service="upnp-aplayer" data-process="aplayer">UPNP (APlayer)</button>
-        <button class="btn-custom primary" data-service="airplay" data-process="airplay">AirPlay</button>
-        <button class="btn-custom success" data-service="lms" data-process="squeezelite">LMS (Squeezelite)</button>
-        <button class="btn-custom warning" data-service="shairport" data-process="shairport">ShairportSync</button>
-        <button class="btn-custom danger" data-service="screen-audio" data-process="screen_audio">Screen Audio</button>
-        <button class="btn-custom primary" data-service="spotify" data-process="spotify">Spotify Connect</button>
-        <button class="btn-custom success" data-service="tidal" data-process="tidal">Tidal Connect (Premium account)</button>
-        <button class="btn-custom warning" data-service="pure" data-process="pure">Pure</button>
--->
-PureFox v0.1(beta)                                                                                                            
+
+        <!-- Кнопка обновления прошивки -->
+        <button id="update-firmware" class="btn-custom warning">Обновить прошивку</button>
     </div>
 
-<script src="assets/js/jquery-3.7.1.min.js"></script>
-<script>
+    <!-- Всплывающее окно с логом обновления -->
+    <div id="update-log-modal" style="display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index:1000;">
+      <div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; width: 600px; height: 400px; overflow: hidden;">
+        <h2>Обновление прошивки</h2>
+        <pre id="update-log-content" style="background: #000; color: #0f0; padding: 10px; text-align: left; height: 300px; overflow-y: auto; white-space: pre-wrap;"></pre>
+        <button class="close-modal">Закрыть</button>
+      </div>
+    </div>
 
-$(document).ready(function () {
-    function checkActiveService(callback) {
-        $.ajax({
-            url: 'check_service.php',
-            method: 'GET',
-            success: function(response) {
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            function checkActiveService(callback) {
+                $.ajax({
+                    url: 'check_service.php',
+                    method: 'GET',
+                    success: function(response) {
+                        $('.btn-custom').removeClass('active');
+                        if (response) {
+                            $(`button[data-service="${response.trim()}"]`).addClass('active');
+                        }
+                        if (callback) callback(response.trim());
+                    }
+                });
+            }
+
+            function checkAlsaState() {
+                $.ajax({
+                    url: 'get_alsa_state.php',
+                    method: 'GET',
+                    success: function(response) {
+                        $('.alsa-button').removeClass('active');
+                        switch(response.trim()) {
+                            case 'usb':
+                                $('#alsa-usb').addClass('active');
+                                break;
+                            case 'i2s':
+                                $('#alsa-i2s').addClass('active');
+                                break;
+                            case 'error':
+                                console.error('Ошибка при чтении конфигурации ALSA');
+                                break;
+                        }
+                    },
+                    error: function() {
+                        console.error('Не удалось получить состояние ALSA');
+                    }
+                });
+            }
+
+            $('.alsa-button').click(function() {
+                const cardType = $(this).attr('id').replace('alsa-', '');
+                $.ajax({
+                    url: 'handle_alsa.php',
+                    method: 'POST',
+                    data: { card: cardType },
+                    success: function() {
+                        checkAlsaState();
+                    },
+                    error: function() {
+                        alert('Ошибка при переключении ALSA');
+                    }
+                });
+            });
+
+            $('.btn-custom').click(function() {
+                const service = $(this).data('service');
+                const $button = $(this);
+
                 $('.btn-custom').removeClass('active');
-                if (response) {
-                    $(`button[data-service="${response.trim()}"]`).addClass('active');
+                $button.addClass('active');
+
+                $.ajax({
+                    url: 'handle_service.php',
+                    method: 'POST',
+                    data: { service: service },
+                    success: function() {
+                        let attempts = 0;
+                        const MAX_ATTEMPTS = 15;
+                        const CHECK_INTERVAL = 1000;
+
+                        const checkInterval = setInterval(() => {
+                            checkActiveService((response) => {
+                                if (response === service) {
+                                    clearInterval(checkInterval);
+                                    return;
+                                }
+                                attempts++;
+                                if (attempts >= MAX_ATTEMPTS) {
+                                    clearInterval(checkInterval);
+                                    $button.removeClass('active');
+                                }
+                            });
+                        }, CHECK_INTERVAL);
+                    },
+                    error: function() {
+                        alert('Ошибка при переключении сервиса');
+                        $(this).removeClass('active');
+                    }
+                });
+            });
+
+            checkActiveService();
+            checkAlsaState();
+            setInterval(checkActiveService, 5000);
+
+            $('#update-firmware').click(function () {
+                if (!confirm("Вы уверены, что хотите обновить прошивку?")) {
+                    return;
                 }
-                if (callback) callback(response.trim());
-            }
-        });
-    }
 
-    function checkAlsaState() {
-        $.ajax({
-            url: 'get_alsa_state.php',
-            method: 'GET',
-            success: function(response) {
-                $('.alsa-button').removeClass('active');
-                
-                switch(response.trim()) {
-                    case 'usb':
-                        $('#alsa-usb').addClass('active');
-                        break;
-                    case 'i2s':
-                        $('#alsa-i2s').addClass('active');
-                        break;
-                    case 'error':
-                        console.error('Ошибка при чтении конфигурации ALSA');
-                        break;
-                }
-            },
-            error: function() {
-                console.error('Не удалось получить состояние ALSA');
-            }
-        });
-    }
+                $('#update-log-modal').show();
+                $('#update-log-content').text("Запуск обновления...\n");
 
-    $('.alsa-button').click(function() {
-        const cardType = $(this).attr('id').replace('alsa-', '');
-        
-        $.ajax({
-            url: 'handle_alsa.php',
-            method: 'POST',
-            data: { card: cardType },
-            success: function() {
-                checkAlsaState();
-            <!-- alert('Успешно переключено на ' + cardType.toUpperCase()); -->
-            },
-            error: function() {
-                alert('Ошибка при переключении ALSA');
-            }
-        });
-    });
+                let logContent = $('#update-log-content');
 
-    $('.btn-custom').click(function() {
-        const service = $(this).data('service');
-        const $button = $(this);
-
-        $('.btn-custom').removeClass('active');
-        $button.addClass('active');
-
-        $.ajax({
-            url: 'handle_service.php',
-            method: 'POST',
-            data: { service: service },
-            success: function() {
-                let attempts = 0;
-                const MAX_ATTEMPTS = 15; // Увеличиваем количество попыток
-                const CHECK_INTERVAL = 1000; // Увеличиваем интервал до 1 секунды
-
-                const checkInterval = setInterval(() => {
-                    checkActiveService((response) => {
-                        if (response === service) {
-                            clearInterval(checkInterval);
-                            return;
+                $.ajax({
+                    url: 'run_update.php',
+                    method: 'GET',
+                    xhrFields: {
+                        onprogress: function (e) {
+                            let newText = e.currentTarget.responseText;
+                            logContent.append(newText);
+                            logContent.scrollTop(logContent[0].scrollHeight);
                         }
+                    },
+                    success: function () {
+                        logContent.append("\nОбновление завершено. Перезагрузите LuckFox");
+                    },
+                    error: function () {
+                        logContent.append("\nОшибка при обновлении.");
+                    }
+                });
+            });
 
-                        attempts++;
-                        if (attempts >= MAX_ATTEMPTS) {
-                            clearInterval(checkInterval);
-                            $button.removeClass('active');
-                        }
-                    });
-                }, CHECK_INTERVAL);
-            },
-            error: function() {
-                alert('Ошибка при переключении сервиса');
-                $(this).removeClass('active');
-            }
+            $('.close-modal').click(function () {
+                $('#update-log-modal').fadeOut();
+            });
         });
-    });
-
-    // Первоначальная проверка сервисов и состояния ALSA
-    checkActiveService();
-    checkAlsaState();
-
-    // Периодическая проверка для сервисов раз в 5 сек
-    setInterval(checkActiveService, 5000);
-});
-
-</script>
+    </script>
 </body>
 </html>
 
