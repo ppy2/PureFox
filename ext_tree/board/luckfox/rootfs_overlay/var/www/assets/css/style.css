@@ -111,3 +111,27 @@ h1 {
     border-left: 5px solid #dc3545;
 }
 
+#update-log-modal > div {
+    width: 90%;
+    max-width: 500px;
+    height: auto;
+    max-height: 80vh;
+    overflow: auto;
+}
+
+#update-log-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.update-finish {
+    color: #fff;
+    font-weight: bold;
+}
+
+.update-error {
+    color: #ff4d4d; /* Ярко-красный */
+    font-weight: bold;
+}
+

@@ -31,12 +31,13 @@
         <button class="btn-custom danger" data-service="lms" data-process="squeezelite">LMS (Squeezelite)</button>
 
         <!-- Кнопка обновления прошивки -->
+        PureFox v0.1 beta
         <button id="update-firmware" class="btn-custom warning">Обновить прошивку</button>
     </div>
 
     <!-- Всплывающее окно с логом обновления -->
     <div id="update-log-modal" style="display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index:1000;">
-      <div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; width: 600px; height: 400px; overflow: hidden;">
+    <div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; height: auto; max-height: 80vh; overflow: auto;">
         <h2>Обновление прошивки</h2>
         <pre id="update-log-content" style="background: #000; color: #0f0; padding: 10px; text-align: left; height: 300px; overflow-y: auto; white-space: pre-wrap;"></pre>
         <button class="close-modal">Закрыть</button>
@@ -157,14 +158,16 @@
                         onprogress: function (e) {
                             let newText = e.currentTarget.responseText;
                             logContent.append(newText);
-                            logContent.scrollTop(logContent[0].scrollHeight);
+                            setTimeout(() => {logContent.scrollTop(logContent.prop("scrollHeight"));}, 100);
                         }
                     },
                     success: function () {
-                        logContent.append("\nОбновление завершено. Перезагрузите LuckFox");
+			logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
+			logContent.append('\n<span class="update-finish">Обновление завершено. Перезагрузите LuckFox</span>');
                     },
                     error: function () {
-                        logContent.append("\nОшибка при обновлении.");
+			logContent.append('\n<span class="update-error">Ошибка при обновлении.</span>');
+			logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
                     }
                 });
             });
