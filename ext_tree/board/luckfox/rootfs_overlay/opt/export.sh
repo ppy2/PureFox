@@ -17,9 +17,7 @@ rsync -axlHWSzv --delete --numeric-ids \
 --exclude=/var/cache/upmpdcli/* \
 --exclude=/etc/resolv.conf \
 --exclude=/data/ethaddr.txt \
---exclude=/root/.ash_history \
---exclude=/root/.cache/* \
---exclude=/root/.local/* \
+--exclude=/root/* \
 --exclude=/etc/init.d/S95* \
 --exclude=/usr/aplayer/*.dat \
 --exclude=/usr/aprenderer/*.dat \

@@ -6,6 +6,7 @@ sshpass -p 'luckfox'  rsync -av --size-only \
 --exclude=/proc \
 --exclude=/sys \
 --exclude=/mnt \
+--exclude=/root \
 --exclude=/etc/output \
 --exclude=/etc/asound.conf \
 --exclude=/usr/aprenderer/config.dat \

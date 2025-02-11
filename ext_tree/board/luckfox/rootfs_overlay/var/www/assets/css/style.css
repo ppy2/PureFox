@@ -1,128 +1,114 @@
-/* Стили для переключателя */
 .alsa-toggle {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
+display: flex;
+align-items: center;
+margin-bottom: 20px;
 }
 
 .alsa-toggle label {
-    margin-right: 10px;
-    font-size: 16px;
-    color: #333;
+margin-right: 10px;
+font-size: 16px;
+color: #e0e0e0;
 }
 
 .alsa-buttons {
-    display: flex;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
+display: flex;
+border: 1px solid #555;
+border-radius: 8px;
+overflow: hidden;
 }
 
 .alsa-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    color: #333;
-    background-color: #f8f9fa;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
+padding: 10px 20px;
+font-size: 16px;
+color: #e0e0e0;
+background-color: #3d3d3d;
+border: none;
+cursor: pointer;
+transition: all 0.3s ease;
 }
 
 .alsa-button.active {
-    background-color: #007bff;
-    color: #fff;
+background-color: #007bff;
+color: #fff;
 }
 
-.alsa-button:not(.active):hover {
-    background-color: #e2e6ea;
+.alsa-button:not (.active):hover {
+background-color: #4d4d4d;
 }
 
 /* Остальные стили */
 body {
-    background-color: #f5f5f5;
-    font-family: 'Arial', sans-serif;
+background-color: #1a1a1a;
+font-family: 'Arial', sans-serif;
+color: #e0e0e0;
 }
 
 .container {
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+max-width: 600px;
+margin: 50px auto;
+padding: 20px;
+background-color: #2d2d2d;
+border-radius: 10px;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 h1 {
-    text-align: center;
-    color: #333;
-    font-size: 24px;
-    margin-bottom: 20px;
+text-align: center;
+color: #e0e0e0;
+font-size: 24px;
+margin-bottom: 20px;
 }
 
 .btn-custom {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin: 10px 0;
-    font-size: 16px;
-    color: #333;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    text-align: left;
-    transition: all 0.3s ease;
+display: block;
+width: 100%;
+padding: 15px;
+margin: 10px 0;
+font-size: 16px;
+color: #e0e0e0;
+background-color: #3d3d3d;
+border: 1px solid #555;
+border-radius: 8px;
+text-align: left;
+transition: all 0.3s ease;
 }
 
 .btn-custom:hover {
-    background-color: #e2e6ea;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+background-color: #4d4d4d;
+transform: translateY(-2px);
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-custom:active {
-    transform: translateY(0);
-    box-shadow: none;
+transform: translateY(0);
+box-shadow: none;
 }
 
 .btn-custom.active {
-    background-color: #007bff;
-    color: #fff;
-    border-color: #007bff;
+background-color: #007bff;
+color: #fff;
+border-color: #007bff;
 }
 
 .btn-custom:focus {
-    outline: none;
-    border-color: #007bff;
+outline: none;
+border-color: #007bff;
 }
 
 .btn-custom.primary {
-    border-left: 5px solid #007bff;
+border-left: 5px solid #007bff;
 }
 
 .btn-custom.success {
-    border-left: 5px solid #28a745;
+border-left: 5px solid #28a745;
 }
 
 .btn-custom.warning {
-    border-left: 5px solid #ffc107;
+border-left: 5px solid #ffc107;
 }
 
 .btn-custom.danger {
-    border-left: 5px solid #dc3545;
-}
-
-#update-log-modal > div {
-    width: 90%;
-    max-width: 500px;
-    height: auto;
-    max-height: 80vh;
-    overflow: auto;
-}
-
-#update-log-content {
-    max-height: 60vh;
-    overflow-y: auto;
-    white-space: pre-wrap;
+border-left: 5px solid #dc3545;
 }
 
 .update-finish {
@@ -135,3 +121,4 @@ h1 {
     font-weight: bold;
 }
 
+        
