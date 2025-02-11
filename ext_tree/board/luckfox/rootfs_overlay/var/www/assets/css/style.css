@@ -121,4 +121,12 @@ border-left: 5px solid #dc3545;
     font-weight: bold;
 }
 
+.player-buttons .btn-custom {
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.ap-buttons .btn-custom {
+    margin-bottom: 1px;
+}
         

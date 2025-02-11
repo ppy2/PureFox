@@ -5,6 +5,7 @@ $services = [
     'naa' => 'networkaudiod',
     'raat' => 'raat_app',
     'mpd' => 'bin/mpd',
+    'squeeze2upn' => 'squeeze2upn',
     'aprenderer' => 'ap2renderer',
     'aplayer' => 'aplayer',
     'apscream' => 'apscream',

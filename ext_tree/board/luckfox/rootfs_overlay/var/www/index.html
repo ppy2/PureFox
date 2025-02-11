@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Audio System Control</h1>
+<!--        <h1>Audio System Control</h1> -->
 
         <!-- Переключатель ALSA -->
         <div class="alsa-toggle">
@@ -23,9 +23,14 @@
         <button class="btn-custom primary" data-service="naa" data-process="naa_process">NAA (HQPlayer)</button>
         <button class="btn-custom danger" data-service="raat" data-process="raat_process">RAAT (Roon)</button>
         <button class="btn-custom success" data-service="mpd" data-process="mpd">UPNP (Mpd)</button>        
-        <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
-        <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
-        <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
+	<div class="player-buttons" style="display: flex; gap: 10px;">
+    	    <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
+    	    <button class="btn-custom primary" data-service="squeeze2upn" data-process="squeeze2upn">AP-Squeeze</button>
+	</div>	    
+	<div class="ap-buttons" style="display: flex; gap: 10px;">
+	    <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
+    	    <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
+        </div>
         <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
         <button class="btn-custom danger" data-service="lms" data-process="squeezelite">LMS (Squeezelite)</button>

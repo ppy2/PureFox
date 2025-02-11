@@ -21,6 +21,7 @@ $players = [
     'raat' => ['process' => 'raat_app', 'script' => 'S95roonready'],
     'mpd' => ['process' => 'mpd', 'script' => 'S95mpd'],
     'aprenderer' => ['process' => 'ap2renderer', 'script' => 'S95aprenderer'],
+    'squeeze2upn' => ['process' => 'squeeze2upn', 'script' => 'S95apsq'],
     'aplayer' => ['process' => 'aplayer', 'script' => 'S95aplayer'],
     'apscream' => ['process' => 'apscream', 'script' => 'S95apscream'],
     'shairport' => ['process' => 'shairport-sync', 'script' => 'S95shairport'],
