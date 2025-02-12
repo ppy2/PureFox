@@ -37,6 +37,15 @@ background-color: #4d4d4d;
 }
 
 /* Остальные стили */
+html, body {
+height: 100%;
+width:100%;
+padding: 0;
+margin: 0;
+display: grid;
+place-items: center;
+}
+
 body {
 background-color: #1a1a1a;
 font-family: 'Arial', sans-serif;
@@ -44,8 +53,14 @@ color: #e0e0e0;
 }
 
 .container {
-max-width: 600px;
-margin: 50px auto;
+max-width: 50%;
+min-width: 240px;
+min-height: 66%;
+display: block;
+margin: auto;
+position: absolute;
+left: 0;
+right: 0;
 padding: 20px;
 background-color: #2d2d2d;
 border-radius: 10px;
@@ -129,4 +144,19 @@ border-left: 5px solid #dc3545;
 .ap-buttons .btn-custom {
     margin-bottom: 1px;
 }
-        
+     
+#label{
+    text-align: center;
+    display: table-cell;
+    line-height: 25px;
+    width: 81px;
+    background: rgb(41 40 40);
+    color: rgb(12 12 12);
+    position: absolute;
+    border-radius: 0 0 5px 5px;
+    bottom: -25px;
+    right: 14px;
+    -webkit-box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
+    -moz-box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
+    box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
+}

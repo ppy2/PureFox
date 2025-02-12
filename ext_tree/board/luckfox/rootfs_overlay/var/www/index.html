@@ -23,13 +23,13 @@
         <button class="btn-custom primary" data-service="naa" data-process="naa_process">NAA (HQPlayer)</button>
         <button class="btn-custom danger" data-service="raat" data-process="raat_process">RAAT (Roon)</button>
         <button class="btn-custom success" data-service="mpd" data-process="mpd">UPNP (Mpd)</button>        
-	<div class="player-buttons" style="display: flex; gap: 10px;">
-    	    <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
-    	    <button class="btn-custom primary" data-service="squeeze2upn" data-process="squeeze2upn">AP-Squeeze</button>
-	</div>	    
-	<div class="ap-buttons" style="display: flex; gap: 10px;">
-	    <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
-    	    <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
+        <div class="player-buttons" style="display: flex; gap: 10px;">
+            <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">UPNP (APrenderer)</button>
+            <button class="btn-custom primary" data-service="squeeze2upn" data-process="squeeze2upn">AP-Squeeze</button>
+        </div>
+        <div class="ap-buttons" style="display: flex; gap: 10px;">
+            <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer</button>
+            <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream</button>
         </div>
         <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
@@ -38,13 +38,14 @@
         <!-- Кнопка обновления прошивки -->
         PureFox v0.1 beta
         <button id="update-firmware" class="btn-custom warning">Обновить прошивку</button>
+        <div id="label"><span>Luckfox</span></div>
     </div>
 
 
     <!-- Всплывающее окно с логом обновления -->
     <div id="update-log-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; height: auto; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: #ddd; border: 2px solid #555;">
-	<h2 style="margin-top: 0; color: #fff; text-align: center;">Обновление прошивки</h2>
+    <h2 style="margin-top: 0; color: #fff; text-align: center;">Обновление прошивки</h2>
         <pre id="update-log-content" style="background: #181818; color: #0f0; padding: 10px; text-align: left; height: 300px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #666;"></pre>
         <button class="close-modal" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase;">Закрыть</button>
     </div>
@@ -169,12 +170,12 @@
                         }
                     },
                     success: function () {
-			logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
-			logContent.append('\n<span class="update-finish">Обновление завершено. Перезагрузите LuckFox</span>');
+            logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
+            logContent.append('\n<span class="update-finish">Обновление завершено. Перезагрузите LuckFox</span>');
                     },
                     error: function () {
-			logContent.append('\n<span class="update-error">Ошибка при обновлении.</span>');
-			logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
+            logContent.append('\n<span class="update-error">Ошибка при обновлении.</span>');
+            logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
                     }
                 });
             });
