@@ -1,0 +1,18 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0  {
+        target-path = "/osc-49m";
+        __overlay__     {
+                clock-frequency = <24576000>;
+                        };
+                };
+
+    fragment@1  {
+        target-path = "/osc-45m";
+        __overlay__     {
+                clock-frequency = <22579200>;
+                        };
+                };
+};
