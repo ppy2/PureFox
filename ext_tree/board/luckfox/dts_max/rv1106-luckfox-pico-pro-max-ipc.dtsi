@@ -9,71 +9,148 @@
 		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk1p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=128 coherent_pool=0";
 	};
 
-/*
-&emmc {
-        bus-width = <8>;
-        cap-mmc-highspeed;
-        non-removable;
-        // mmc-hs200-1_8v;
-        rockchip,default-sample-phase = <90>;
-        no-sdio;
-        no-sd;
-        memory-region-ecsd = <&mmc_ecsd>;
-        post-power-on-delay-ms = <0>;
-        status = "okay";
-};
-*/
 
+
+/*******************EXT_CLOCK_HIERARCHY_BEGIN**************************/
+
+/*********COMMENT_THIS_NODES_IF_YOU_PLANNING_TO_USE_PLL_MASTERCLOCK************/
+
+        osc_49m: osc-49m {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <49152000>;
+//		clock-frequency = <24576000>;
+        };
+
+        osc_45m: osc-45m {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <45158400>;
+//		clock-frequency = <22579200>;
+        };
+        i2s0_mclkin: i2s0_mclkin {
+                compatible = "gpio-mux-clock";
+                #clock-cells = <0>;
+                clock-output-names = "i2s0_mclkin";
+                clocks = <&osc_49m>, <&osc_45m>;
+                select-gpios = <&gpio1 RK_PD1 GPIO_ACTIVE_HIGH>;
+        };
+
+/*******************EXT_CLOCK_HIERARCHY_END***************************/
+
+
+
+
+/*********************I2S_EXT_CLOCK_BEGIN*****************************/
+
+/*********COMMENT_THIS_NODE_IF_YOU_PLANNING_TO_USE_PLL_MASTERCLOCK***********/
 
 i2s0_8ch: i2s@ffae0000 {
-    compatible = "rockchip,rv1106-i2s-tdm";
-    reg = <0xffae0000 0x1000>;
-    interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
+    	compatible = "rockchip,rv1106-i2s-tdm"; /**** modified driver used *****/
+    	reg = <0xffae0000 0x1000>;
+    	interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
 
-    clocks = <&cru MCLK_I2S0_8CH_TX>, <&cru MCLK_I2S0_8CH_RX>, <&cru HCLK_I2S0>, <&i2s0_mclkin>, <&osc_45m>, <&osc_49m>;
-    clock-names = "mclk_tx", "mclk_rx", "hclk", "mclk_ext", "clk_44", "clk_48";
+    	clocks = <&cru MCLK_I2S0_8CH_TX>, <&cru MCLK_I2S0_8CH_RX>, <&cru HCLK_I2S0>, <&i2s0_mclkin>, <&osc_45m>, <&osc_49m>;
+    	clock-names = "mclk_tx", "mclk_rx", "hclk", "mclk_ext", "clk_44", "clk_48";
 
-    dmas = <&dmac 22>, <&dmac 21>;
-    dma-names = "tx", "rx";
-
-    resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
-    reset-names = "tx-m", "rx-m";
-
-    rockchip,clk-trcm = <1>;
-//    rockchip,playback-only;
-    rockchip,i2s-tx-route = <2 3 0 1>;
-    #sound-dai-cells = <0>;
-    rockchip,cru = <&cru>;
-    rockchip,grf = <&grf>;
-    pinctrl-names = "default";
-    pinctrl-0 = <&i2s0_lrck
-        &i2s0_mclk
-        &i2s0_sclk
-        &i2s0_sdi0
-        &i2s0_sdo0
-        &i2s0_sdo1_sdi3
-        &i2s0_sdo2_sdi2
-        &i2s0_sdo3_sdi1>;
-    status = "okay";
-
-	assigned-clocks = <&cru CLK_I2S0_8CH_TX>, <&cru CLK_I2S0_8CH_RX>;
+    	assigned-clocks = <&cru CLK_I2S0_8CH_TX>, <&cru CLK_I2S0_8CH_RX>;
     	assigned-clock-parents = <&i2s0_mclkin>, <&i2s0_mclkin>;
-	my,mclk_external;
+    	my,mclk_external;
 
+    	dmas = <&dmac 22>, <&dmac 21>;
+    	dma-names = "tx", "rx";
+
+    	resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
+    	reset-names = "tx-m", "rx-m";
+
+    	rockchip,clk-trcm = <1>;
+    	rockchip,playback-only;
+    	rockchip,i2s-tx-route = <2 3 0 1>;
+    	#sound-dai-cells = <0>;
+    	rockchip,cru = <&cru>;
+    	rockchip,grf = <&grf>;
+    	pinctrl-names = "default";
+    	pinctrl-0 = <&i2s0_lrck
+        	&i2s0_mclk
+        	&i2s0_sclk
+        	&i2s0_sdi0
+        	&i2s0_sdo0
+        	&i2s0_sdo1_sdi3
+        	&i2s0_sdo2_sdi2
+        	&i2s0_sdo3_sdi1>;
+    	status = "disable";
 };
+
+/******************I2S_EXT_CLOCK_END************************/
+
+
+
+
+
+/*********************I2S_PLL_CLOCK_BEGIN*****************************/
+
+/*********COMMENT_THIS_NODE_IF_YOU_PLANNING_TO_USE_EXT_MASTERCLOCK***********/
+
+//	i2s0_8ch: i2s@ffae0000 {
+//		compatible = "rockchip,rv1106-i2s-tdm";
+//		reg = <0xffae0000 0x1000>;
+//		interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
+//
+//		clocks = <&cru MCLK_I2S0_8CH_TX>, <&cru MCLK_I2S0_8CH_RX>, <&cru HCLK_I2S0>,
+//			 <&cru CLK_I2S0_8CH_TX_SRC>, <&cru CLK_I2S0_8CH_RX_SRC>,
+//		 	 <&cru PLL_GPLL>, <&cru PLL_GPLL>;
+//		
+//		clock-names = "mclk_tx", "mclk_rx", "hclk",
+//		    	      "mclk_tx_src", "mclk_rx_src",
+//		      	      "mclk_root0", "mclk_root1";
+//		
+//		rockchip,mclk-calibrate;
+//
+//		assigned-clocks = <&cru I2S0_8CH_MCLKOUT>;
+//		assigned-clock-parents = <&cru CLK_I2S0_8CH_TX_SRC>;
+//
+//		dmas = <&dmac 22>, <&dmac 21>;
+//		dma-names = "tx", "rx";
+//		resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
+//		reset-names = "tx-m", "rx-m";
+//		rockchip,clk-trcm = <1>;
+//		#sound-dai-cells = <0>;
+//		rockchip,cru = <&cru>;
+//		rockchip,grf = <&grf>;
+//		rockchip,playback-only;
+//		rockchip,i2s-tx-route = <2 3 0 1>;
+//              pinctrl-names = "default";
+//		pinctrl-0 = <&i2s0_lrck
+//				&i2s0_mclk
+//				&i2s0_sclk
+//				&i2s0_sdi0
+//				&i2s0_sdo0
+//				&i2s0_sdo1_sdi3
+//				&i2s0_sdo2_sdi2
+//				&i2s0_sdo3_sdi1>;
+//		status = "disabled";
+//	};
+
+/******************I2S_PLL_CLOCK_END************************/
+
+
+
+/*************EXT_AUDIO_CODEC_ALSA_CARD_BEGIN***************/
 
 mycodec: mycodec {
     	compatible = "rockchip,dummy-codec";
     	#sound-dai-cells = <0>;
-    	status = "okay";
-//		nxp,mute-gpios = <&gpio1 RK_PD0 GPIO_ACTIVE_LOW>;
-//		nxp,deemph-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_LOW>;
+    	status = "disable";
+
 };
 
 i2s80:sound {
 	compatible = "simple-audio-card";
-	simple-audio-card,name = "i2s80";
-//	simple-audio-card,mclk-fs = <256>;
+	simple-audio-card,name = "I2S_EXT_CLOCK_ALSA_CARD";
+
+/*********COMMENT_IT_IF_YOU_USE_EXT_MCLK**************/
+//	simple-audio-card,mclk-fs = <128>;
+/*****************************************************/
 	simple-audio-card,format = "i2s";
 
 	simple-audio-card,bitclock-master = <&card_master>;
@@ -89,86 +166,12 @@ i2s80:sound {
         };
 };
 
+/*************EXT_AUDIO_CODEC_ALSA_CARD_END***************/
 
 
 
-/*
-//	acodec_sound: acodec-sound {
-//		status = "okay";
-//		compatible = "simple-audio-card";
-//		simple-audio-card,name = "rv-acodec";
-//		simple-audio-card,format = "i2s";
-//		simple-audio-card,mclk-fs = <1024>;
-//		simple-audio-card,cpu {
-//			sound-dai = <&i2s0_8ch>;
-//		};
-//		simple-audio-card,codec {
-//			sound-dai = <&acodec>;
-//		};
-//	};
 
-*/
-        osc_49m: osc-49m {
-                compatible = "fixed-clock";
-                #clock-cells = <0>;
-                clock-frequency = <49152000>;
-//		  clock-frequency = <24576000>;
-        };
-        osc_45m: osc-45m {
-                compatible = "fixed-clock";
-                #clock-cells = <0>;
-                clock-frequency = <45158400>;
-//		  clock-frequency = <22579200>;
-        };
-        i2s0_mclkin: i2s0_mclkin {
-                compatible = "gpio-mux-clock";
-                #clock-cells = <0>;
-                clock-output-names = "i2s0_mclkin";
-                clocks = <&osc_49m>, <&osc_45m>;
-                select-gpios = <&gpio1 RK_PD1 GPIO_ACTIVE_HIGH>;
-        };
-/*  
-      uda1334: uda1334 {
-                #sound-dai-cells = <0>;
-                compatible = "nxp,uda1334";
-                status = "okay";
-		clocks = <&cru MCLK_SAI>;
-		clock-names = "mclk_sai";
-		nxp,mute-gpios = <&gpio1 RK_PD0 GPIO_ACTIVE_LOW>;
-		nxp,deemph-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_LOW>;
-        };
-
-
-//	my_codec: my_codec {
-//		#sound-dai-cells = <0>;
-//		compatible = "simple-audio-card";
-//		status = "okay";
-//
-//	};
-
-//	pcm5102_master: pcm5102a {
-//		#sound-dai-cells = <0>;
-//		compatible = "ti,pcm5102a";
-//		clocks = <&i2s0_mclkin>;
-//		clock-names = "mclk";
-//	};
-
-        i2s_sound: i2s-sound {
-                compatible = "simple-audio-card";
-                simple-audio-card,format = "i2s";
-                simple-audio-card,name = "EXT-I2S-CARD";
-		simple-audio-card,mclk-fs = <1024>;
-                status = "okay";
-
-                simple-audio-card,cpu {
-                    sound-dai = <&i2s0_8ch>;
-                };
-                simple-audio-card,codec {
-                    sound-dai = <&uda1334>;
-                };
-        };
-
-  */
+/***************OTHER_DEVICES*********************/
 
 	vcc_1v8: vcc-1v8 {
 		compatible = "regulator-fixed";
@@ -198,16 +201,6 @@ i2s80:sound {
 		regulator-boot-on;
 	};
 
-
-//        mclk_in: mclk-in {
-//               compatible = "fixed-clock";
-//               #clock-cells = <0>;
-//               clock-frequency = <49152000>;
-//               clock-output-names = "i2s0_mclkin";
-//               select-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
-//        };
-
-
 	leds: leds {
 		compatible = "gpio-leds";
 		work_led: work{
@@ -216,12 +209,6 @@ i2s80:sound {
 			default-state = "on";
 		};	
 	};
-};
-
-&acodec {
-	#sound-dai-cells = <0>;
-//	pa-ctl-gpios = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
-	status = "disable";
 };
 
 &cpu0 {
@@ -346,11 +333,6 @@ i2s80:sound {
 	};
 };
 
-&i2s0_8ch {
-	#sound-dai-cells = <0>;
-	status = "okay";
-};
-
 &mipi0_csi2 {
 	status = "disable";
 
@@ -424,14 +406,14 @@ i2s80:sound {
 	};
 };
 
-//&saradc {
-//	status = "okay";
-//	vref-supply = <&vcc_1v8>;
-//};
+&saradc {
+	status = "disable";
+	vref-supply = <&vcc_1v8>;
+};
 
 
 &tsadc {
-	status = "okay";
+	status = "disable";
 };
 
 

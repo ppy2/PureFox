@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# sshd        Config overlays
+#
+
+start() {
+
+        mkdir /sys/kernel/config/device-tree/overlays/512
+#        mkdir /sys/kernel/config/device-tree/overlays/ext-pll
+
+
+        cat /etc/overlays/512.dtbo /sys/kernel/config/device-tree/overlays/512/dtbo
+#       cat /etc/overlays/ext-pll.dtbo /sys/kernel/config/device-tree/overlays/ext-pll/dtbo
+        echo 1 > /sys/kernel/config/device-tree/overlays/512/status
+}
+stop() {
+
+	echo 0 > /sys/kernel/config/device-tree/overlays/my_overlay/status
+
+}
+restart() {
+        stop
+        start
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart|reload)
+        restart
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
