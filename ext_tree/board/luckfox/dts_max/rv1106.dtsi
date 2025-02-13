@@ -74,7 +74,7 @@ mmc0 {
         no-sd;
     //    memory-region-ecsd = <&mmc_ecsd>;
         post-power-on-delay-ms = <0>;
-        status = "okay";
+        status = "disable";
 };
 
 
@@ -245,7 +245,7 @@ mmc0 {
 		rockchip,irq-mode-enable = <0>;
 		rockchip,baudrate = <115200>;	/* Only 115200 and 1500000 */
 		interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
-		status = "okay";
+		status = "disable";
 	};
 
 	firmware {
@@ -725,7 +725,7 @@ mmc0 {
 			<&cru PCLK_TOP_ROOT>, <&cru PCLK_PMU_ROOT>,
 			<&cru HCLK_PMU_ROOT>;
 		assigned-clock-rates =
-			<1188000000>, <1000000000>,
+			<983040000>, <1188000000>,
 			<1104000000>,
 			<400000000>, <200000000>,
 			<100000000>, <300000000>,
@@ -1447,36 +1447,7 @@ mmc0 {
 		clock-names = "aclk_rve", "hclk_rve";
 		status = "disabled";
 	};
-/*
-	i2s0_8ch: i2s@ffae0000 {
-		compatible = "rockchip,rv1106-i2s-tdm";
-		reg = <0xffae0000 0x1000>;
-		interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&cru MCLK_I2S0_8CH_TX>, <&cru MCLK_I2S0_8CH_RX>, <&cru HCLK_I2S0>, <&cru MCLK_SAI>;
-		clock-names = "mclk_tx", "mclk_rx", "hclk", "mclk_sai";
-		assigned-clocks = <&cru CLK_I2S0_8CH_TX>, <&cru CLK_I2S0_8CH_RX>;
-		assigned-clock-parents = <&i2s0_mclkin>, <&i2s0_mclkin>;
-		dmas = <&dmac 22>, <&dmac 21>;
-		dma-names = "tx", "rx";
-		resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
-		reset-names = "tx-m", "rx-m";
-		rockchip,clk-trcm = <1>;
-		#sound-dai-cells = <0>;
-		rockchip,cru = <&cru>;
-		rockchip,grf = <&grf>;
-		rockchip,playback-only;
-                pinctrl-names = "default";
-		pinctrl-0 = <&i2s0_lrck
-				&i2s0_mclk
-				&i2s0_sclk
-				&i2s0_sdi0
-				&i2s0_sdo0
-				&i2s0_sdo1_sdi3
-				&i2s0_sdo2_sdi2
-				&i2s0_sdo3_sdi1>;
-		status = "disabled";
-	};
-*/
+
        usbdrd: usbdrd {
                 compatible = "rockchip,rv1106-dwc3", "rockchip,rk3399-dwc3";
                 clocks = <&cru CLK_REF_USBOTG>, <&cru CLK_UTMI_USBOTG>,

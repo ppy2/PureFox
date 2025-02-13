@@ -10,29 +10,22 @@
 #include "rv1106-pinctrl.dtsi"
 / {
 	model = "Luckfox Pico Max";
-//	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106";
 	compatible = "rockchip,rv1106";
 
-
 };
 
-/*
-&emmc {
-        bus-width = <8>;
-        cap-mmc-highspeed;
-        non-removable;
-        // mmc-hs200-1_8v;
-        rockchip,default-sample-phase = <90>;
-        no-sdio;
-        no-sd;
-        memory-region-ecsd = <&mmc_ecsd>;
-        post-power-on-delay-ms = <0>;
-        status = "okay";
+/*********I2S*************/
+&i2s0_8ch {
+	status = "okay";
 };
-*/
+
+/******EXT_AUDIO_CODEC*****/
+&mycodec {
+	status = "okay";
+};
 
 
-/**********FLASH**********/
+/**********SPI_FLASH**********/
 &sfc {
 	status = "okay";
 	flash@0 {
@@ -44,6 +37,13 @@
 	};
 	
 };
+
+
+/*********SERIAL_DEBUG_CONSOLE******/
+&fiq_debugger {
+	status = "okay";
+};
+
 
 /**********SDMMC**********/
 &sdmmc {
@@ -59,6 +59,10 @@
 	status = "disable";
 };
 
+/**********EMMC*************/
+&emmc {
+        status = "disable";
+};
 
 /**********ETH**********/
 &gmac {
@@ -83,9 +87,9 @@
 	clock-frequency = <100000>;
 };
 
-// /**********SPI**********/
+/**********SPI**********/
 &spi0 {
-	status = "okay";
+	status = "disable";
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0m0_pins>;
 	cs-gpios = <&gpio1 RK_PC0 1>;
@@ -99,16 +103,12 @@
 	};
 };
 
-&i2s0_8ch {
-	status = "okay";
-};
-
-&acodec {
-	status = "disable";
-};
-
+/******REAL_TIME_CLOCK******/
 &rtc {
 	status = "disable";
 };
 
-
+/*********TSADC*********/
+&tsadc {
+	status = "okay";
+};
