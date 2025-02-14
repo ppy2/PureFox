@@ -160,3 +160,12 @@ border-left: 5px solid #dc3545;
     -moz-box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
     box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
 }
+
+a {
+    color: #007bff;
+        text-decoration: none;
+}
+        
+a:visited {
+    color: #007bff;
+}
