@@ -63,7 +63,7 @@ $data['stations'][] = $newStation;
 // Сохранение обновлённого JSON с форматированием
 file_put_contents($jsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-header('Location: index.php');
+header('Location: radio.php');
 exit;
 ?>
 

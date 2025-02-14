@@ -6,6 +6,20 @@
             "url": "http:\/\/stream.radioparadise.com\/flac",
             "category": "Radio Paradise (flac)",
             "logo": "Main_Mix.jpg"
+        },
+        {
+            "id": 2,
+            "name": "Mellow Mix",
+            "url": "http:\/\/stream.radioparadise.com\/mellow-flac",
+            "category": "Radio Paradise (flac)",
+            "logo": "mellow_mix.jpg"
+        },
+        {
+            "id": 3,
+            "name": "Rock Mix",
+            "url": "http:\/\/stream.radioparadise.com\/rock-flac",
+            "category": "Radio Paradise (flac)",
+            "logo": "RP Rock Mix.jpg"
         }
     ]
 }
