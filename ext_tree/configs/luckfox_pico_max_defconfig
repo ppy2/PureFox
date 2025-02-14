@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -ge6772de8 Configuration
+# Buildroot -g9f121be9 Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -1224,7 +1224,7 @@ BR2_PACKAGE_DBUS_TRIGGERD=y
 #
 # dt-utils needs udev /dev management
 #
-# BR2_PACKAGE_DTBOCFG is not set
+BR2_PACKAGE_DTBOCFG=y
 # BR2_PACKAGE_DTV_SCAN_TABLES is not set
 # BR2_PACKAGE_DUMP1090 is not set
 # BR2_PACKAGE_DVBSNOOP is not set
@@ -4487,8 +4487,8 @@ BR2_TARGET_UBOOT_CUSTOM_PATCH_DIR=""
 #
 BR2_PACKAGE_APRENDERER=y
 BR2_PACKAGE_APLAYER=y
-# BR2_PACKAGE_RASPOTIFY is not set
 BR2_PACKAGE_NAA=y
+# BR2_PACKAGE_ROONREADY is not set
 BR2_PACKAGE_LIBRESPOT=y
 BR2_PACKAGE_APSCREAM=y
 BR2_PACKAGE_SCREAM=y
