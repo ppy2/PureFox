@@ -1,21 +1,18 @@
 #!/bin/sh
-#
-# sshd        Config overlays
-#
+
+source /etc/i2s.conf
 
 start() {
-
-        mkdir /sys/kernel/config/device-tree/overlays/512
-#        mkdir /sys/kernel/config/device-tree/overlays/ext-pll
-
-
-        cat /etc/overlays/512.dtbo /sys/kernel/config/device-tree/overlays/512/dtbo
-#       cat /etc/overlays/ext-pll.dtbo /sys/kernel/config/device-tree/overlays/ext-pll/dtbo
-        echo 1 > /sys/kernel/config/device-tree/overlays/512/status
+	insmod /lib/modules/5.10.160/extra/dtbocfg.ko
+	if [ "$MCLK" == "512" ]; then   
+    	    mkdir -p /sys/kernel/config/device-tree/overlays/512
+    	    cat /etc/overlays/512.dtbo > /sys/kernel/config/device-tree/overlays/512/dtbo
+    	    echo 1 > /sys/kernel/config/device-tree/overlays/512/status
+    	fi
 }
 stop() {
 
-	echo 0 > /sys/kernel/config/device-tree/overlays/my_overlay/status
+	[ -f "/sys/kernel/config/device-tree/overlays/512/status" ] && echo 0 > /sys/kernel/config/device-tree/overlays/512/status
 
 }
 restart() {
