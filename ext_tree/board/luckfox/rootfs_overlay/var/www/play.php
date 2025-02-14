@@ -47,7 +47,7 @@ $currentStation = array(
 );
 file_put_contents('current_station.json', json_encode($currentStation, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-header('Location: index.php');
+header('Location: radio.php');
 exit;
 ?>
 

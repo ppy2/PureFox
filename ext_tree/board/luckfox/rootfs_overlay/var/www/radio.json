@@ -1,5 +1,11 @@
 {
     "stations": [
-
-		]
+        {
+            "id": 1,
+            "name": "Main Mix",
+            "url": "http:\/\/stream.radioparadise.com\/flac",
+            "category": "Radio Paradise (flac)",
+            "logo": "Main_Mix.jpg"
+        }
+    ]
 }

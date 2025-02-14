@@ -20,7 +20,7 @@ fclose($fp);
 if (file_exists('current_station.json')) {
     unlink('current_station.json');
 }
-header('Location: index.php');
+header('Location: radio.php');
 exit;
 ?>
 

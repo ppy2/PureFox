@@ -1,6 +1,6 @@
 <?php
 if (!isset($_GET['id'])) {
-    header('Location: index.php');
+    header('Location: radio.php');
     exit;
 }
 $id = intval($_GET['id']);
@@ -23,12 +23,12 @@ foreach ($stations as $station) {
     }
 }
 if (!$found) {
-    header('Location: index.php?error=' . urlencode('Радиостанция не найдена.'));
+    header('Location: radio.php?error=' . urlencode('Радиостанция не найдена.'));
     exit;
 }
 $data['stations'] = $newStations;
 file_put_contents($jsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-header('Location: index.php');
+header('Location: radio.php');
 exit;
 ?>
 

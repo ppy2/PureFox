@@ -1,6 +1,6 @@
 <?php
 if (!isset($_GET['category'])) {
-    header('Location: index.php');
+    header('Location: radio.php');
     exit;
 }
 $categoryToDelete = $_GET['category'];
@@ -22,7 +22,7 @@ foreach ($stations as $station) {
 }
 $data['stations'] = $newStations;
 file_put_contents($jsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-header('Location: index.php');
+header('Location: radio.php');
 exit;
 ?>
 
