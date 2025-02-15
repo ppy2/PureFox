@@ -39,6 +39,11 @@
         .delete-btn:hover {
             color: #fff;
         }
+        /* Стили для логотипов */
+        .category-list li img {
+            width: 100px;
+            height: auto;
+        }
         /* Панель плеера внизу экрана */
         .player-bar {
             position: fixed;
@@ -86,14 +91,10 @@
                 font-size: 18px;
                 margin-right: 5px;
             }
-            /* На мобильном сохраняем строковую компоновку, не переключая в столбец */
             li {
                 flex-direction: row;
                 flex-wrap: nowrap;
                 align-items: center;
-            }
-            li img {
-                width: 40px;
             }
             .toggle-icon {
                 font-size: 18px;
@@ -149,7 +150,7 @@
                     <li>
                         <button class="delete-btn" title="Удалить станцию" onclick="if(confirm('Удалить радиостанцию <?php echo htmlspecialchars($station['name']); ?>?')) { window.location.href='delete_station.php?id=<?php echo urlencode($station['id']); ?>'; }">✖</button>
                         <?php if (!empty($station['logo'])): ?>
-                            <img src="logos/<?php echo htmlspecialchars($station['logo']); ?>" alt="<?php echo htmlspecialchars($station['name']); ?>" width="50">
+                            <img src="logos/<?php echo htmlspecialchars($station['logo']); ?>" alt="<?php echo htmlspecialchars($station['name']); ?>">
                         <?php endif; ?>
                         <strong><?php echo htmlspecialchars($station['name']); ?></strong>
                         <a href="play.php?id=<?php echo urlencode($station['id']); ?>" title="Воспроизвести">▶</a>

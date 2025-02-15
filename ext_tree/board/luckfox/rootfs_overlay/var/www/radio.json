@@ -1,25 +1,25 @@
 {
     "stations": [
         {
-            "id": 1,
-            "name": "Main Mix",
-            "url": "http:\/\/stream.radioparadise.com\/flac",
-            "category": "Radio Paradise (flac)",
-            "logo": "Main_Mix.jpg"
+            "id": 11,
+            "name": "http:\/\/mscp2.live-streams.nl:8100\/flac.flac",
+            "url": "http:\/\/mscp2.live-streams.nl:8100\/flac.flac",
+            "category": "Flac",
+            "logo": "2560px-FLAC_logo_vector.svg.png"
         },
         {
-            "id": 2,
-            "name": "Mellow Mix",
-            "url": "http:\/\/stream.radioparadise.com\/mellow-flac",
-            "category": "Radio Paradise (flac)",
-            "logo": "mellow_mix.jpg"
+            "id": 12,
+            "name": "Frequence3",
+            "url": "https:\/\/frequence3.net-radio.fr\/frequence3.flac",
+            "category": "Flac",
+            "logo": "frequence3.png"
         },
         {
-            "id": 3,
-            "name": "Rock Mix",
-            "url": "http:\/\/stream.radioparadise.com\/rock-flac",
-            "category": "Radio Paradise (flac)",
-            "logo": "RP Rock Mix.jpg"
+            "id": 13,
+            "name": "http:\/\/secure.live-streams.nl\/flac.flac",
+            "url": "http:\/\/secure.live-streams.nl\/flac.flac",
+            "category": "Flac",
+            "logo": "2560px-FLAC_logo_vector.svg.png"
         }
     ]
 }
