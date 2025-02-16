@@ -192,6 +192,9 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
                     </button>
                 </div>
             </div>
+            Внимание! <br>
+            Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). <br>
+            После изменений требуется перезагрузка. <br>
         </form>
     </div>
 </body>
