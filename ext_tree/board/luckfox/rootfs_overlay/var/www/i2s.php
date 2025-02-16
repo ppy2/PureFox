@@ -34,18 +34,14 @@ function updateMclk($filePath, $newValue) {
     file_put_contents($filePath, $contents);
 }
 
-// --- Логика обработки формы (POST) ---
+// --- Обработка POST-запроса ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     // Если нажата кнопка для изменения режима (PLL/EXT)
     if (isset($_POST['mode'])) {
         $mode = $_POST['mode'];
         if ($mode === 'pll' || $mode === 'ext') {
             $script = ($mode === 'pll') ? '/opt/2pll.sh' : '/opt/2ext.sh';
-            // Вызов скрипта (блокирующий на время выполнения ~1.32 c)
-            // Если нужно в фоне, добавьте `nohup` и `&`, но тогда вы не увидите реальную блокировку
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
-            // $output и $returnVar можно логировать при необходимости
         }
     }
 
@@ -71,32 +67,69 @@ $config = readConfig($config_file);
 $current_mode = $config['mode'];
 $current_mclk = $config['mclk'];
 
+/**
+ * Если режим PLL, то принудительно устанавливаем MCLK=1024,
+ * если он ещё не установлен.
+ */
+if ($current_mode === 'pll' && $current_mclk !== '1024') {
+    updateMclk($config_file, '1024');
+    $current_mclk = '1024';
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <!-- Важный тег для корректного масштабирования на мобильных устройствах -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройки режима и MCLK</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            background-color: #1a1a1a;
-            font-family: Arial, sans-serif;
-            color: #e0e0e0;
-            margin: 0; padding: 0;
+        /* Оверлей для затемнения экрана */
+        #overlay {
+            display: none; /* Скрыт по умолчанию */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
         }
-        .container {
-            max-width: 600px;
-            margin: 30px auto;
-            background-color: #2d2d2d;
-            padding: 20px;
-            border-radius: 10px;
+        /* Центрирование спиннера */
+        .spinner-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
-        h1 {
-            text-align: center;
-            color: #e0e0e0;
-            margin-bottom: 20px;
+        /* Спиннер: адаптивные размеры */
+        .spinner {
+            width: 15vw;
+            height: 15vw;
+            max-width: 80px;
+            max-height: 80px;
+            min-width: 50px;
+            min-height: 50px;
+            border: 0.8em solid #ccc;
+            border-top: 0.8em solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Для маленьких экранов увеличим спиннер */
+        @media (max-width: 480px) {
+            .spinner {
+                width: 25vw;
+                height: 25vw;
+                max-width: 100px;
+                max-height: 100px;
+            }
+        }
+        /* Горизонтальное расположение кнопок в группах */
         .group {
             margin-bottom: 30px;
             text-align: center;
@@ -111,102 +144,56 @@ $current_mclk = $config['mclk'];
             justify-content: center;
             gap: 20px;
         }
-        .btn-custom {
-            padding: 10px 20px;
-            font-size: 16px;
-            color: #e0e0e0;
-            background-color: #3d3d3d;
-            border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: background-color 0.3s;
-        }
-        .btn-custom:hover {
-            background-color: #4d4d4d;
-        }
-        .btn-custom.active {
-            background-color: #007bff;
-            color: #fff;
-        }
-
-        /* Оверлей - затемнение всего экрана */
-        #overlay {
-            display: none; /* По умолчанию скрыт */
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 9999;
-        }
-        /* Спиннер по центру оверлея */
-        .spinner-wrapper {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        /* Пример простого «часика» (CSS-анимация) */
-        .spinner {
-            margin: 0 auto;
-            width: 60px; 
-            height: 60px;
-            border: 6px solid #ccc;
-            border-top: 6px solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
     <script>
-        // Функция для показа оверлея
+        // Функция показа оверлея при отправке формы
         function showOverlay() {
             document.getElementById('overlay').style.display = 'block';
         }
     </script>
 </head>
 <body>
-<div class="container">
-    <h1>Настройки</h1>
-    <!-- Оверлей для затемнения + спиннер -->
+    <!-- Оверлей с анимированным спиннером -->
     <div id="overlay">
         <div class="spinner-wrapper">
             <div class="spinner"></div>
         </div>
     </div>
-
-    <!-- При отправке формы запускаем showOverlay() -->
-    <form method="post" onsubmit="showOverlay()">
-        <div class="group">
-            <h2>Режим</h2>
-            <div class="row">
-                <button type="submit" name="mode" value="pll"
-                    class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">
-                    PLL
-                </button>
-                <button type="submit" name="mode" value="ext"
-                    class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">
-                    EXT
-                </button>
+    <div class="container">
+        <h1>Настройки</h1>
+        <!-- Форма с горизонтальным расположением кнопок в группах -->
+        <form method="post" onsubmit="showOverlay()">
+            <div class="group">
+                <h2>Режим</h2>
+                <div class="row">
+                    <button type="submit" name="mode" value="pll" 
+                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">
+                        PLL
+                    </button>
+                    <button type="submit" name="mode" value="ext" 
+                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">
+                        EXT
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="group">
-            <h2>MCLK</h2>
-            <div class="row">
-                <button type="submit" name="mclk" value="512"
-                    class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>">
-                    512
-                </button>
-                <button type="submit" name="mclk" value="1024"
-                    class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">
-                    1024
-                </button>
+            <div class="group">
+                <h2>MCLK</h2>
+                <div class="row">
+                    <!-- Если режим PLL, делаем кнопки недоступными (disabled) -->
+                    <button type="submit" name="mclk" value="512"
+                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>"
+                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>
+                        512
+                    </button>
+                    <button type="submit" name="mclk" value="1024"
+                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>"
+                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>
+                        1024
+                    </button>
+                </div>
             </div>
-	 </div>
-	После изменений обязательно перезагрузите SBC.
-    </form>
-</div>
+        </form>
+    </div>
 </body>
 </html>
 
