@@ -11,6 +11,7 @@ sshpass -p 'luckfox'  rsync -av --size-only \
 --exclude=/etc/asound.conf \
 --exclude=/usr/aprenderer/config.dat \
 --exclude=/usr/aplayer/config.dat \
+--exclude=/var/www/radio.json \
 luckfox@luckfox.puredsd.ru::luckfox / || exit 1
 
 

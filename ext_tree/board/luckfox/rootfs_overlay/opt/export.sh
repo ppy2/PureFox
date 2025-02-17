@@ -21,6 +21,7 @@ rsync -axlHWSzv --delete --numeric-ids \
 --exclude=/etc/init.d/S95* \
 --exclude=/usr/aplayer/*.dat \
 --exclude=/usr/aprenderer/*.dat \
+--exclude=/var/www/radio.json \
 /  ppy@luckfox.puredsd.ru::luckfox_upload
 
 rm -f /data/*.img
