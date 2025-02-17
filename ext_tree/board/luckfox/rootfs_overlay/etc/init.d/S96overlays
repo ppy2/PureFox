@@ -3,8 +3,14 @@
 source /etc/i2s.conf
 
 start() {
-	insmod /lib/modules/5.10.160/extra/dtbocfg.ko
+
+	if [ "$MODE" == "pll" ]; then
+	    exit 0
+	fi
+
 	if [ "$MCLK" == "512" ]; then   
+    	    insmod /lib/modules/5.10.160/extra/dtbocfg.ko
+    	    sleep 0.5
     	    mkdir -p /sys/kernel/config/device-tree/overlays/512
     	    cat /etc/overlays/512.dtbo > /sys/kernel/config/device-tree/overlays/512/dtbo
     	    echo 1 > /sys/kernel/config/device-tree/overlays/512/status
