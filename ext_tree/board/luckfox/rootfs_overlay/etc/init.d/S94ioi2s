@@ -4,37 +4,55 @@
 #
 
 start() {
+    # Проверка существования файла конфигурации
+    if [ ! -f /etc/i2s.conf ]; then
+        echo "Config file /etc/i2s.conf not found"
+        exit 1
+    fi
 
-	printf "Configuring I2S Outside: "
-	io -4 0xff000004 0x007c001c
-#	echo clk_i2s0_8ch_tx i2s0_mclkin > /proc/clk/parent
+    # Извлечение значения MODE, удаляя любые пробелы
+    MODE=$(grep '^MODE=' /etc/i2s.conf | cut -d'=' -f2 | tr -d '[:space:]')
+    if [ -z "$MODE" ]; then
+        echo "MODE not set in /etc/i2s.conf"
+        exit 1
+    fi
 
-
-	echo "OK"
+    printf "Configuring I2S Outside: "
+    if [ "$MODE" = "ext" ]; then
+        io -4 0xff000004 0x007c001c
+    elif [ "$MODE" = "pll" ]; then
+        io -4 0xff000004 0x007c003c
+    else
+        echo "Invalid MODE in /etc/i2s.conf"
+        exit 1
+    fi
+    echo "OK"
 }
+
 stop() {
-	printf "Reading I2S direction: "
-	io -4 0xff000004
-	echo "OK"
+    printf "Reading I2S direction: "
+    io -4 0xff000004
+    echo "OK"
 }
+
 restart() {
-	stop
-	start
+    stop
+    start
 }
 
 case "$1" in
   start)
-	start
-	;;
+    start
+    ;;
   stop)
-	stop
-	;;
+    stop
+    ;;
   restart|reload)
-	restart
-	;;
+    restart
+    ;;
   *)
-	echo "Usage: $0 {start|stop|restart}"
-	exit 1
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
 esac
 
 exit $?
