@@ -1,17 +1,18 @@
 #!/bin/sh
 
-sshpass -p 'luckfox'  rsync -av --size-only \
+sshpass -p 'luckfox' rsync -av --delete --size-only \
 --exclude=.git \
 --exclude=/dev \
 --exclude=/proc \
 --exclude=/sys \
 --exclude=/mnt \
 --exclude=/root \
---exclude=/etc/output \
 --exclude=/etc/asound.conf \
---exclude=/usr/aprenderer/config.dat \
---exclude=/usr/aplayer/config.dat \
---exclude=/var/www/radio.json \
+--filter='protect /usr/aprenderer/*.dat' \
+--filter='protect /usr/aplayer/*.dat' \
+--filter='protect /data/ethaddr.txt' \
+--filter='protect /etc/resolv.conf' \
+--filter='protect /etc/init.d/S95*' \
 luckfox@luckfox.puredsd.ru::luckfox / || exit 1
 
 

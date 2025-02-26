@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -g9aeded69-dirty Configuration
+# Buildroot -g67855cfe-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -447,6 +447,7 @@ BR2_LINUX_KERNEL_CUSTOM_GIT=y
 # BR2_LINUX_KERNEL_CUSTOM_SVN is not set
 BR2_LINUX_KERNEL_CUSTOM_REPO_URL="https://github.com/ppy2/ale-linux-rv1106.git"
 BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION="main"
+# BR2_LINUX_KERNEL_CUSTOM_REPO_GIT_SUBMODULES is not set
 BR2_LINUX_KERNEL_VERSION="main"
 BR2_LINUX_KERNEL_PATCH=""
 # BR2_LINUX_KERNEL_USE_DEFCONFIG is not set
@@ -457,28 +458,27 @@ BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES=""
 BR2_LINUX_KERNEL_CUSTOM_LOGO_PATH=""
 # BR2_LINUX_KERNEL_UIMAGE is not set
 # BR2_LINUX_KERNEL_APPENDED_UIMAGE is not set
-# BR2_LINUX_KERNEL_ZIMAGE is not set
+BR2_LINUX_KERNEL_ZIMAGE=y
 # BR2_LINUX_KERNEL_APPENDED_ZIMAGE is not set
 # BR2_LINUX_KERNEL_VMLINUX is not set
-BR2_LINUX_KERNEL_IMAGE_TARGET_CUSTOM=y
+# BR2_LINUX_KERNEL_IMAGE_TARGET_CUSTOM is not set
 BR2_LINUX_KERNEL_GZIP=y
 # BR2_LINUX_KERNEL_LZ4 is not set
 # BR2_LINUX_KERNEL_LZMA is not set
 # BR2_LINUX_KERNEL_LZO is not set
 # BR2_LINUX_KERNEL_XZ is not set
 # BR2_LINUX_KERNEL_ZSTD is not set
-BR2_LINUX_KERNEL_IMAGE_TARGET_NAME="zImage"
-BR2_LINUX_KERNEL_IMAGE_NAME="boot.img"
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 # BR2_LINUX_KERNEL_DTB_IS_SELF_BUILT is not set
-BR2_LINUX_KERNEL_INTREE_DTS_NAME="rv1106g-luckfox-pico-pro-max"
-BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106g-luckfox-pico-pro-max.dts $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106-luckfox-pico-pro-max-ipc.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106-pinctrl.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rockchip-pinconf.dtsi"
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="rv1106_ext rv1106_pll"
+BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106_ext.dts $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106_ext-ipc.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106_pll-ipc.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106_pll.dts $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rv1106-pinctrl.dtsi $(BR2_EXTERNAL_ext_tree_PATH)/board/luckfox/dts_max/rockchip-pinconf.dtsi"
 # BR2_LINUX_KERNEL_DTB_KEEP_DIRNAME is not set
 BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT=y
 # BR2_LINUX_KERNEL_INSTALL_TARGET is not set
 # BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL is not set
 # BR2_LINUX_KERNEL_NEEDS_HOST_LIBELF is not set
 # BR2_LINUX_KERNEL_NEEDS_HOST_PAHOLE is not set
+# BR2_LINUX_KERNEL_NEEDS_HOST_PYTHON3 is not set
 
 #
 # Linux Kernel Extensions
@@ -1375,7 +1375,13 @@ BR2_PACKAGE_SEDUTIL_ARCH_SUPPORTS=y
 #
 # BR2_PACKAGE_TRIGGERHAPPY is not set
 # BR2_PACKAGE_UBOOT_BOOTCOUNT is not set
-# BR2_PACKAGE_UBOOT_TOOLS is not set
+BR2_PACKAGE_UBOOT_TOOLS=y
+# BR2_PACKAGE_UBOOT_TOOLS_FIT_SUPPORT is not set
+# BR2_PACKAGE_UBOOT_TOOLS_MKIMAGE is not set
+# BR2_PACKAGE_UBOOT_TOOLS_MKEFICAPSULE is not set
+# BR2_PACKAGE_UBOOT_TOOLS_MKENVIMAGE is not set
+BR2_PACKAGE_UBOOT_TOOLS_FWPRINTENV=y
+# BR2_PACKAGE_UBOOT_TOOLS_DUMPIMAGE is not set
 # BR2_PACKAGE_UBUS is not set
 
 #
@@ -3383,9 +3389,9 @@ BR2_TARGET_UBOOT_CUSTOM_REPO_URL="https://github.com/rockchip-linux/u-boot.git"
 BR2_TARGET_UBOOT_CUSTOM_REPO_VERSION="2687dce2617032930f2c43fef349bdea694c6f68"
 BR2_TARGET_UBOOT_VERSION="2687dce2617032930f2c43fef349bdea694c6f68"
 BR2_TARGET_UBOOT_PATCH="../ext_tree/patches/uboot.patch"
-BR2_TARGET_UBOOT_USE_DEFCONFIG=y
-# BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG is not set
-BR2_TARGET_UBOOT_BOARD_DEFCONFIG="rv1106"
+# BR2_TARGET_UBOOT_USE_DEFCONFIG is not set
+BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG=y
+BR2_TARGET_UBOOT_CUSTOM_CONFIG_FILE="../ext_tree/board/luckfox/config/uboot.conf"
 BR2_TARGET_UBOOT_CONFIG_FRAGMENT_FILES=""
 # BR2_TARGET_UBOOT_NEEDS_DTC is not set
 # BR2_TARGET_UBOOT_NEEDS_PYTHON3 is not set
@@ -4486,7 +4492,7 @@ BR2_TARGET_UBOOT_CUSTOM_PATCH_DIR=""
 #
 
 #
-# external BR tree for Luckfox Pico Max (in /opt/PureFox/ext_tree)
+# external BR tree for Luckfox Pico Max (in /opt/1/PureFox/ext_tree)
 #
 
 #

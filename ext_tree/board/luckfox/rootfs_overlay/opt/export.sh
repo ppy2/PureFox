@@ -1,5 +1,7 @@
 #!/bin/sh
 
+/opt/2ext.sh
+sleep 1
 mtd_debug read /dev/mtd0 0 262144 /data/env.img
 sleep 1
 mtd_debug read /dev/mtd1 0 262144 /data/idblock.img
@@ -21,7 +23,6 @@ rsync -axlHWSzv --delete --numeric-ids \
 --exclude=/etc/init.d/S95* \
 --exclude=/usr/aplayer/*.dat \
 --exclude=/usr/aprenderer/*.dat \
---exclude=/var/www/radio.json \
 /  ppy@luckfox.puredsd.ru::luckfox_upload
 
 rm -f /data/*.img
