@@ -34,6 +34,14 @@ function updateMclk($filePath, $newValue) {
     file_put_contents($filePath, $contents);
 }
 
+// --- Обработка AJAX-запроса для получения текущего состояния ---
+if (isset($_GET['action']) && $_GET['action'] === 'getStatus') {
+    $config = readConfig($config_file);
+    header('Content-Type: application/json');
+    echo json_encode($config);
+    exit;
+}
+
 // --- Обработка POST-запроса ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Если нажата кнопка для изменения режима (PLL/EXT)
@@ -49,12 +57,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['mclk'])) {
         $mclk = $_POST['mclk'];
         if ($mclk === '512' || $mclk === '1024') {
+            // Вызываем соответствующий скрипт в зависимости от выбранного MCLK
+            $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
+            exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
+            
+            // Обновляем файл конфигурации
             if (!file_exists($config_file)) {
                 file_put_contents($config_file, "MCLK=" . $mclk . "\n");
             } else {
                 updateMclk($config_file, $mclk);
             }
         }
+    }
+    
+    // Если нажата кнопка перезагрузки
+    if (isset($_POST['reboot'])) {
+        // Выполняем команду перезагрузки
+        exec('/usr/bin/sudo /sbin/reboot 2>&1', $output, $returnVar);
     }
 
     // После выполнения действий перенаправляем (PRG)
@@ -144,12 +163,105 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
             justify-content: center;
             gap: 20px;
         }
+        /* Стиль для кнопки перезагрузки */
+        .reboot-btn {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn-reboot {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-reboot:hover {
+            background-color: #c82333;
+        }
+        /* Стиль для предупреждения */
+        .warning {
+            margin-top: 20px;
+            text-align: center;
+            color: #e0e0e0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        /* Индикатор статуса обновления */
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #28a745;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .status-indicator.active {
+            opacity: 1;
+        }
     </style>
     <script>
         // Функция показа оверлея при отправке формы
         function showOverlay() {
             document.getElementById('overlay').style.display = 'block';
         }
+        
+        // Функция для подтверждения перезагрузки
+        function confirmReboot() {
+            return confirm("Вы уверены, что хотите перезагрузить устройство?");
+        }
+
+        // Функция для периодической проверки состояния
+        function checkStatus() {
+            // Получаем текущий статус
+            fetch('?action=getStatus')
+                .then(response => response.json())
+                .then(data => {
+                    // Показываем индикатор активности
+                    const indicator = document.getElementById('statusIndicator');
+                    indicator.classList.add('active');
+                    setTimeout(() => {
+                        indicator.classList.remove('active');
+                    }, 300);
+                    
+                    // Обновляем состояние кнопок режима
+                    updateButtonState('pll-btn', data.mode === 'pll');
+                    updateButtonState('ext-btn', data.mode === 'ext');
+                    
+                    // Обновляем состояние кнопок MCLK
+                    updateButtonState('mclk-512-btn', data.mclk === '512');
+                    updateButtonState('mclk-1024-btn', data.mclk === '1024');
+                    
+                    // Если режим PLL, делаем кнопку MCLK 512 неактивной
+                    document.getElementById('mclk-512-btn').disabled = (data.mode === 'pll');
+                })
+                .catch(error => {
+                    console.error('Ошибка при получении статуса:', error);
+                });
+        }
+        
+        // Функция для обновления состояния кнопки
+        function updateButtonState(btnId, isActive) {
+            const btn = document.getElementById(btnId);
+            if (isActive) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+        
+        // Запускаем проверку статуса каждые 5 секунд после загрузки страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Первоначальная проверка
+            checkStatus();
+            
+            // Установка интервала проверки (5000 мс = 5 секунд)
+            setInterval(checkStatus, 5000);
+        });
     </script>
 </head>
 <body>
@@ -159,6 +271,10 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
             <div class="spinner"></div>
         </div>
     </div>
+    
+    <!-- Индикатор статуса обновления -->
+    <div id="statusIndicator" class="status-indicator"></div>
+    
     <div class="container">
         <h1>Настройки</h1>
         <!-- Форма с горизонтальным расположением кнопок в группах -->
@@ -166,11 +282,11 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
             <div class="group">
                 <h2>Режим</h2>
                 <div class="row">
-                    <button type="submit" name="mode" value="pll" 
+                    <button type="submit" name="mode" value="pll" id="pll-btn"
                         class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">
                         PLL
                     </button>
-                    <button type="submit" name="mode" value="ext" 
+                    <button type="submit" name="mode" value="ext" id="ext-btn"
                         class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">
                         EXT
                     </button>
@@ -179,24 +295,33 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
             <div class="group">
                 <h2>MCLK</h2>
                 <div class="row">
-                    <!-- Если режим PLL, делаем кнопки недоступными (disabled) -->
-                    <button type="submit" name="mclk" value="512"
+                    <!-- Если режим PLL, делаем кнопку 512 недоступной (disabled) -->
+                    <button type="submit" name="mclk" value="512" id="mclk-512-btn"
                         class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>"
                         <?php if ($current_mode === 'pll') echo 'disabled'; ?>>
                         512
                     </button>
-                    <button type="submit" name="mclk" value="1024"
-                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>"
-                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>
+                    <button type="submit" name="mclk" value="1024" id="mclk-1024-btn"
+                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">
                         1024
                     </button>
                 </div>
             </div>
-            Внимание! <br>
-            Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). <br>
-            После изменений требуется перезагрузка. <br>
+            <div class="warning">
+                Внимание! <br>
+                Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). <br>
+                После изменений требуется перезагрузка. <br>
+            </div>
+        </form>
+        
+        <!-- Отдельная форма для кнопки перезагрузки -->
+        <form method="post" onsubmit="return confirmReboot() && showOverlay()">
+            <div class="reboot-btn">
+                <button type="submit" name="reboot" value="1" class="btn-reboot">
+                    Перезагрузить
+                </button>
+            </div>
         </form>
     </div>
 </body>
 </html>
-
