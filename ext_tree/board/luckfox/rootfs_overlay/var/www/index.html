@@ -59,7 +59,7 @@
                     <td>
                         <div class="renderer_button" data-service="aprenderer">
                             <button class="button_main">APRenderer (UPnP)</button>
-                            <button class="button_secondary">
+                            <button class="button_secondary" id="aprenderer_settings">
                                 <div class="settings_image">
                                 </div>
                             </button>
@@ -283,6 +283,21 @@
 
             $('.close-modal').click(function () {
                 $('#update-log-modal').fadeOut();
+            });
+
+            $('#aprenderer_settings').click(function () {
+                $.ajax({
+                    url: 'get_ip.php',
+                    method: 'GET',
+                    success: function(response) {
+                        const ip = response.trim();
+                        const url = `http://${ip}:7779`;
+                        window.location.href = url;
+                    },
+                    error: function() {
+                        console.error('Ошибка получения IP-адреса');
+                    }
+                });
             });
         });
     </script>
