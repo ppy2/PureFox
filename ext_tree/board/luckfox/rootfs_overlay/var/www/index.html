@@ -210,42 +210,41 @@
             });
 
             $('.renderer_button').click(function() {
-                const service = $(this).data('service');
-                const $button = $(this);
-
-                $('.renderer_button').removeClass('active');
-                $button.addClass('active');
-
-                $.ajax({
-                    url: 'handle_service.php',
-                    method: 'POST',
-                    data: { service: service },
-                    success: function() {
-                        let attempts = 0;
-                        const MAX_ATTEMPTS = 15;
-                        const CHECK_INTERVAL = 1000;
-
-                        const checkInterval = setInterval(() => {
-                            checkActiveService((response) => {
-                                if (response === service) {
-                                    clearInterval(checkInterval);
-                                    return;
-                                }
-                                attempts++;
-                                if (attempts >= MAX_ATTEMPTS) {
-                                    clearInterval(checkInterval);
-                                    $button.removeClass('active');
-                                }
-                            });
-                        }, CHECK_INTERVAL);
-                    },
-                    error: function() {
-                        alert('Ошибка при переключении сервиса');
-                        $(this).removeClass('active');
-                    }
-                });
+                if ($(event.target).hasClass('button_main')) {
+                    const service = $(this).data('service');
+                    const $button = $(this);
+                    $('.renderer_button').removeClass('active');
+                    $button.addClass('active');
+                    $.ajax({
+                        url: 'handle_service.php',
+                        method: 'POST',
+                        data: { service: service },
+                        success: function() {
+                            let attempts = 0;
+                            const MAX_ATTEMPTS = 15;
+                            const CHECK_INTERVAL = 1000;
+                            const checkInterval = setInterval(() => {
+                                checkActiveService((response) => {
+                                    if (response === service) {
+                                        clearInterval(checkInterval);
+                                        return;
+                                    }
+                                    attempts++;
+                                    if (attempts >= MAX_ATTEMPTS) {
+                                        clearInterval(checkInterval);
+                                        $button.removeClass('active');
+                                    }
+                                });
+                            }, CHECK_INTERVAL);
+                        },
+                        error: function() {
+                            alert('Ошибка при переключении сервиса');
+                            $(this).removeClass('active');
+                        }
+                    });
+                }
             });
-
+            
             checkActiveService();
             checkAlsaState();
             setInterval(checkActiveService, 5000);

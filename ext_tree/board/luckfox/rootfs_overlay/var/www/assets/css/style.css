@@ -54,6 +54,7 @@ body {
 .button_main, .button_secondary {
 	background: none;
 	border: none;
+    width: 100%;
 	color: rgb(208, 208, 208);
 	padding: 7px 10px;
     text-align: left;
