@@ -3,54 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio System Control</title>
+    <title>Purefox</title>
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-<!--        <h1>Audio System Control</h1> -->
-
-        <!-- Переключатель ALSA -->
-        <div class="alsa-toggle">
-            <label>ALSA Выход:</label>
-            <div class="alsa-buttons">
-                <button id="alsa-i2s" class="alsa-button">I2S</button>
-                <button id="alsa-usb" class="alsa-button">USB</button>
-            </div>
+    <div id="central_widget">
+        <div id="main_content">
+            <table id="renderer_list">
+                <tr>
+                    <td>
+                        <div class="renderer_button" data-service="naa">
+                            <button class="button_main">NAA (HQPlayer)</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="renderer_button" data-service="raat">
+                            <button class="button_main">RAAT (Roon)</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="renderer_button" data-service="lms">
+                            <button class="button_main">Squeezelite (LMS)</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="renderer_button" data-service="spotify">
+                            <button class="button_main">Spotify Connect</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="renderer_button" data-service="squeeze2upn">
+                            <button class="button_main">LMS-UPnP Bridge</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="renderer_button" data-service="shairport">
+                            <button class="button_main">AirPlay</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="renderer_button" data-service="aplayer">
+                            <button class="button_main">APlayer (Radio only)</button>
+                            <button class="button_secondary">
+                                <div class="radio_image">
+                                </div>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="renderer_button" data-service="aprenderer">
+                            <button class="button_main">APRenderer (UPnP)</button>
+                            <button class="button_secondary">
+                                <div class="settings_image">
+                                </div>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="renderer_button" data-service="mpd">
+                            <button class="button_main">MPD (UPnP)</button>
+                            <button class="button_secondary">
+                                <div class="radio_image">
+                                </div>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="renderer_button" data-service="apscream">
+                            <button class="button_main">APScream (ASIO)</button>
+                            <button class="button_secondary">
+                                <div class="settings_image">
+                                </div>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="nopadding_cell">
+                        <table cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td class="full_width_cell right_align_cell">
+                                    <span>
+                                        Output:
+                                    </span>
+                                </td>
+                                <td>
+                                     <div class="output_button" id="output-usb">
+                                        <button class="button_main">
+                                            USB
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                     <div class="output_button" id="output-i2s">
+                                        <button class="button_main">
+                                            I2S
+                                        </button>
+                                        <button class="button_secondary">
+                                            <div class="settings_image">
+                                            </div>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td class="nopadding_cell">
+                        <table cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td class="full_width_cell right_align_cell">
+                                    <span>
+                                        PureFox v0.3b
+                                    </span>
+                                </td>
+                                <td>
+                                    <div id="update_button">
+                                        <button class="button_main">
+                                            Update
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Кнопки управления плеерами -->
-        <button class="btn-custom primary" data-service="naa" data-process="naa_process">HQPlayer (NAA)</button>
-        <button class="btn-custom danger" data-service="raat" data-process="raat_process">Roon (RAAT)</button>
-        <button class="btn-custom success" data-service="mpd" data-process="mpd">MPD (UPNP)</button>        
-        <div class="player-buttons" style="display: flex; gap: 10px;">
-            <button class="btn-custom primary" data-service="aprenderer" data-process="aprenderer">APrender (UPNP)</button>
-            <button class="btn-custom primary" data-service="squeeze2upn" data-process="squeeze2upn">APsqueeze bridge</button>
+        <!-- Всплывающее окно с логом обновления -->
+        <div id="update-log-modal">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; height: auto; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: #ddd; border: 2px solid #555;">
+        <h2 style="margin-top: 0; color: #fff; text-align: center;">Обновление прошивки</h2>
+            <pre id="update-log-content"></pre>
+            <button class="close-modal">Закрыть</button>
         </div>
-        <div class="ap-buttons" style="display: flex; gap: 10px;">
-            <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">APlayer (webradio)</button>
-            <button class="btn-custom primary" data-service="apscream" data-process="apscream">APscream (Asio)</button>
         </div>
-        <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
-        <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
-        <button class="btn-custom danger" data-service="lms" data-process="squeezelite">Squeezelite (LMS)</button>
 
-        <!-- Кнопка обновления прошивки -->
-        PureFox v0.3 beta
-        <button id="update-firmware" class="btn-custom warning">Обновить прошивку</button>
-        <div id="label"><span>Luckfox</span></div>
+        <div id="purefox_label">
+            PureFox
+        </div> 
+
     </div>
-
-
-    <!-- Всплывающее окно с логом обновления -->
-    <div id="update-log-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; height: auto; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: #ddd; border: 2px solid #555;">
-    <h2 style="margin-top: 0; color: #fff; text-align: center;">Обновление прошивки</h2>
-        <pre id="update-log-content" style="background: #181818; color: #0f0; padding: 10px; text-align: left; height: 300px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #666;"></pre>
-        <button class="close-modal" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase;">Закрыть</button>
-    </div>
-    </div>
-
 
     <script src="assets/js/jquery-3.7.1.min.js"></script>
     <script>
@@ -60,9 +161,9 @@
                     url: 'check_service.php',
                     method: 'GET',
                     success: function(response) {
-                        $('.btn-custom').removeClass('active');
+                        $('.renderer_button').removeClass('active');
                         if (response) {
-                            $(`button[data-service="${response.trim()}"]`).addClass('active');
+                            $(`div[data-service="${response.trim()}"]`).addClass('active');
                         }
                         if (callback) callback(response.trim());
                     }
@@ -74,13 +175,13 @@
                     url: 'get_alsa_state.php',
                     method: 'GET',
                     success: function(response) {
-                        $('.alsa-button').removeClass('active');
+                        $('.output_button').removeClass('active');
                         switch(response.trim()) {
                             case 'usb':
-                                $('#alsa-usb').addClass('active');
+                                $('#output-usb').addClass('active');
                                 break;
                             case 'i2s':
-                                $('#alsa-i2s').addClass('active');
+                                $('#output-i2s').addClass('active');
                                 break;
                             case 'error':
                                 console.error('Ошибка при чтении конфигурации ALSA');
@@ -94,7 +195,7 @@
             }
 
             $('.alsa-button').click(function() {
-                const cardType = $(this).attr('id').replace('alsa-', '');
+                const cardType = $(this).attr('id').replace('output-', '');
                 $.ajax({
                     url: 'handle_alsa.php',
                     method: 'POST',
@@ -108,11 +209,11 @@
                 });
             });
 
-            $('.btn-custom').click(function() {
+            $('.renderer_button').click(function() {
                 const service = $(this).data('service');
                 const $button = $(this);
 
-                $('.btn-custom').removeClass('active');
+                $('.renderer_button').removeClass('active');
                 $button.addClass('active');
 
                 $.ajax({
@@ -149,7 +250,7 @@
             checkAlsaState();
             setInterval(checkActiveService, 5000);
 
-            $('#update-firmware').click(function () {
+            $('#update_button').click(function () {
                 if (!confirm("Вы уверены, что хотите обновить прошивку?")) {
                     return;
                 }
@@ -185,6 +286,6 @@
             });
         });
     </script>
+        
 </body>
 </html>
-

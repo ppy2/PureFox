@@ -1,185 +1,185 @@
-.alsa-toggle {
-display: flex;
-align-items: center;
-margin-bottom: 20px;
+@font-face {
+  font-family: 'NotoSansDisplay';
+  src: url("../fonts/NotoSansDisplay-ExtraLight.ttf") format('truetype');
 }
 
-.alsa-toggle label {
-margin-right: 10px;
-font-size: 16px;
-color: #e0e0e0;
-}
-
-.alsa-buttons {
-display: flex;
-border: 1px solid #555;
-border-radius: 8px;
-overflow: hidden;
-}
-
-.alsa-button {
-padding: 10px 20px;
-font-size: 16px;
-color: #e0e0e0;
-background-color: #3d3d3d;
-border: none;
-cursor: pointer;
-transition: all 0.3s ease;
-}
-
-.alsa-button.active {
-background-color: #007bff;
-color: #fff;
-}
-
-.alsa-button:not (.active):hover {
-background-color: #4d4d4d;
-}
-
-/* Остальные стили */
-html, body {
-height: 100%;
-width:100%;
-padding: 0;
-margin: 0;
-display: grid;
-place-items: center;
+body, html {
+	height: 100%;
+	width:100%;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	place-items: center;
+	font-size: 1.05em;
+	font-family: "NotoSansDisplay";
+	color: rgb(208, 208, 208);
 }
 
 body {
-background-color: #1a1a1a;
-font-family: 'Arial', sans-serif;
-color: #e0e0e0;
+	background-color: rgb(26, 26, 26);
 }
 
-.container {
-    width: 100%;
-    min-width: 240px;
-    min-height: 66%;
+#central_widget {
+	width: 50%;
+	min-height: 37%;
+	height: auto;
+	display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+#main_content {
+	width: 100%;
+	height: 100%;
+	border-radius: 25px;
+	background-color: rgb(45, 45, 45);
+	box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+#renderer_list {
+	padding: 21px;
+	width: 100%;
+    height: 100%;
+}
+
+#renderer_list td {
+    width: 50%; /* Ensures equal column width */
+    vertical-align: middle;
+	padding: 4px;
+}
+
+#renderer_list tr {
+}
+
+.button_main, .button_secondary {
+	background: none;
+	border: none;
+	color: rgb(208, 208, 208);
+	padding: 7px 10px;
+    text-align: left;
+	font-size: 1em;
+	font-family: "NotoSansDisplay";
+}
+
+.button_secondary {
+	border-left: 1px solid rgb(131, 131, 131);
+	width: 43px;
     display: block;
-    margin: 0;
-    padding: 20px;
-    background-color: #2d2d2d;
+    vertical-align: middle;
+}
+
+.button_main {
+}
+
+.renderer_button, .output_button, #update_button {
+	width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch; /* Ensures child elements stretch to full height */
+    justify-content: space-between;
+    background-color: rgb(70, 70, 70);
+    border: 1px solid rgb(131, 131, 131);
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    box-sizing: border-box;
 }
 
-@media (min-width: 768px) {
-    .container {
-        width: min(80%, 600px);
-        margin: auto;
-        position: absolute;
-        left: 0;
-        right: 0;
-    }
+.bottom_line_cnt {
+	display: inline-flex;
 }
 
-@media (min-width: 1024px) {
-    .container {
-        width: min(70%, 700px);
-    }
+.nopadding_cell {
+	padding: 0 !important;
 }
 
-h1 {
-text-align: center;
-color: #e0e0e0;
-font-size: 24px;
-margin-bottom: 20px;
+.full_width_cell {
+	width: 100% !important;
 }
 
-.btn-custom {
-display: block;
-width: 100%;
-padding: 15px;
-margin: 10px 0;
-font-size: 16px;
-color: #e0e0e0;
-background-color: #3d3d3d;
-border: 1px solid #555;
-border-radius: 8px;
-text-align: left;
-transition: all 0.3s ease;
+.right_align_cell {
+	text-align: right;
 }
 
-.btn-custom:hover {
-background-color: #4d4d4d;
-transform: translateY(-2px);
-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.btn-custom:active {
-transform: translateY(0);
-box-shadow: none;
-}
-
-.btn-custom.active {
-background-color: #007bff;
-color: #fff;
-border-color: #007bff;
-}
-
-.btn-custom:focus {
-outline: none;
-border-color: #007bff;
-}
-
-.btn-custom.primary {
-border-left: 5px solid #007bff;
-}
-
-.btn-custom.success {
-border-left: 5px solid #28a745;
-}
-
-.btn-custom.warning {
-border-left: 5px solid #ffc107;
-}
-
-.btn-custom.danger {
-border-left: 5px solid #dc3545;
-}
-
-.update-finish {
-    color: #fff;
-    font-weight: bold;
-}
-
-.update-error {
-    color: #ff4d4d; /* Ярко-красный */
-    font-weight: bold;
-}
-
-.player-buttons .btn-custom {
-    margin-top: 1px;
-    margin-bottom: 1px;
-}
-
-.ap-buttons .btn-custom {
-    margin-bottom: 1px;
-}
-     
-#label{
-    text-align: center;
-    display: table-cell;
-    line-height: 25px;
-    width: 81px;
-    background: rgb(41 40 40);
-    color: rgb(12 12 12);
-    position: absolute;
-    border-radius: 0 0 5px 5px;
+#purefox_label {
+	position: absolute;
     bottom: -25px;
-    right: 14px;
-    -webkit-box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
-    -moz-box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
-    box-shadow: inset 0px 11px 15px -9px rgba(0, 0, 0, 0.75);
+    right: 33px;
+    background-color: rgb(38, 38, 38);
+    z-index: -100;
+    color: black;
+    font-size: 0.9em;
+    -webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: rgb(20, 20, 20);
+    padding: 3px 7px;
+    border-radius: 0px 0px 7px 7px;
 }
 
-a {
-    color: #007bff;
-        text-decoration: none;
+.radio_image {
+	display: block;
+    width: 27px;
+    height: 23px;
+    background-image: url(../img/radio.png);
+    background-position: -3px -28px;
+
 }
-        
-a:visited {
-    color: #007bff;
+
+.settings_image {
+	display: block;
+    width: 27px;
+    height: 23px;
+    background-image: url(../img/settings.png);
+    background-position: -2px -27px;
+
+}
+
+.active {
+	background-color: rgb(0, 82, 218);
+	color: white;
+	border-color: rgb(70, 108, 172);
+	
+}
+
+.active .button_main {
+	text-shadow: 0px 0px 1px rgb(255, 255, 255);
+}
+
+.active .settings_image {
+	background-position: -2px -1px;
+}
+
+.active .radio_image {
+	background-position: -3px -1px;
+}
+
+#update-log-modal {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0,0,0,0.7);
+	z-index: 1000;
+}
+
+#update-log-content {
+	background: #181818;
+	color: #0f0;
+	padding: 10px;
+	text-align: left;
+	height: 300px;
+	overflow-y: auto;
+	white-space: pre-wrap;
+	border: 1px solid #666;
+}
+
+.close-modal {
+	display: block;
+	width: 100%;
+	padding: 10px;
+	margin-top: 10px;
+	background: #444;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	text-transform: uppercase;
 }
