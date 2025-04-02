@@ -1,0 +1,32 @@
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_installed
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_staging_installed
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_target_installed
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_images_installed
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_host_installed
+rm -f /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_built
+[7m>>> host-skeleton  Executing pre-build script /home/ppy/PureFox/ext_tree/board/luckfox/scripts/pre-build.sh[27m
+[7m>>> linux main Building[27m
+cp -f ../ext_tree/board/luckfox/dts_max/* /home/ppy/PureFox/buildroot/output/build/linux-main/arch/arm/boot/dts/
+GIT_DIR=. PATH="/home/ppy/PureFox/buildroot/output/host/bin:/home/ppy/PureFox/buildroot/output/host/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" PKG_CONFIG="/home/ppy/PureFox/buildroot/output/host/bin/pkg-config" PKG_CONFIG_SYSROOT_DIR="/" PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 PKG_CONFIG_LIBDIR="/home/ppy/PureFox/buildroot/output/host/lib/pkgconfig:/home/ppy/PureFox/buildroot/output/host/share/pkgconfig" BR_BINARIES_DIR=/home/ppy/PureFox/buildroot/output/images DTC_FLAGS=-@ /usr/bin/make -j25 HOSTCC="/usr/bin/gcc -O2 -isystem /home/ppy/PureFox/buildroot/output/host/include -L/home/ppy/PureFox/buildroot/output/host/lib -Wl,-rpath,/home/ppy/PureFox/buildroot/output/host/lib" ARCH=arm KCFLAGS="-Wno-attribute-alias" INSTALL_MOD_PATH=/home/ppy/PureFox/buildroot/output/target CROSS_COMPILE="/home/ppy/PureFox/buildroot/output/host/bin/arm-none-linux-gnueabihf-" WERROR=0 REGENERATE_PARSERS=1 DEPMOD=/home/ppy/PureFox/buildroot/output/host/sbin/depmod INSTALL_MOD_STRIP=1 -C /home/ppy/PureFox/buildroot/output/build/linux-main all
+make[1]: Entering directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+  SYNC    include/config/auto.conf.cmd
+  CALL    scripts/atomic/check-atomics.sh - due to target missing
+  CALL    scripts/checksyscalls.sh - due to target missing
+  CHK     include/generated/compile.h
+  Kernel: arch/arm/boot/Image is ready
+  Kernel: arch/arm/boot/zImage is ready
+make[1]: Leaving directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+GIT_DIR=. PATH="/home/ppy/PureFox/buildroot/output/host/bin:/home/ppy/PureFox/buildroot/output/host/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" PKG_CONFIG="/home/ppy/PureFox/buildroot/output/host/bin/pkg-config" PKG_CONFIG_SYSROOT_DIR="/" PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 PKG_CONFIG_LIBDIR="/home/ppy/PureFox/buildroot/output/host/lib/pkgconfig:/home/ppy/PureFox/buildroot/output/host/share/pkgconfig" BR_BINARIES_DIR=/home/ppy/PureFox/buildroot/output/images DTC_FLAGS=-@ /usr/bin/make -j25 HOSTCC="/usr/bin/gcc -O2 -isystem /home/ppy/PureFox/buildroot/output/host/include -L/home/ppy/PureFox/buildroot/output/host/lib -Wl,-rpath,/home/ppy/PureFox/buildroot/output/host/lib" ARCH=arm KCFLAGS="-Wno-attribute-alias" INSTALL_MOD_PATH=/home/ppy/PureFox/buildroot/output/target CROSS_COMPILE="/home/ppy/PureFox/buildroot/output/host/bin/arm-none-linux-gnueabihf-" WERROR=0 REGENERATE_PARSERS=1 DEPMOD=/home/ppy/PureFox/buildroot/output/host/sbin/depmod INSTALL_MOD_STRIP=1 -C /home/ppy/PureFox/buildroot/output/build/linux-main zImage
+make[1]: Entering directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+  CALL    scripts/atomic/check-atomics.sh - due to target missing
+  CALL    scripts/checksyscalls.sh - due to target missing
+  CHK     include/generated/compile.h
+  Kernel: arch/arm/boot/Image is ready
+  Kernel: arch/arm/boot/zImage is ready
+make[1]: Leaving directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+GIT_DIR=. PATH="/home/ppy/PureFox/buildroot/output/host/bin:/home/ppy/PureFox/buildroot/output/host/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" PKG_CONFIG="/home/ppy/PureFox/buildroot/output/host/bin/pkg-config" PKG_CONFIG_SYSROOT_DIR="/" PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 PKG_CONFIG_LIBDIR="/home/ppy/PureFox/buildroot/output/host/lib/pkgconfig:/home/ppy/PureFox/buildroot/output/host/share/pkgconfig" BR_BINARIES_DIR=/home/ppy/PureFox/buildroot/output/images DTC_FLAGS=-@ /usr/bin/make -j25 HOSTCC="/usr/bin/gcc -O2 -isystem /home/ppy/PureFox/buildroot/output/host/include -L/home/ppy/PureFox/buildroot/output/host/lib -Wl,-rpath,/home/ppy/PureFox/buildroot/output/host/lib" ARCH=arm KCFLAGS="-Wno-attribute-alias" INSTALL_MOD_PATH=/home/ppy/PureFox/buildroot/output/target CROSS_COMPILE="/home/ppy/PureFox/buildroot/output/host/bin/arm-none-linux-gnueabihf-" WERROR=0 REGENERATE_PARSERS=1 DEPMOD=/home/ppy/PureFox/buildroot/output/host/sbin/depmod INSTALL_MOD_STRIP=1 -C /home/ppy/PureFox/buildroot/output/build/linux-main rv1106_pll.dtb test.dtbo
+make[1]: Entering directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+make[1]: *** No rule to make target 'test.dtbo'.  Stop.
+make[1]: *** Waiting for unfinished jobs....
+make[1]: Leaving directory '/home/ppy/PureFox/buildroot/output/build/linux-main'
+make: *** [package/pkg-generic.mk:289: /home/ppy/PureFox/buildroot/output/build/linux-main/.stamp_built] Error 2

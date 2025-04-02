@@ -1,5 +1,10 @@
 #!/bin/sh
 
+resize2fs /dev/mmcblk0p7
+resize2fs /dev/mmcblk0p6
+#resize2fs /dev/mmcblk0p5
+mount -a
+
 rcS()
 {
 	for i in /oem/usr/etc/init.d/S??* ;do

@@ -7,28 +7,21 @@ sshpass -p 'luckfox' rsync -av --delete --size-only \
 --exclude=/sys \
 --exclude=/mnt \
 --exclude=/root \
+--exclude=/tmp \
 --exclude=/etc/asound.conf \
 --filter='protect /usr/aprenderer/*.dat' \
 --filter='protect /usr/aplayer/*.dat' \
 --filter='protect /data/ethaddr.txt' \
 --filter='protect /etc/resolv.conf' \
 --filter='protect /etc/init.d/S95*' \
-luckfox@luckfox.puredsd.ru::luckfox / || exit 1
+luckfox@luckfox.puredsd.ru::luckfox_ultra / || exit 1
+sleep 1
+sync
 
-
-flash_erase /dev/mtd0 0 0 || exit 1
-mtd_debug write /dev/mtd0 0 262144 /data/env.img || exit 1
-sleep 2
-flash_erase /dev/mtd1 0 0 || exit 1
-mtd_debug write /dev/mtd1 0 262144 /data/idblock.img || exit 1
-sleep 2
-flash_erase /dev/mtd2 0 0 || exit 1
-mtd_debug write /dev/mtd2 0 524288 /data/uboot.img || exit 1
-sleep 2
-flash_erase /dev/mtd3 0 0 || exit 1
-mtd_debug write /dev/mtd3 0 4194304 /data/boot.img || exit 1
-sleep 2
-
+dd if=/data/mmcblk0p1 of=/dev/mmcblk0p1 bs=1M
+dd if=/data/mmcblk0p2 of=/dev/mmcblk0p2 bs=1M
+dd if=/data/mmcblk0p3 of=/dev/mmcblk0p3 bs=1M
+sync
 
 rm -f /data/*.img
 sync
