@@ -13,7 +13,7 @@ $services = [
     'shairport' => 'shairport-sync',
 //    'scream' => 'screen_audio',
     'spotify' => 'librespot',
-//    'tidal' => 'tidal',
+    'tidalconnect' => 'tidalconnect',
 ];
 
 foreach ($services as $key => $process) {

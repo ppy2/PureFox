@@ -12,11 +12,12 @@
 
         <!-- Переключатель ALSA -->
         <div class="alsa-toggle">
-            <label>ALSA Выход:</label>
+            <label data-lang="alsa_output">ALSA Выход:</label>
             <div class="alsa-buttons">
-                <button id="alsa-i2s" class="alsa-button">I2S</button>
                 <button id="alsa-usb" class="alsa-button">USB</button>
+                <button id="alsa-i2s" class="alsa-button">I2S</button>
             </div>
+            <a href="#" id="i2s-settings-link" style="margin-left: 10px;" data-lang="i2s_settings">Настройки I2S</a>
         </div>
 
         <!-- Кнопки управления плеерами -->
@@ -33,28 +34,82 @@
         </div>
         <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
+        <button class="btn-custom primary" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
         <button class="btn-custom danger" data-service="lms" data-process="squeezelite">Squeezelite (LMS)</button>
 
         <!-- Кнопка обновления прошивки -->
-        PureFox v0.3 beta
-        <button id="update-firmware" class="btn-custom warning">Обновить прошивку</button>
+        PureFox v0.4 beta for LuckFox Pico Ultra
+        <button id="update-firmware" class="btn-custom warning" data-lang="update_firmware">Обновить прошивку</button>
         <div id="label"><span>Luckfox</span></div>
     </div>
-
 
     <!-- Всплывающее окно с логом обновления -->
     <div id="update-log-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; height: auto; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: #ddd; border: 2px solid #555;">
-    <h2 style="margin-top: 0; color: #fff; text-align: center;">Обновление прошивки</h2>
+    <h2 style="margin-top: 0; color: #fff; text-align: center;" data-lang="firmware_update">Обновление прошивки</h2>
         <pre id="update-log-content" style="background: #181818; color: #0f0; padding: 10px; text-align: left; height: 300px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #666;"></pre>
-        <button class="close-modal" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase;">Закрыть</button>
+        <button class="close-modal" style="display: block; width: 100%; padding: 10px; margin-top: 10px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase;" data-lang="close">Закрыть</button>
     </div>
     </div>
-
 
     <script src="assets/js/jquery-3.7.1.min.js"></script>
     <script>
         $(document).ready(function () {
+            // Языковые словари
+            const translations = {
+                'ru': {
+                    'alsa_output': 'ALSA Выход:',
+                    'i2s_settings': 'Настройки I2S',
+                    'update_firmware': 'Обновить прошивку',
+                    'firmware_update': 'Обновление прошивки',
+                    'close': 'Закрыть',
+                    'update_start': 'Запуск обновления...',
+                    'update_finish': 'Обновление завершено. Перезагрузите LuckFox',
+                    'update_error': 'Ошибка при обновлении.',
+                    'confirm_update': 'Вы уверены, что хотите обновить прошивку?',
+                    'alsa_error': 'Ошибка при переключении ALSA',
+                    'service_error': 'Ошибка при переключении сервиса'
+                },
+                'en': {
+                    'alsa_output': 'ALSA Output:',
+                    'i2s_settings': 'I2S Settings',
+                    'update_firmware': 'Update Firmware',
+                    'firmware_update': 'Firmware Update',
+                    'close': 'Close',
+                    'update_start': 'Starting update...',
+                    'update_finish': 'Update completed. Please reboot LuckFox',
+                    'update_error': 'Update error.',
+                    'confirm_update': 'Are you sure you want to update the firmware?',
+                    'alsa_error': 'Error switching ALSA',
+                    'service_error': 'Error switching service'
+                }
+            };
+
+            // Определение языка браузера
+            function detectLanguage() {
+                const lang = navigator.language || navigator.userLanguage;
+                return lang.startsWith('ru') ? 'ru' : 'en';
+            }
+
+            // Применение языка
+            const currentLang = detectLanguage();
+            
+            // Установка правильной ссылки на настройки I2S в зависимости от языка
+            const i2sLink = currentLang === 'ru' ? 'i2s_ru.php' : 'i2s_en.php';
+            $('#i2s-settings-link').attr('href', i2sLink);
+            
+            function applyTranslations() {
+                $('[data-lang]').each(function() {
+                    const key = $(this).data('lang');
+                    if (translations[currentLang][key]) {
+                        $(this).text(translations[currentLang][key]);
+                    }
+                });
+            }
+
+            // Применяем переводы сразу при загрузке страницы
+            applyTranslations();
+
             function checkActiveService(callback) {
                 $.ajax({
                     url: 'check_service.php',
@@ -103,7 +158,7 @@
                         checkAlsaState();
                     },
                     error: function() {
-                        alert('Ошибка при переключении ALSA');
+                        alert(translations[currentLang]['alsa_error']);
                     }
                 });
             });
@@ -139,7 +194,7 @@
                         }, CHECK_INTERVAL);
                     },
                     error: function() {
-                        alert('Ошибка при переключении сервиса');
+                        alert(translations[currentLang]['service_error']);
                         $(this).removeClass('active');
                     }
                 });
@@ -150,12 +205,12 @@
             setInterval(checkActiveService, 5000);
 
             $('#update-firmware').click(function () {
-                if (!confirm("Вы уверены, что хотите обновить прошивку?")) {
+                if (!confirm(translations[currentLang]['confirm_update'])) {
                     return;
                 }
 
                 $('#update-log-modal').show();
-                $('#update-log-content').text("Запуск обновления...\n");
+                $('#update-log-content').text(translations[currentLang]['update_start'] + "\n");
 
                 let logContent = $('#update-log-content');
 
@@ -170,12 +225,12 @@
                         }
                     },
                     success: function () {
-            logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
-            logContent.append('\n<span class="update-finish">Обновление завершено. Перезагрузите LuckFox</span>');
+                        logContent.html(logContent.html());
+                        logContent.append('\n<span class="update-finish">' + translations[currentLang]['update_finish'] + '</span>');
                     },
                     error: function () {
-            logContent.append('\n<span class="update-error">Ошибка при обновлении.</span>');
-            logContent.html(logContent.html()); // Обновляет содержимое и рендерит HTML
+                        logContent.append('\n<span class="update-error">' + translations[currentLang]['update_error'] + '</span>');
+                        logContent.html(logContent.html());
                     }
                 });
             });
@@ -187,4 +242,3 @@
     </script>
 </body>
 </html>
-

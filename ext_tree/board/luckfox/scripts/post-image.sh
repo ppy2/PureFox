@@ -25,6 +25,7 @@ resize2fs -M $BINARIES_DIR/userdata.img
 ############## oem.img ###############################
 dd if=/dev/zero of=$BINARIES_DIR/oem.img bs=1M count=10
 mkfs.fat $BINARIES_DIR/oem.img
+mcopy -i $BINARIES_DIR/oem.img $LINUX_DIR/arch/arm/boot/dts/rv1106_usb.dtb ::/
 mcopy -i $BINARIES_DIR/oem.img $LINUX_DIR/arch/arm/boot/dts/rv1106_pll.dtb ::/
 mcopy -i $BINARIES_DIR/oem.img $LINUX_DIR/arch/arm/boot/dts/rv1106_ext.dtb ::/
 mcopy -i $BINARIES_DIR/oem.img $LINUX_DIR/arch/arm/boot/dts/rv1106_512_ext.dtb ::/

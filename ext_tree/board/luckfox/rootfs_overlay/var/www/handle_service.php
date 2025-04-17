@@ -28,7 +28,7 @@ $players = [
     'lms' => ['process' => 'squeezelite', 'script' => 'S95squeezelite'],
 //    'screen-audio' => ['process' => 'screen_audio', 'script' => 'S95screen-audio'],
     'spotify' => ['process' => 'librespot', 'script' => 'S95spotify'],
-//    'tidal' => ['process' => 'tidal', 'script' => 'S95tidal'],
+    'tidalconnect' => ['process' => 'tidalconnect', 'script' => 'S95tidal'],
 ];
 
 try {
