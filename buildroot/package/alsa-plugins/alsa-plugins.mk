@@ -19,6 +19,7 @@ ALSA_PLUGINS_CONF_OPTS = \
 	--disable-maemo-resource-manager \
 	--with-speex=no
 
+
 ifeq ($(BR2_PACKAGE_PULSEAUDIO),y)
 ALSA_PLUGINS_DEPENDENCIES += pulseaudio
 ALSA_PLUGINS_CONF_OPTS += --enable-pulseaudio

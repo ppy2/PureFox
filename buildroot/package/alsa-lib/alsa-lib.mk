@@ -16,7 +16,9 @@ ALSA_LIB_AUTORECONF = YES
 ALSA_LIB_CONF_OPTS = \
 	--with-alsa-devdir=$(call qstrip,$(BR2_PACKAGE_ALSA_LIB_DEVDIR)) \
 	--with-pcm-plugins="$(call qstrip,$(BR2_PACKAGE_ALSA_LIB_PCM_PLUGINS))" \
-	--with-ctl-plugins="$(call qstrip,$(BR2_PACKAGE_ALSA_LIB_CTL_PLUGINS))"
+	--with-ctl-plugins="$(call qstrip,$(BR2_PACKAGE_ALSA_LIB_CTL_PLUGINS))" \
+	--with-soxr
+ALSA_LIB_DEPENDENCIES += libsoxr
 
 ifeq ($(BR2_TOOLCHAIN_USES_GLIBC),)
 ALSA_LIB_CONF_OPTS += --without-versioned
