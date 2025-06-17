@@ -1,0 +1,59 @@
+#!/bin/sh
+
+start() {
+
+    TIMEOUT=10
+    count=0
+
+    while [ $count -lt $TIMEOUT ]; do
+    nc -zw 1 8.8.8.8 443 && break
+        sleep 1
+    count=$((count + 1))
+    done
+
+    if [ $count -eq $TIMEOUT ]; then
+        echo "Интернет не доступен после $TIMEOUT секунд"
+        exit 1
+    fi
+    echo "Интернет доступен"
+    
+    /etc/init.d/S48sntp start
+    printf "Starting Qobuz: "
+    NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
+        
+    # Быстрый тест - если timeout, значит работает
+    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -g 5
+    if [[ $? -eq 143 ]]; then
+	# Timeout = работает = не нужен ALSA wrapper
+	echo "не нужен ALSA wrapper"
+	export LD_PRELOAD="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+    else
+        # Упал = нужен ALSA wrapper.
+        echo "нужен ALSA wrapper"
+        export LD_PRELOAD="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+    fi
+    
+    /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
+    renice -10 `pidof qobuz-connect`
+    }
+
+stop() {
+    kill -9 `pidof qobuz-connect`
+    unset LD_PRELOAD
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+
