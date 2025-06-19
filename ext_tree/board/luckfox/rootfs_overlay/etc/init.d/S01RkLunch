@@ -5,6 +5,18 @@ resize2fs /dev/mmcblk0p6
 #resize2fs /dev/mmcblk0p5
 mount -a
 
+if [ -f /data/ethaddr.txt ]; then
+    echo ""
+else    
+    OUI="BE10E0"
+    SERIAL=$(grep -o 'Serial[[:space:]]*:[[:space:]]*[[:xdigit:]]*' /proc/cpuinfo | awk '{print $NF}')
+    MAC_PART=$(echo "$SERIAL" | tail -c 7)
+    MAC="${OUI}${MAC_PART}"
+    MAC=$(echo "$MAC" | sed 's/\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1:\2:\3:\4:\5:\6/')
+    MAC=$(echo "$MAC" | tr '[:lower:]' '[:upper:]')
+    echo $MAC > /data/ethaddr.txt
+fi
+
 rcS()
 {
 	for i in /oem/usr/etc/init.d/S??* ;do
@@ -36,6 +48,9 @@ check_linker()
 
 network_init()
 {
+
+
+
 	ethaddr1=`ifconfig -a | grep "eth.*HWaddr" | awk '{print $5}'`
 
 	if [ -f /data/ethaddr.txt ]; then
@@ -47,8 +62,10 @@ network_init()
 			ifconfig eth0 hw ether $ethaddr2
 		fi
 	else
+
 		echo $ethaddr1 > /data/ethaddr.txt
 	fi
+
 	ifconfig eth0 up && udhcpc -i eth0
 }
 
@@ -133,3 +150,4 @@ echo "/data/core-%p-%e" > /proc/sys/kernel/core_pattern
 echo 1 > /proc/sys/vm/overcommit_memory
 
 post_chk &
+

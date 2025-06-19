@@ -6,7 +6,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk0p6 rootwait snd_soc_core.prealloc_buffer_size_kbytes=128 coherent_pool=0";
+		bootargs = "earlycon=uart8250,mmio32,0xff4c0000 console=ttyFIQ0 root=/dev/mmcblk1p7 rootwait snd_soc_core.prealloc_buffer_size_kbytes=128 coherent_pool=0";
 	};
 
 
@@ -108,7 +108,6 @@
 
 		assigned-clocks = <&cru I2S0_8CH_MCLKOUT>;
 		assigned-clock-parents = <&cru CLK_I2S0_8CH_TX_SRC>;
-
 		dmas = <&dmac 22>, <&dmac 21>;
 		dma-names = "tx", "rx";
 		resets = <&cru SRST_M_I2S0_8CH_TX>, <&cru SRST_M_I2S0_8CH_RX>;
@@ -119,16 +118,22 @@
 		rockchip,grf = <&grf>;
 		rockchip,playback-only;
 		rockchip,i2s-tx-route = <2 3 0 1>;
+	        rockchip,playback-volume-control;    
+	        rockchip,volume-min = <0>;           
+	        rockchip,volume-max = <100>;         
+	        rockchip,volume-default = <100>;     
+		mute-gpios = <&gpio1 RK_PD3 GPIO_ACTIVE_HIGH>;
                 pinctrl-names = "default";
-		pinctrl-0 = <&i2s0_lrck
-				&i2s0_mclk
-				&i2s0_sclk
-				&i2s0_sdi0
-				&i2s0_sdo0
-				&i2s0_sdo1_sdi3
-				&i2s0_sdo2_sdi2
-				&i2s0_sdo3_sdi1>;
-		status = "disabled";
+	        pinctrl-0 = <&i2s0_lrck 
+				&i2s0_mclk 
+				&i2s0_sclk 
+				&i2s0_sdi0 
+				&i2s0_sdo0 
+				&i2s0_sdo1_sdi3 
+				&i2s0_sdo2_sdi2 
+				&i2s0_sdo3_sdi1 
+				&mute_gpio>;
+	        status = "okay";                     
 	};
 
 /******************I2S_PLL_CLOCK_END************************/
@@ -140,7 +145,7 @@
 mycodec: mycodec {
     	compatible = "rockchip,dummy-codec";
     	#sound-dai-cells = <0>;
-    	status = "disable";
+    	status = "okay";
 
 };
 
@@ -162,7 +167,7 @@ i2s80:sound {
 
         simple-audio-card,codec {
             sound-dai = <&mycodec>;
-
+	status = "okay";  
         };
 };
 

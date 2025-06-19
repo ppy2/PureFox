@@ -77,7 +77,8 @@ i2s0_8ch: i2s@ffae0000 {
         	&i2s0_sdo0
         	&i2s0_sdo1_sdi3
         	&i2s0_sdo2_sdi2
-        	&i2s0_sdo3_sdi1>;
+        	&i2s0_sdo3_sdi1
+		&mute_gpio>;
     	status = "disable";
 };
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sshpass -p 'luckfox' rsync -av --delete --size-only \
+sshpass -p 'luckfox' rsync -acv --delete \
 --exclude=.git \
 --exclude=/dev \
 --exclude=/proc \

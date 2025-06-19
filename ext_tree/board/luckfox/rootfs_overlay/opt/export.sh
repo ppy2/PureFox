@@ -6,7 +6,7 @@ dd if=/dev/mmcblk0p1 of=/data/mmcblk0p1 bs=1M
 dd if=/dev/mmcblk0p2 of=/data/mmcblk0p2 bs=1M
 dd if=/dev/mmcblk0p3 of=/data/mmcblk0p3 bs=1M
 
-rsync -alHWSzv --delete --numeric-ids \
+rsync -alHWSzcv --delete --numeric-ids \
 --exclude=/dev \
 --exclude=/proc \
 --exclude=/tmp \

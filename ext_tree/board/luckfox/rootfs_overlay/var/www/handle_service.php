@@ -28,6 +28,7 @@ $players = [
     'lms' => ['process' => 'squeezelite', 'script' => 'S95squeezelite'],
 //    'screen-audio' => ['process' => 'screen_audio', 'script' => 'S95screen-audio'],
     'spotify' => ['process' => 'librespot', 'script' => 'S95spotify'],
+    'qobuz' => ['process' => 'qobuz-connect', 'script' => 'S95qobuz'],
     'tidalconnect' => ['process' => 'tidalconnect', 'script' => 'S95tidal'],
 ];
 
@@ -62,13 +63,12 @@ try {
     // Запускаем плеер
     logMessage("Starting player: $player_to_start");
     $start_output = executeCommand("$target_link start");
-    sleep(2);
 
     // Проверяем запуск
-    $check = executeCommand("/usr/bin/pgrep -x {$players[$player_to_start]['process']}");
-    if (empty($check)) {
-        throw new Exception("Failed to start player: $player_to_start. Output: $start_output");
-    }
+//    $check = executeCommand("/usr/bin/pgrep -x {$players[$player_to_start]['process']}");
+//    if (empty($check)) {
+//        throw new Exception("Failed to start player: $player_to_start. Output: $start_output");
+//    }
 
     echo json_encode([
         'status' => 'success',

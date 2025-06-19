@@ -8,4 +8,3 @@ fw_setenv bootcmd 'mmc dev ${devnum}; fatload mmc ${devnum}:5 ${kernel_addr_r} z
 
 
 
-

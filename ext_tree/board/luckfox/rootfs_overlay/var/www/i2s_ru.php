@@ -3,35 +3,27 @@
 $config_file = '/etc/i2s.conf';
 
 /**
- * Функция для чтения текущего режима (MODE) и MCLK из конфигурационного файла.
+ * Функция для чтения текущего режима (MODE), MCLK и SUBMODE из конфигурационного файла.
  */
 function readConfig($filePath) {
-    $result = ['mode' => '', 'mclk' => ''];
+    $result = ['mode' => '', 'mclk' => '', 'submode' => ''];
     if (file_exists($filePath)) {
         $contents = file_get_contents($filePath);
-        if (preg_match('/^MODE=(\w+)/m', $contents, $matches)) {
-            $result['mode'] = strtolower($matches[1]);
-        }
-        if (preg_match('/^MCLK=(\d+)/m', $contents, $matches)) {
-            $result['mclk'] = $matches[1];
+        if ($contents !== false) {
+            if (preg_match('/^MODE=(\w+)/m', $contents, $matches)) {
+                $result['mode'] = strtolower($matches[1]);
+            }
+            if (preg_match('/^MCLK=(\d+)/m', $contents, $matches)) {
+                $result['mclk'] = $matches[1];
+            }
+            if (preg_match('/^SUBMODE=(\w+)/m', $contents, $matches)) {
+                $result['submode'] = strtolower($matches[1]);
+            } else {
+                $result['submode'] = 'std';
+            }
         }
     }
     return $result;
-}
-
-/**
- * Функция для обновления (или добавления) строки MCLK в файле.
- */
-function updateMclk($filePath, $newValue) {
-    $contents = file_get_contents($filePath);
-    if (preg_match('/^MCLK=\d+$/m', $contents)) {
-        // Заменяем существующую строку
-        $contents = preg_replace('/^MCLK=\d+$/m', "MCLK=" . $newValue, $contents);
-    } else {
-        // Добавляем строку в конец
-        $contents .= PHP_EOL . "MCLK=" . $newValue;
-    }
-    file_put_contents($filePath, $contents);
 }
 
 // --- Обработка AJAX-запроса для получения текущего состояния ---
@@ -47,8 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Если нажата кнопка для изменения режима (PLL/EXT)
     if (isset($_POST['mode'])) {
         $mode = $_POST['mode'];
-        if ($mode === 'pll' || $mode === 'ext') {
+        if (in_array($mode, ['pll', 'ext'])) {
             $script = ($mode === 'pll') ? '/opt/2pll.sh' : '/opt/2ext.sh';
+            exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
+        }
+    }
+
+    // Если нажата кнопка для изменения SUBMODE (STD/L/R/±L/±R/8CH)
+    if (isset($_POST['submode'])) {
+        $submode = $_POST['submode'];
+        if (in_array($submode, ['std', 'lr', 'plr', '8ch'])) {
+            $script = "/opt/2_$submode.sh";
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
         }
     }
@@ -56,23 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Если нажата кнопка для изменения MCLK
     if (isset($_POST['mclk'])) {
         $mclk = $_POST['mclk'];
-        if ($mclk === '512' || $mclk === '1024') {
-            // Вызываем соответствующий скрипт в зависимости от выбранного MCLK
+        if (in_array($mclk, ['512', '1024'])) {
             $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
-            
-            // Обновляем файл конфигурации
-            if (!file_exists($config_file)) {
-                file_put_contents($config_file, "MCLK=" . $mclk . "\n");
-            } else {
-                updateMclk($config_file, $mclk);
-            }
         }
     }
     
     // Если нажата кнопка перезагрузки
     if (isset($_POST['reboot'])) {
-        // Выполняем команду перезагрузки
         exec('/usr/bin/sudo /sbin/reboot 2>&1', $output, $returnVar);
     }
 
@@ -85,110 +77,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $config = readConfig($config_file);
 $current_mode = $config['mode'];
 $current_mclk = $config['mclk'];
-
-/**
- * Если режим PLL, то принудительно устанавливаем MCLK=1024,
- * если он ещё не установлен.
- */
-if ($current_mode === 'pll' && $current_mclk !== '1024') {
-    updateMclk($config_file, '1024');
-    $current_mclk = '1024';
-}
+$current_submode = $config['submode'];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Важный тег для корректного масштабирования на мобильных устройствах -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Настройки режима и MCLK</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Настройки режима I2S</title>
+    <link rel="stylesheet" href="style.css?v=<?php echo filemtime('style.css'); ?>">
     <style>
-        /* Оверлей для затемнения экрана */
-        #overlay {
-            display: none; /* Скрыт по умолчанию */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 9999;
-        }
-        /* Центрирование спиннера */
-        .spinner-wrapper {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        /* Спиннер: адаптивные размеры */
-        .spinner {
-            width: 15vw;
-            height: 15vw;
-            max-width: 80px;
-            max-height: 80px;
-            min-width: 50px;
-            min-height: 50px;
-            border: 0.8em solid #ccc;
-            border-top: 0.8em solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Для маленьких экранов увеличим спиннер */
-        @media (max-width: 480px) {
-            .spinner {
-                width: 25vw;
-                height: 25vw;
-                max-width: 100px;
-                max-height: 100px;
-            }
-        }
-        /* Горизонтальное расположение кнопок в группах */
         .group {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
         }
         .group h2 {
-            margin-bottom: 10px;
-            font-size: 18px;
+            margin-bottom: 8px;
+            font-size: 16px;
             color: #e0e0e0;
         }
         .group .row {
             display: flex;
-            justify-content: center;
-            gap: 20px;
+            justify-content: space-around;
+            flex-wrap: nowrap;
+            gap: 5px;
         }
-        /* Стиль для кнопки перезагрузки */
+        .group .row button {
+            padding: 5px 10px;
+            font-size: 14px;
+            margin: 0 2px;
+            min-width: 60px;
+        }
         .reboot-btn {
-            margin-top: 20px;
+            margin-top: 15px;
             text-align: center;
         }
         .btn-reboot {
             background-color: #dc3545;
             color: white;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
         }
         .btn-reboot:hover {
             background-color: #c82333;
         }
-        /* Стиль для предупреждения */
         .warning {
-            margin-top: 20px;
-            text-align: center;
+            margin-top: 15px;
+            text-align: left;
             color: #e0e0e0;
             font-size: 14px;
-            line-height: 1.5;
+            font-weight: 500;
+            line-height: 1.4;
         }
-        /* Индикатор статуса обновления */
+        .pulse {
+            color: #ff4444;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         .status-indicator {
             position: fixed;
             top: 10px;
@@ -205,121 +156,109 @@ if ($current_mode === 'pll' && $current_mclk !== '1024') {
         }
     </style>
     <script>
-        // Функция показа оверлея при отправке формы
         function showOverlay() {
-            document.getElementById('overlay').style.display = 'block';
+            document.querySelector('.spinner-overlay').style.display = 'flex';
         }
-        
-        // Функция для подтверждения перезагрузки
         function confirmReboot() {
             return confirm("Вы уверены, что хотите перезагрузить устройство?");
         }
-
-        // Функция для периодической проверки состояния
         function checkStatus() {
-            // Получаем текущий статус
             fetch('?action=getStatus')
                 .then(response => response.json())
                 .then(data => {
-                    // Показываем индикатор активности
                     const indicator = document.getElementById('statusIndicator');
                     indicator.classList.add('active');
-                    setTimeout(() => {
-                        indicator.classList.remove('active');
-                    }, 300);
+                    setTimeout(() => indicator.classList.remove('active'), 300);
                     
-                    // Обновляем состояние кнопок режима
                     updateButtonState('pll-btn', data.mode === 'pll');
                     updateButtonState('ext-btn', data.mode === 'ext');
                     
-                    // Обновляем состояние кнопок MCLK
+                    updateButtonState('std-btn', data.submode === 'std');
+                    updateButtonState('lr-btn', data.submode === 'lr');
+                    updateButtonState('plr-btn', data.submode === 'plr');
+                    updateButtonState('8ch-btn', data.submode === '8ch');
+                    
                     updateButtonState('mclk-512-btn', data.mclk === '512');
                     updateButtonState('mclk-1024-btn', data.mclk === '1024');
                     
-                    // Если режим PLL, делаем кнопку MCLK 512 неактивной
                     document.getElementById('mclk-512-btn').disabled = (data.mode === 'pll');
                 })
-                .catch(error => {
-                    console.error('Ошибка при получении статуса:', error);
-                });
+                .catch(error => console.error('Ошибка при получении статуса:', error));
         }
-        
-        // Функция для обновления состояния кнопки
         function updateButtonState(btnId, isActive) {
             const btn = document.getElementById(btnId);
-            if (isActive) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
+            if (btn) {
+                btn.classList.toggle('active', isActive);
             }
         }
-        
-        // Запускаем проверку статуса каждые 5 секунд после загрузки страницы
         document.addEventListener('DOMContentLoaded', function() {
-            // Первоначальная проверка
             checkStatus();
-            
-            // Установка интервала проверки (5000 мс = 5 секунд)
             setInterval(checkStatus, 5000);
         });
     </script>
 </head>
 <body>
-    <!-- Оверлей с анимированным спиннером -->
-    <div id="overlay">
-        <div class="spinner-wrapper">
-            <div class="spinner"></div>
+    <!-- Обновленный спиннер -->
+    <div class="spinner-overlay">
+	<div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="spinner-text">Загрузка...</div>
         </div>
     </div>
-    
-    <!-- Индикатор статуса обновления -->
     <div id="statusIndicator" class="status-indicator"></div>
-    
     <div class="container">
-        <h1>Настройки</h1>
-        <!-- Форма с горизонтальным расположением кнопок в группах -->
+        <div class="header">
+            <a href="index.php" class="home-button">
+                <svg class="home-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/>
+                </svg>
+                На главную
+            </a>
+            <h1>Настройки I2S</h1>
+        </div>
         <form method="post" onsubmit="showOverlay()">
             <div class="group">
-                <h2>Режим</h2>
+                <h2>Основной режим</h2>
                 <div class="row">
                     <button type="submit" name="mode" value="pll" id="pll-btn"
-                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">
-                        PLL
-                    </button>
+                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">PLL</button>
                     <button type="submit" name="mode" value="ext" id="ext-btn"
-                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">
-                        EXT
-                    </button>
+                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">EXT</button>
+                </div>
+            </div>
+            <div class="group">
+                <h2>Вариант вывода</h2>
+                <div class="row">
+                    <button type="submit" name="submode" value="std" id="std-btn"
+                        class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>">STD</button>
+                    <button type="submit" name="submode" value="lr" id="lr-btn"
+                        class="btn-custom <?php if ($current_submode === 'lr') echo 'active'; ?>">L/R</button>
+                    <button type="submit" name="submode" value="plr" id="plr-btn"
+                        class="btn-custom <?php if ($current_submode === 'plr') echo 'active'; ?>">±L/±R</button>
+                    <button type="submit" name="submode" value="8ch" id="8ch-btn"
+                        class="btn-custom <?php if ($current_submode === '8ch') echo 'active'; ?>">8CH</button>
                 </div>
             </div>
             <div class="group">
                 <h2>MCLK</h2>
                 <div class="row">
-                    <!-- Если режим PLL, делаем кнопку 512 недоступной (disabled) -->
                     <button type="submit" name="mclk" value="512" id="mclk-512-btn"
                         class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>"
-                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>
-                        512
-                    </button>
+                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>512</button>
                     <button type="submit" name="mclk" value="1024" id="mclk-1024-btn"
-                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">
-                        1024
-                    </button>
+                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">1024</button>
                 </div>
             </div>
             <div class="warning">
-                Внимание! <br>
-                Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). <br>
-                После изменения любых настроек требуется перезагрузка. <br>
+                <span class="pulse">Внимание!</span> <br>
+                Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). </br>
+                В режиме PLL доступен только MCLK = 1024. </br>
+                После изменения любых настроек требуется перезагрузка.
             </div>
         </form>
-        
-        <!-- Отдельная форма для кнопки перезагрузки -->
         <form method="post" onsubmit="return confirmReboot() && showOverlay()">
             <div class="reboot-btn">
-                <button type="submit" name="reboot" value="1" class="btn-reboot">
-                    Перезагрузить
-                </button>
+                <button type="submit" name="reboot" value="1" class="btn-reboot">Перезагрузить</button>
             </div>
         </form>
     </div>

@@ -1,15 +1,29 @@
 #!/bin/sh
 
 start() {
-    printf "Starting Tidal Connect: "
-    export LD_LIBRARY_PATH=/usr/lib/tidal:$LD_LIBRARY_PATH
-    tidalconnect -f LuckFox --tc-certificate-path "/etc/ssl/private/IfiAudio_ZenStream.dat" --codec-mpegh true --disable-app-security false --disable-web-security false --codec-mqa true --enable-mqa-passthrough true &
-    sleep 0.5
-    renice -15 `pidof tidalconnect`
-}
-    
+    printf "Starting Tidalconnect: "
+    export LD_LIBRARY_PATH=/usr/lib/tidal
+    (
+    tidalconnect \
+    --netif-for-deviceid eth0 \
+    -f LuckFox \
+    --codec-mpegh false \
+    --codec-mqa false \
+    --model-name "OEM" \
+    --disable-app-security false \
+    --disable-web-security true \
+    --enable-mqa-passthrough true \
+    --log-level 3 \
+    --tc-certificate-path "/etc/ssl/private/tcon.crt" \
+    --clientid "VCjoaRrbaMU005Tk" \
+    > /dev/null 2>&1 < /dev/null &
+    ) &
+    sleep 1
+    renice -10 `pidof tidalconnect` 2>/dev/null
+    exit
+    }
 stop() {
-    	killall -9 tidalconnect
+    killall -9 tidalconnect
 }
 restart() {
 	stop

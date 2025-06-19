@@ -1,9 +1,6 @@
 <?php
 
-// Добавим 333 проверки. А то, иногда файл обнуляется
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $asoundConfPath = '/etc/asound.conf';
     $targetCard = $_POST['card'] ?? '';
     
     // Валидация ввода
@@ -13,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Проверка существования файла
+    $asoundConfPath = '/etc/asound.conf';
     if (!file_exists($asoundConfPath)) {
         http_response_code(404);
         die('Файл /etc/asound.conf не найден');
@@ -25,41 +23,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die('Файл пуст или недоступен для чтения');
     }
 
-    // Определение замены
+    // Проверка текущего состояния
     $search = ($targetCard === 'usb') ? 'card 0' : 'card 1';
-    $replace = ($targetCard === 'usb') ? 'card 1' : 'card 0';
-
-    // Проверка наличия заменяемой строки
     if (strpos($content, $search) === false) {
         die("Целевая карта '$search' не найдена в файле");
     }
 
-    // Выполнение замены
-    $newContent = str_replace($search, $replace, $content);
-    
-    // Проверка изменений
-    if ($newContent === $content) {
-        die('Не удалось выполнить замену. Содержимое не изменилось');
+    // Вызов соответствующего скрипта
+    $script = ($targetCard === 'usb') ? '/opt/2_usb.sh' : '/opt/2_i2s.sh';
+    if (!file_exists($script)) {
+        http_response_code(500);
+        die("Скрипт $script не найден");
     }
 
-    // Атомарная запись с блокировкой
-    $tempFile = tempnam(sys_get_temp_dir(), 'asound');
-    if (file_put_contents($tempFile, $newContent) === false) {
-        unlink($tempFile);
+    // Выполнение скрипта
+    $output = [];
+    $returnVar = 0;
+    exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
+    if ($returnVar !== 0) {
         http_response_code(500);
-        die('Ошибка создания временного файла');
-    }
-
-    // Перемещение файла с проверкой
-    if (!rename($tempFile, $asoundConfPath)) {
-        unlink($tempFile);
-        http_response_code(500);
-        die('Ошибка записи основного файла');
+        die("Ошибка выполнения скрипта $script: " . implode("\n", $output));
     }
 
     // Перезапуск сервиса
-    $output = shell_exec('/usr/bin/sudo /etc/init.d/S95* restart 2>&1');
-    echo "Конфигурация успешно обновлена. Вывод: $output";
+    $serviceOutput = shell_exec('/usr/bin/sudo /etc/init.d/S95* restart 2>&1');
+    echo "Конфигурация успешно обновлена. Вывод: $serviceOutput";
 } else {
     http_response_code(405);
     header('Allow: POST');

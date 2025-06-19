@@ -1,3 +1,19 @@
+diff -Naur original_dir/arch/arm/boot/dts/Makefile modified_dir/arch/arm/boot/dts/Makefile
+--- original_dir/arch/arm/boot/dts/Makefile	2025-03-12 14:48:17.000000000 +0300
++++ modified_dir/arch/arm/boot/dts/Makefile	2025-06-17 16:40:09.782768713 +0300
+@@ -971,7 +971,11 @@
+ 	r8a7794-silk.dtb \
+ 	r9a06g032-rzn1d400-db.dtb \
+ 	sh73a0-kzm9g.dtb 
+-# dtb-$(CONFIG_ARCH_ROCKCHIP) += \
++dtb-$(CONFIG_ARCH_ROCKCHIP) += \
++	rv1106_ext.dtb \
++	rv1106_512_ext.dtb \
++	rv1106_usb.dtb \
++	rv1106_pll.dtb
+ #	rv1103g-38x38-ipc-v10.dtb \
+ #	rv1103g-battery-ipc-v10.dtb \
+ #	rv1103g-battery-ipc-v11.dtb \
 diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c
 --- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-03-12 14:48:17.000000000 +0300
 +++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-06-13 21:18:28.941588904 +0300
