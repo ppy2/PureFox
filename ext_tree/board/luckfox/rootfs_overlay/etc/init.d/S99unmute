@@ -1,0 +1,73 @@
+#!/bin/sh
+
+exit
+
+#
+# S99unmute        Force unmute audio after all services started
+#
+
+start() {
+    printf "Checking audio controls: "
+    
+    # Check if any amixer controls support mute/unmute
+    mute_control_found=0
+    
+    # Get all controls (both simple and regular)
+    for control_type in scontrols controls; do
+        amixer -c 0 $control_type 2>/dev/null | while read line; do
+            # Extract control name from both formats
+            control=""
+            case "$line" in
+                "Simple mixer control"*)
+                    control=$(echo "$line" | sed "s/Simple mixer control '\([^']*\)'.*/\1/")
+                    ;;
+                *"'"*)
+                    control=$(echo "$line" | sed "s/.*'\([^']*\)'.*/\1/")
+                    ;;
+            esac
+            
+            if [ -n "$control" ]; then
+                # Test if this control supports mute (has [on]/[off] states)
+                if amixer -c 0 sget "$control" 2>/dev/null | grep -q '\[on\]\|\[off\]'; then
+                    mute_control_found=1
+                    break
+                fi
+            fi
+        done
+        [ $mute_control_found -eq 1 ] && break
+    done
+    
+    # If no mute controls found, force unmute via system file
+    if [ $mute_control_found -eq 0 ] && [ -f /sys/devices/platform/ffae0000.i2s/mute ]; then
+        echo 0 > /sys/devices/platform/ffae0000.i2s/mute
+        echo "forced unmute (no mute controls)"
+    else
+        echo "mute controls available"
+    fi
+}
+
+stop() {
+    # Do nothing on stop
+    :
+}
+
+restart() {
+    start
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload)
+    restart
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

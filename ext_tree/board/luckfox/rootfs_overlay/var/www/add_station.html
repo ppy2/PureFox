@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Radio Station</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Global rule for correct size calculation */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        /* Form container */
+        .container {
+            max-width: 600px;
+            width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        form p {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 16px;
+            color: #e0e0e0;
+        }
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #3d3d3d;
+            color: #e0e0e0;
+        }
+        input[type="submit"] {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            color: #e0e0e0;
+            background-color: #3d3d3d;
+            border: 1px solid #555;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #4d4d4d;
+            transform: translateY(-2px);
+        }
+        /* Responsive for mobile devices */
+        @media (max-width: 600px) {
+            .container {
+                max-width: 90%;
+                padding: 10px;
+            }
+            label, input[type="text"], input[type="file"], input[type="submit"] {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align:center; color:#e0e0e0;">Add Radio Station</h1>
+        <?php if (isset($_GET['error'])): ?>
+            <p class="update-error"><?php echo htmlspecialchars($_GET['error']); ?></p>
+        <?php endif; ?>
+        <form action="process_station.php" method="post" enctype="multipart/form-data">
+            <p>
+                <label for="name">Station Name:</label>
+                <input type="text" name="name" id="name" required>
+            </p>
+            <p>
+                <label for="url">Stream URL:</label>
+                <input type="text" name="url" id="url" required>
+            </p>
+            <p>
+                <label for="category">Category:</label>
+                <input type="text" name="category" id="category" required>
+            </p>
+            <p>
+                <label for="logo">Logo:</label>
+                <input type="file" name="logo" id="logo" accept="image/*">
+            </p>
+            <p>
+                <input type="submit" value="Add">
+            </p>
+        </form>
+        <p style="text-align:center;"><a href="radio.php" style="color:#007bff; text-decoration:none;">Return to Radio Station List</a></p>
+    </div>
+</body>
+</html>
+

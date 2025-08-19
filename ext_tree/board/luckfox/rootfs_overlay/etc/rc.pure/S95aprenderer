@@ -1,0 +1,30 @@
+#!/bin/sh
+
+start() {
+    touch /var/log/aprenderer.log
+    ln -s -f /var/log/aprenderer.log /usr/aprenderer/aprenderer.log
+    printf "Starting APlayer UPNP: "
+    cd /usr/aprenderer; nice -n -15 ./ap2renderer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
+    sync
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
+    }
+stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
+    killall -9 ap2renderer
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

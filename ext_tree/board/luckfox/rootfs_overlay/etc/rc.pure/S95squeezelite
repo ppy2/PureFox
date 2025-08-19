@@ -1,0 +1,31 @@
+#!/bin/sh
+
+NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
+OPTIONS="-z -D 1000:u32be -r 44100-705600:1000 -a 400:3::0 -M $NAME"
+
+start() {
+        printf "Starting Squeezelite: "
+        /usr/bin/squeezelite $OPTIONS
+	renice -15 `pidof squeezelite`
+        MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+	/usr/bin/amixer set "$MIXER" unmute
+    }
+stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
+    killall -9 squeezelite
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

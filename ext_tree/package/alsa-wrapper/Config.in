@@ -1,0 +1,18 @@
+config BR2_PACKAGE_ALSA_WRAPPER
+    bool "alsa-wrapper"
+    depends on BR2_PACKAGE_ALSA_LIB
+    help
+      ALSA wrapper library.
+      
+      This package provides a library that intercepts ALSA calls
+      to optimize audio buffer management and provide better
+      audio performance for high-resolution audio playback.
+      
+      Features:
+      - Automatic buffer size optimization for high sample rates
+      - Volume control and mute functionality
+      - Pause/resume emulation
+      - Debug logging support
+      
+comment "alsa-wrapper needs alsa-lib"
+    depends on !BR2_PACKAGE_ALSA_LIB

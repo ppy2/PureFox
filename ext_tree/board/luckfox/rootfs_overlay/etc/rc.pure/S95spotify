@@ -1,0 +1,31 @@
+#!/bin/sh
+
+start() {
+    date |grep 1970 && /etc/init.d/S48sntp start
+    printf "Starting Spotify: "
+    NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
+    nice -n -15 /usr/bin/librespot --dither none --disable-audio-cache --bitrate 320 -R 100 --name $NAME > /dev/null 2>&1 &
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
+    }
+stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
+    killall -9 librespot
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+

@@ -1,0 +1,87 @@
+#!/bin/sh
+
+start() {
+
+	# Internet connection check function
+	check_internet() {
+	    # Check Google DNS availability via ping
+	    ping -c 1 -W 1 8.8.8.8 > /dev/null 2>&1
+	    return $?
+	}
+
+	start_time=$(date +%s)  # Remember start time
+	timeout=10              # Maximum wait time in seconds
+
+	echo "Waiting for internet connection..."
+
+	while true; do
+	    # Check internet availability
+	    if check_internet; then
+	        echo "Internet connected."
+	        break
+	    fi
+
+	    # Check if time has expired
+	    current_time=$(date +%s)
+	    elapsed=$((current_time - start_time))
+	    if ((elapsed >= timeout)); then
+	        echo "Error: No internet access for $timeout seconds." >&2
+	        exit 1
+	    fi
+
+	    sleep 1  # Pause between checks
+	done
+    
+    date |grep 1970 && /etc/init.d/S48sntp start
+    printf "Starting Qobuz: "
+    NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
+        
+    # Quick test - if timeout, then it works
+    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -g 5
+    if [[ $? -eq 143 ]]; then
+	# Timeout = works = no need for ALSA wrapper
+	echo "no ALSA wrapper needed"
+	PRELOAD_LIBS="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+    else
+        # Failed = need ALSA wrapper.
+        echo "ALSA wrapper needed"
+        PRELOAD_LIBS="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+    fi
+    
+    # Start qobuz-connect with specific LD_PRELOAD, not global export
+    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
+    
+    # Wait for process to fully start before changing priority
+    sleep 2
+    PID=`pidof qobuz-connect`
+    if [ -n "$PID" ]; then
+        renice -15 $PID
+        echo "Priority set to -15 for PID $PID"
+    else
+        echo "Warning: qobuz-connect process not found for priority adjustment"
+    fi
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute 2>/dev/null || echo "No mixer controls available"
+    }
+
+stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute 2>/dev/null || echo "No mixer controls available"
+    kill -9 `pidof qobuz-connect`
+}
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
+

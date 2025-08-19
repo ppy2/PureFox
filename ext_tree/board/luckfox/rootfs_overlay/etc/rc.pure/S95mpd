@@ -1,0 +1,39 @@
+#!/bin/sh
+
+start() {
+    printf "Starting mpd: "
+    mkdir -p /var/cache/    
+    ln -s /opt/upmpdcli /var/cache/
+    NAME=upmpdcli
+    CONFFILE=/etc/$NAME.conf
+    PIDFILE=/var/run/$NAME.pid
+    DAEMON_ARGS="-D -c $CONFFILE"
+    NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
+    sed -i "s/^friendlyname.*/friendlyname = $NAME/" /etc/upmpdcli.conf
+    nice -n -15 /usr/bin/upmpdcli $DAEMON_ARGS
+    sleep 0.5
+    nice -n -15 /usr/bin/mpd
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
+    }
+stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
+    killall -9 mpd
+    killall -9 upmpdcli
+    }
+restart() {
+	stop
+	start
+}
+case "$1" in
+  start|stop|restart)
+	"$1"
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
