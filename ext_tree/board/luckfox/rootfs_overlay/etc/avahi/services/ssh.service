@@ -24,7 +24,7 @@
 
 <service-group>
 
-  <name replace-wildcards="yes">%h</name>
+  <name replace-wildcards="yes">Service on %h</name>
 
   <service>
     <type>_ssh._tcp</type>

@@ -995,7 +995,7 @@ h1 {
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: normal;
     transition: background-color 0.3s;
     min-width: 80px;
 }
