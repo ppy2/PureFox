@@ -5,8 +5,7 @@ OPTIONS="-z -D 1000:u32be -r 44100-705600:1000 -a 400:3::0 -M $NAME"
 
 start() {
         printf "Starting Squeezelite: "
-        /usr/bin/squeezelite $OPTIONS
-	renice -15 `pidof squeezelite`
+	nice -n -30 /usr/bin/squeezelite $OPTIONS
         MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
 	/usr/bin/amixer set "$MIXER" unmute
     }

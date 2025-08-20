@@ -4,8 +4,7 @@ start() {
     touch /var/log/apscream.log
     ln -s -f /var/log/apscream.log /usr/apscream/apscream.log
     printf "Starting APscream: "
-    cd /usr/apscream; ./apscream > /dev/null 2>&1 && echo "OK" || echo "FAIL"
-    renice -15 `pidof apscream`
+    cd /usr/apscream; nice -n -30 ./apscream > /dev/null 2>&1 && echo "OK" || echo "FAIL"
     sync
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute

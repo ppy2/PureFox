@@ -5,8 +5,7 @@ start() {
     ln -s -f /var/log/aprenderer.log /usr/aprenderer/aprenderer.log
     printf "Starting APlayer UPNP: "
     /usr/aprenderer/upnp/squeeze2upnp -z -k -I > /dev/null 2>&1
-    cd /usr/aprenderer; ./aprenderer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
-    renice -15 `pidof aprenderer`
+    cd /usr/aprenderer; nice -n -30 ./aprenderer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
     sync
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute

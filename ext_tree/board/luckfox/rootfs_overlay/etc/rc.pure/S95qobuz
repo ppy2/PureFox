@@ -49,17 +49,7 @@ start() {
     fi
     
     # Start qobuz-connect with specific LD_PRELOAD, not global export
-    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
-    
-    # Wait for process to fully start before changing priority
-    sleep 2
-    PID=`pidof qobuz-connect`
-    if [ -n "$PID" ]; then
-        renice -15 $PID
-        echo "Priority set to -15 for PID $PID"
-    else
-        echo "Warning: qobuz-connect process not found for priority adjustment"
-    fi
+    nice -n -30 env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute 2>/dev/null || echo "No mixer controls available"
     }

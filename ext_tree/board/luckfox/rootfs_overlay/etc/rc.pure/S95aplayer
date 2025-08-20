@@ -4,7 +4,7 @@ start() {
     touch /var/log/aplayer.log
     ln -s -f /var/log/aplayer.log /usr/aprenderer/aplayer.log
     printf "Starting APlayer: "
-    cd /usr/aplayer; nice -n -15 ./aplayer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
+    cd /usr/aplayer; nice -n -30 ./aplayer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
     sync
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute
