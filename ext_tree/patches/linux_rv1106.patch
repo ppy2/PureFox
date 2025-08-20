@@ -52,7 +52,7 @@ diff -Naur original_dir/sound/soc/codecs/dummy-codec.c modified_dir/sound/soc/co
  };
 diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c
 --- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-03-12 14:48:17.000000000 +0300
-+++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-08-12 20:29:40.434956200 +0300
++++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-08-20 23:38:02.899905618 +0300
 @@ -1,21 +1,19 @@
  /* sound/soc/rockchip/rockchip_i2s_tdm.c
   *
@@ -1676,7 +1676,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -446,2088 +1332,3324 @@
+@@ -446,2088 +1332,3322 @@
   */
  static void rockchip_i2s_tdm_tx_fifo_padding(struct rk_i2s_tdm_dev *i2s_tdm, bool en)
  {
@@ -4211,10 +4211,8 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    /* Check if auto-mute is called too frequently */
 +    if (i2s_tdm->last_auto_mute_time != 0 && 
 +        time_before(current_time, i2s_tdm->last_auto_mute_time + min_interval)) {
-+        /* Too frequent calls - just extend existing mute */
-+        dev_dbg(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: Auto-mute debounce - extending existing mute\n");
-+        cancel_delayed_work(&i2s_tdm->mute_post_work);
-+        schedule_delayed_work(&i2s_tdm->mute_post_work, msecs_to_jiffies(i2s_tdm->postmute_delay_ms));
++        /* Too frequent calls - ignore completely */
++        dev_dbg(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: Auto-mute debounce - ignoring frequent call\n");
 +        mutex_unlock(&i2s_tdm->mute_lock);
 +        return;
 +    }
