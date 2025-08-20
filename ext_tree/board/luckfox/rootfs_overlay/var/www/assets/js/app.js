@@ -146,6 +146,17 @@ $(document).ready(function () {
     $(window).resize(function() {
         setResponsiveStyles();
     });
+    
+    // Check CSS gap support
+    function checkGapSupport() {
+        const testElement = document.createElement('div');
+        testElement.style.display = 'flex';
+        testElement.style.gap = '10px';
+        if (testElement.style.gap === '10px') {
+            document.documentElement.classList.add('supports-gap');
+        }
+    }
+    checkGapSupport();
 
     // Force status check on user actions
     function forceStatusCheck() {
