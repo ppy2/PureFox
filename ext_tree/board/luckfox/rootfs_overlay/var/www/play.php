@@ -5,7 +5,7 @@ function connectToMPD() {
     if (!$fp) {
         die("Ошибка подключения к MPD: $errstr ($errno)");
     }
-    fgets($fp); // читаем приветственное сообщение
+    fgets($fp); // read welcome message
     return $fp;
 }
 
@@ -39,7 +39,7 @@ while (!feof($fp)) {
 }
 fclose($fp);
 
-// Записываем информацию о текущей станции
+// Write current station information
 $currentStation = array(
     'id' => $station['id'],
     'name' => $station['name'],

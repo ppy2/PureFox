@@ -49,7 +49,15 @@ start() {
     fi
     
     # Start qobuz-connect with specific LD_PRELOAD, not global export
-    nice -n -30 env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
+    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
+    sleep 1
+    pid=$(pidof qobuz-connect)
+    if [ -n "$pid" ]; then
+    renice -15 $pid
+    for tid in $(ls /proc/$pid/task/); do
+        renice -15 $tid
+    done
+    fi
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute 2>/dev/null || echo "No mixer controls available"
     }

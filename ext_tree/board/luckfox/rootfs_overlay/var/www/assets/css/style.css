@@ -441,6 +441,7 @@ h1 {
   transition: opacity 0.2s ease;
   cursor: pointer;
   flex-shrink: 0;
+  margin-left: 15px;
 }
 
 .volume-control:hover .settings-icon.volume-icon {
@@ -493,6 +494,11 @@ h1 {
     min-width: 180px; /* Reduce minimum width */
     max-width: 300px; /* Limit maximum width */
     gap: 8px; /* Reduce internal gap */
+    padding-left: 8px; /* Reduce left padding for more space */
+  }
+  
+  .settings-icon.volume-icon {
+    margin-left: 0; /* Remove desktop margin on mobile */
   }
   
   .volume-slider {
@@ -522,6 +528,11 @@ h1 {
     max-width: none; /* Remove width limitation */
     min-width: auto;
     gap: 6px; /* Even smaller gap */
+    padding-left: 5px; /* Minimal left padding for full width */
+  }
+  
+  .settings-icon.volume-icon {
+    margin-left: 0; /* No margin on narrow screens */
   }
   
   .volume-slider {

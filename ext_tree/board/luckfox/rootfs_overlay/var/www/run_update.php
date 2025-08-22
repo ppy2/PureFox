@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: text/plain');
 
-// Открываем процесс и получаем реальный поток stdout от выполнения скрипта
+// Open process and get real stdout stream from script execution
 $cmd = "/usr/bin/sudo /opt/update.sh 2>&1";
 $descriptorspec = array(
     1 => array("pipe", "w"), // stdout

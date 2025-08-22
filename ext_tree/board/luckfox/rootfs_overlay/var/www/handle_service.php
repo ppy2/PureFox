@@ -44,30 +44,30 @@ try {
 
     logMessage("Request to start player: $player_to_start");
 
-    // Проверка наличия скрипта
+    // Check script existence
     $script_path = "/etc/rc.pure/{$players[$player_to_start]['script']}";
     if (!file_exists($script_path)) {
         throw new Exception("Player script not found: $script_path");
     }
 
-    // Остановить все текущие плееры
+    // Stop all current players
     executeCommand("/etc/init.d/S95* stop");
 
-    // Удаляем все S95* из /etc/init.d/
+    // Remove all S95* from /etc/init.d/
     executeCommand("/bin/rm -f /etc/init.d/S95*");
 
-    // Создаем симлинк
+    // Create symlink
     $target_link = "/etc/init.d/{$players[$player_to_start]['script']}";
     executeCommand("/bin/ln -s '$script_path' '$target_link'");
     
-    // Запускаем плеер
+    // Start player
     logMessage("Starting player: $player_to_start");
     $start_output = executeCommand("$target_link start");
 
-    // Отправляем D-Bus сигнал о смене сервиса для мгновенного обновления
+    // Send D-Bus signal about service change for instant update
     executeCommand("/opt/dbus_notify ServiceChanged \"$player_to_start\"");
 
-    // Проверяем запуск
+    // Check startup
 //    $check = executeCommand("/usr/bin/pgrep -x {$players[$player_to_start]['process']}");
 //    if (empty($check)) {
 //        throw new Exception("Failed to start player: $player_to_start. Output: $start_output");

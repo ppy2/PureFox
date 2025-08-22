@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Reboot
-    // Обработка перезагрузки убрана - теперь используется reboot.php
+    // Reboot handling removed - now using reboot.php
 
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;

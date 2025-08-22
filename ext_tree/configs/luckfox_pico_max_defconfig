@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -g846f9881-dirty Configuration
+# Buildroot -gbd37fa1f-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -187,7 +187,7 @@ BR2_TOOLCHAIN_SUPPORTS_ALWAYS_LOCKFREE_ATOMIC_INTS=y
 BR2_TOOLCHAIN_SUPPORTS_VARIADIC_MI_THUNK=y
 BR2_USE_WCHAR=y
 BR2_ENABLE_LOCALE=y
-BR2_INSTALL_LIBSTDCPP=y
+BR2_INSTALL_LIBSTDCPP=n
 BR2_TOOLCHAIN_HAS_FORTRAN=y
 BR2_TOOLCHAIN_HAS_THREADS=y
 BR2_TOOLCHAIN_HAS_THREADS_DEBUG=y
@@ -1213,8 +1213,8 @@ BR2_PACKAGE_DBUS=y
 #
 # dbusbroker needs systemd and a toolchain w/ threads
 #
-BR2_PACKAGE_DBUS_CPP=y
-BR2_PACKAGE_DBUS_CXX=y
+# BR2_PACKAGE_DBUS_CPP is not set
+# BR2_PACKAGE_DBUS_CXX is not set
 BR2_PACKAGE_DBUS_GLIB=y
 BR2_PACKAGE_DBUS_TRIGGERD=y
 # BR2_PACKAGE_DFU_PROGRAMMER is not set
@@ -4498,7 +4498,7 @@ BR2_TARGET_UBOOT_CUSTOM_PATCH_DIR=""
 #
 
 #
-# external BR tree for Luckfox Pico Max (in /home/ppy/PureFox/ext_tree)
+# external BR tree for Luckfox Pico Max (in /opt/PureFox/ext_tree)
 #
 
 #

@@ -52,7 +52,7 @@ diff -Naur original_dir/sound/soc/codecs/dummy-codec.c modified_dir/sound/soc/co
  };
 diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c
 --- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-03-12 14:48:17.000000000 +0300
-+++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-08-20 23:38:02.899905618 +0300
++++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-08-22 11:42:38.926890997 +0300
 @@ -1,21 +1,19 @@
  /* sound/soc/rockchip/rockchip_i2s_tdm.c
   *
@@ -112,7 +112,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  
  #define DRV_NAME "rockchip-i2s-tdm"
  
-@@ -47,320 +58,1191 @@
+@@ -47,320 +58,1196 @@
  #define CLK_PPM_MAX				(1000)
  #define MAXBURST_PER_FIFO			8
  
@@ -318,6 +318,11 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    /* Configurable auto-mute times via sysfs */
 +    unsigned int premute_delay_ms;      // Delay between mute and stop/start (default 50ms)
 +    unsigned int postmute_delay_ms;     // Mute hold time after start (default 450ms)
++    
++    /* Delayed start for proper premute timing */
++    struct timer_list delayed_start_timer;
++    int pending_stream;                 // Stream to start after premute delay
++    bool delayed_start_pending;         // Delayed start is scheduled
 +    
 +    /* GPIO for DSD-on signal */
 +    struct gpio_desc *dsd_on_gpio;
@@ -1553,7 +1558,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -369,16 +1251,18 @@
+@@ -369,16 +1256,18 @@
   */
  static void rockchip_i2s_tdm_sync_reset(struct rk_i2s_tdm_dev *i2s_tdm)
  {
@@ -1574,7 +1579,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  static inline void rockchip_i2s_tdm_sync_reset(struct rk_i2s_tdm_dev *i2s_tdm)
  {
  }
-@@ -386,57 +1270,59 @@
+@@ -386,57 +1275,59 @@
  
  static void rockchip_i2s_tdm_reset(struct reset_control *rc)
  {
@@ -1676,7 +1681,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -446,2088 +1332,3322 @@
+@@ -446,2088 +1337,3392 @@
   */
  static void rockchip_i2s_tdm_tx_fifo_padding(struct rk_i2s_tdm_dev *i2s_tdm, bool en)
  {
@@ -1992,11 +1997,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    return;
 +    }
 +
-+    /* FIX: Enable mute BEFORE start to prevent clicks */
-+    if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
-+        rockchip_i2s_tdm_trigger_auto_mute(i2s_tdm);
-+        /* DO NOT use msleep in start/stop - can cause deadlock in atomic context */
-+    }
++    /* Note: Mute is now handled in trigger with proper delayed start timing */
 +
 +    /* Always start DMA and transmission */
 +    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, stream, 1);
@@ -3308,10 +3309,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    dma_data = snd_soc_dai_get_dma_data(dai, substream);
 +    dma_data->maxburst = MAXBURST_PER_FIFO * params_channels(params) / 2;
 +
-+    /* Start automatic mute when parameters change */
-+    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-+        rockchip_i2s_tdm_trigger_auto_mute(i2s_tdm);
-+    }
++    /* Note: Mute is now handled in trigger for proper timing */
 +    
 +    /* Update audiophile processor parameters */
 +    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
@@ -3691,11 +3689,39 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    switch (cmd) {
 +    case SNDRV_PCM_TRIGGER_START:
 +    /* Reset pause state on start */
-+    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 +        i2s_tdm->playback_paused = false;
-+    else
++        
++        /* For playback: Enable mute NOW and schedule delayed start */
++        mutex_lock(&i2s_tdm->mute_lock);
++        
++        /* Cancel any pending delayed start */
++        del_timer(&i2s_tdm->delayed_start_timer);
++        i2s_tdm->delayed_start_pending = false;
++        
++        /* Enable mute immediately for mechanical relay protection */
++        if (!i2s_tdm->user_mute_priority) {
++            if (i2s_tdm->mute_gpio) {
++                gpiod_set_value(i2s_tdm->mute_gpio, 1);
++            }
++            i2s_tdm->auto_mute_active = true;
++            rockchip_i2s_tdm_apply_mute(i2s_tdm, true);
++        }
++        
++        /* Schedule delayed start after premute delay */
++        i2s_tdm->pending_stream = substream->stream;
++        i2s_tdm->delayed_start_pending = true;
++        mod_timer(&i2s_tdm->delayed_start_timer, 
++                  jiffies + msecs_to_jiffies(i2s_tdm->premute_delay_ms));
++        
++        dev_info(i2s_tdm->dev, "TRIGGER START: Mute enabled, delaying start by %dms\n", 
++                 i2s_tdm->premute_delay_ms);
++        
++        mutex_unlock(&i2s_tdm->mute_lock);
++    } else {
 +        i2s_tdm->capture_paused = false;
-+    rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
++        rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
++    }
 +    break;
 +    case SNDRV_PCM_TRIGGER_RESUME:
 +    /* Reset pause state on system resume */
@@ -3712,10 +3738,19 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    case SNDRV_PCM_TRIGGER_SUSPEND:
 +    case SNDRV_PCM_TRIGGER_STOP:
 +    /* Reset pause state on stop */
-+    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 +        i2s_tdm->playback_paused = false;
-+    else
++        
++        /* Cancel any pending delayed start */
++        mutex_lock(&i2s_tdm->mute_lock);
++        del_timer(&i2s_tdm->delayed_start_timer);
++        i2s_tdm->delayed_start_pending = false;
++        mutex_unlock(&i2s_tdm->mute_lock);
++        
++        dev_info(i2s_tdm->dev, "TRIGGER STOP: Cancelled any pending delayed start\n");
++    } else {
 +        i2s_tdm->capture_paused = false;
++    }
 +    rockchip_i2s_tdm_stop(i2s_tdm, substream->stream);
 +    break;
 +    case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
@@ -4301,6 +4336,40 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    }
 +    
 +    /* DO NOT start post-mute timer - mute stays enabled until next start */
++    
++    mutex_unlock(&i2s_tdm->mute_lock);
++}
++
++/* Timer handler for delayed start after premute */
++static void rockchip_i2s_tdm_delayed_start_timer(struct timer_list *t)
++{
++    struct rk_i2s_tdm_dev *i2s_tdm = from_timer(i2s_tdm, t, delayed_start_timer);
++    int stream;
++    
++    mutex_lock(&i2s_tdm->mute_lock);
++    
++    if (!i2s_tdm->delayed_start_pending) {
++        mutex_unlock(&i2s_tdm->mute_lock);
++        return; /* Start was cancelled */
++    }
++    
++    stream = i2s_tdm->pending_stream;
++    i2s_tdm->delayed_start_pending = false;
++    
++    dev_info(i2s_tdm->dev, "DELAYED START: Starting stream %d after %dms premute\n", 
++             stream, i2s_tdm->premute_delay_ms);
++    
++    /* Now actually start the hardware - mute was enabled 50ms ago */
++    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, stream, 1);
++    
++    if (i2s_tdm->clk_trcm)
++        rockchip_i2s_tdm_xfer_trcm_start(i2s_tdm);
++    else
++        rockchip_i2s_tdm_xfer_start(i2s_tdm, stream);
++    
++    /* Start post-mute timer to unmute after configured delay */
++    if (i2s_tdm->postmute_delay_ms > 0)
++        schedule_delayed_work(&i2s_tdm->mute_post_work, msecs_to_jiffies(i2s_tdm->postmute_delay_ms));
 +    
 +    mutex_unlock(&i2s_tdm->mute_lock);
 +}
@@ -5952,6 +6021,11 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    i2s_tdm->premute_delay_ms = DEFAULT_PREMUTE_DELAY_MS;      // default for mute stabilization
 +    i2s_tdm->postmute_delay_ms = DEFAULT_POSTMUTE_DELAY_MS;    // default for mute hold
 +    
++    /* Initialize delayed start timer for proper premute timing */
++    timer_setup(&i2s_tdm->delayed_start_timer, rockchip_i2s_tdm_delayed_start_timer, 0);
++    i2s_tdm->delayed_start_pending = false;
++    i2s_tdm->pending_stream = -1;
++    
 +    dev_info(&pdev->dev, "ROCKCHIP_I2S_TDM: Initial volume = %d, mute = %d (sound %s)\n", 
 +     i2s_tdm->volume, i2s_tdm->mute, i2s_tdm->mute ? "OFF" : "ON");
 +
@@ -6588,6 +6662,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    /* Cleanup auto-mute timers */
 +    cancel_delayed_work_sync(&i2s_tdm->mute_pre_work);
 +    cancel_delayed_work_sync(&i2s_tdm->mute_post_work);
++    del_timer_sync(&i2s_tdm->delayed_start_timer);
 +
 +    /* Remove sysfs attributes */
 +    device_remove_file(&pdev->dev, &dev_attr_mclk_multiplier);
