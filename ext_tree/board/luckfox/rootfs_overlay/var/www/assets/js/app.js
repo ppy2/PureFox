@@ -41,7 +41,7 @@ $(document).ready(function () {
     $('button[data-service="aplayer"] .settings-link').attr('href', 'http://' + currentHost + ':7778');
 
     // Language dictionaries (FULLY PRESERVED!)
-    const translations = {
+    window.translations = {
         'ru': {
             'Output': 'Выход:',
             'i2s_settings': 'Настройки I2S',
@@ -61,7 +61,27 @@ $(document).ready(function () {
             'usb_dac_missing': 'USB ЦАП не обнаружен.<br>Пожалуйста, подключите USB ЦАП',
             'confirm_reboot': 'Вы уверены, что хотите перезагрузить систему?',
             'confirm_shutdown': 'Вы уверены, что хотите выключить систему?',
-            'shutdown_complete': 'Система выключена. Можете отключить питание.'
+            'shutdown_complete': 'Система выключена. Можете отключить питание.',
+            'i2s_title': 'I2S Настройки',
+            'back_button': '← Назад',
+            'mode_title': 'Основной режим',
+            'pll_mode': 'PLL',
+            'ext_mode': 'EXT',
+            'submode_title': 'Вариант выхода',
+            'lr_mode': 'L/R',
+            'plr_mode': '±L/±R',
+            'std_mode': 'STD',
+            'l_mode': 'L',
+            'r_mode': 'R',
+            'plusl_mode': '±L',
+            'plusr_mode': '±R',
+            '8ch_mode': '8CH',
+            'mclk_title': 'MCLK',
+            'warning_attention': 'Внимание!',
+            'warning_text1': 'Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).',
+            'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
+            'yes_btn': 'Да',
+            'cancel_btn': 'Отмена'
         },
         'en': {
             'alsa_output': 'ALSA Output:',
@@ -82,7 +102,27 @@ $(document).ready(function () {
             'usb_dac_missing': 'USB DAC not detected.<br>Please connect USB DAC',
             'confirm_reboot': 'Are you sure you want to reboot the system?',
             'confirm_shutdown': 'Are you sure you want to shutdown the system?',
-            'shutdown_complete': 'System has been shut down. You can disconnect power.'
+            'shutdown_complete': 'System has been shut down. You can disconnect power.',
+            'i2s_title': 'I2S Settings',
+            'back_button': '← Back',
+            'mode_title': 'Main Mode',
+            'pll_mode': 'PLL',
+            'ext_mode': 'EXT',
+            'submode_title': 'Output Mode',
+            'lr_mode': 'L/R',
+            'plr_mode': '±L/±R',
+            'std_mode': 'STD',
+            'l_mode': 'L',
+            'r_mode': 'R',
+            'plusl_mode': '±L',
+            'plusr_mode': '±R',
+            '8ch_mode': '8CH',
+            'mclk_title': 'MCLK',
+            'warning_attention': 'Warning!',
+            'warning_text1': 'MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).',
+            'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
+            'yes_btn': 'Yes',
+            'cancel_btn': 'Cancel'
         },
         'de': {
             'alsa_output': 'ALSA Ausgang:',
@@ -103,7 +143,27 @@ $(document).ready(function () {
             'usb_dac_missing': 'USB-DAC nicht erkannt.<br>Bitte USB-DAC anschließen',
             'confirm_reboot': 'Sind Sie sicher, dass Sie das System neu starten möchten?',
             'confirm_shutdown': 'Sind Sie sicher, dass Sie das System herunterfahren möchten?',
-            'shutdown_complete': 'System wurde heruntergefahren. Sie können die Stromversorgung trennen.'
+            'shutdown_complete': 'System wurde heruntergefahren. Sie können die Stromversorgung trennen.',
+            'i2s_title': 'I2S Einstellungen',
+            'back_button': '← Zurück',
+            'mode_title': 'Hauptmodus',
+            'pll_mode': 'PLL',
+            'ext_mode': 'EXT',
+            'submode_title': 'Ausgangsmodus',
+            'lr_mode': 'L/R',
+            'plr_mode': '±L/±R',
+            'std_mode': 'STD',
+            'l_mode': 'L',
+            'r_mode': 'R',
+            'plusl_mode': '±L',
+            'plusr_mode': '±R',
+            '8ch_mode': '8CH',
+            'mclk_title': 'MCLK',
+            'warning_attention': 'Achtung!',
+            'warning_text1': 'MCLK-Ausgang hat unterschiedliche Einstellungen in PLL- und EXT-Modi (OUTPUT/INPUT).',
+            'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
+            'yes_btn': 'Ja',
+            'cancel_btn': 'Abbrechen'
         },
         'fr': {
             'alsa_output': 'Sortie ALSA:',
@@ -124,7 +184,27 @@ $(document).ready(function () {
             'usb_dac_missing': 'DAC USB non détecté.<br>Veuillez connecter un DAC USB',
             'confirm_reboot': 'Êtes-vous sûr de vouloir redémarrer le système?',
             'confirm_shutdown': 'Êtes-vous sûr de vouloir arrêter le système?',
-            'shutdown_complete': 'Système arrêté. Vous pouvez débrancher l\'alimentation.'
+            'shutdown_complete': 'Système arrêté. Vous pouvez débrancher l\'alimentation.',
+            'i2s_title': 'Paramètres I2S',
+            'back_button': '← Retour',
+            'mode_title': 'Mode principal',
+            'pll_mode': 'PLL',
+            'ext_mode': 'EXT',
+            'submode_title': 'Mode de sortie',
+            'lr_mode': 'L/R',
+            'plr_mode': '±L/±R',
+            'std_mode': 'STD',
+            'l_mode': 'L',
+            'r_mode': 'R',
+            'plusl_mode': '±L',
+            'plusr_mode': '±R',
+            '8ch_mode': '8CH',
+            'mclk_title': 'MCLK',
+            'warning_attention': 'Attention!',
+            'warning_text1': 'La sortie MCLK a des paramètres différents en modes PLL et EXT (OUTPUT/INPUT).',
+            'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
+            'yes_btn': 'Oui',
+            'cancel_btn': 'Annuler'
         },
         'zh': {
             'alsa_output': 'ALSA 输出:',
@@ -145,12 +225,32 @@ $(document).ready(function () {
             'usb_dac_missing': '未检测到 USB DAC。<br>请连接 USB DAC',
             'confirm_reboot': '您确定要重启系统吗？',
             'confirm_shutdown': '您确定要关闭系统吗？',
-            'shutdown_complete': '系统已关闭。您可以断开电源。'
+            'shutdown_complete': '系统已关闭。您可以断开电源。',
+            'i2s_title': 'I2S 设置',
+            'back_button': '← 返回',
+            'mode_title': '主模式',
+            'pll_mode': 'PLL',
+            'ext_mode': 'EXT',
+            'submode_title': '输出模式',
+            'lr_mode': 'L/R',
+            'plr_mode': '±L/±R',
+            'std_mode': 'STD',
+            'l_mode': 'L',
+            'r_mode': 'R',
+            'plusl_mode': '±L',
+            'plusr_mode': '±R',
+            '8ch_mode': '8CH',
+            'mclk_title': 'MCLK',
+            'warning_attention': '注意！',
+            'warning_text1': 'MCLK输出在PLL和EXT模式下具有不同的设置（OUTPUT/INPUT）。',
+            'warning_text2': '更改I2S设置后需要重启系统才能生效。',
+            'yes_btn': '是',
+            'cancel_btn': '取消'
         }
     };
 
     // Browser language detection (PRESERVED!)
-    function detectLanguage() {
+    window.detectLanguage = function() {
         const lang = navigator.language || navigator.userLanguage;
         if (lang.startsWith('ru')) return 'ru';
         if (lang.startsWith('de')) return 'de';
@@ -160,26 +260,22 @@ $(document).ready(function () {
     }
 
     // Language application (PRESERVED!)
-    const currentLang = detectLanguage();
-    let i2sLink = 'i2s_en.php';
-    if (currentLang === 'ru') i2sLink = 'i2s_ru.php';
-    else if (currentLang === 'de') i2sLink = 'i2s_de.php';
-    else if (currentLang === 'fr') i2sLink = 'i2s_fr.php';
-    else if (currentLang === 'zh') i2sLink = 'i2s_zh.php';
-    $('#i2s-settings-link').attr('href', i2sLink);
+    window.currentLang = window.detectLanguage();
+    // Update I2S settings link - now unified multilingual
+    $('#i2s-settings-link').attr('href', 'i2s.php');
 
-    function applyTranslations() {
+    window.applyTranslations = function() {
         $('[data-lang]').each(function() {
             const key = $(this).data('lang');
-            if (translations[currentLang][key] !== undefined) {
+            if (window.translations[window.currentLang][key] !== undefined) {
                 if (key !== 'settings' || !$(this).find('img').length) {
-                    $(this).text(translations[currentLang][key]);
+                    $(this).text(window.translations[window.currentLang][key]);
                 }
             }
         });
     }
 
-    applyTranslations();
+    window.applyTranslations();
 
     // Adaptive styles (FULLY PRESERVED!)
     function setResponsiveStyles() {

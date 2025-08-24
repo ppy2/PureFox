@@ -4,7 +4,7 @@ require_once 'config.php';
 $config_file = '/etc/i2s.conf';
 
 /**
- * Function to read current mode (MODE), MCLK and SUBMODE from config file
+ * Function for reading the current mode (MODE), MCLK and SUBMODE from configuration file.
  */
 function readConfig($filePath) {
     $result = ['mode' => '', 'mclk' => '', 'submode' => ''];
@@ -27,7 +27,7 @@ function readConfig($filePath) {
     return $result;
 }
 
-// --- AJAX request handling for status ---
+// --- Processing AJAX request to get current state ---
 if (isset($_GET['action']) && $_GET['action'] === 'getStatus') {
     $config = readConfig($config_file);
     header('Content-Type: application/json');
@@ -35,9 +35,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'getStatus') {
     exit;
 }
 
-// --- POST request handling ---
+// --- Processing POST request ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Mode change (PLL/EXT)
+    // If button for changing mode (PLL/EXT) is pressed
     if (isset($_POST['mode'])) {
         $mode = $_POST['mode'];
         if (in_array($mode, ['pll', 'ext'])) {
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Submode change (STD/L/R/±L/±R/8CH)
+    // If button for changing SUBMODE (STD/L/R/±L/±R/8CH) is pressed
     if (isset($_POST['submode'])) {
         $submode = $_POST['submode'];
         if (in_array($submode, ['std', 'lr', 'plr', '8ch'])) {
@@ -55,11 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // MCLK change
+    // If button for changing MCLK is pressed
     if (isset($_POST['mclk'])) {
         $mclk = $_POST['mclk'];
         if (in_array($mclk, ['512', '1024'])) {
-            // Choose script based on current mode
+            // Choose script depending on current mode
             $config = readConfig($config_file);
             $mode = $config['mode'];
             
@@ -71,15 +71,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
         }
     }
-    
-    // Reboot
-    // Reboot handling removed - now using reboot.php
 
+    
+    // Reboot processing removed - now using reboot.php
+
+    // After performing actions, redirect (PRG)
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
-// --- GET request: read current state ---
+// --- GET request: reading current state ---
 $config = readConfig($config_file);
 $current_mode = $config['mode'];
 $current_mclk = $config['mclk'];
@@ -90,7 +91,7 @@ $current_submode = $config['submode'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>I2S Mode Settings</title>
+    <title data-lang="i2s_title">I2S Settings</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
         .group {
@@ -135,6 +136,11 @@ $current_submode = $config['submode'];
         .pulse {
             color: #ff4444;
             animation: pulse 2s infinite ease-in-out;
+            font-size: 20px;
+            font-weight: bold;
+            display: block;
+            text-align: center;
+            margin-bottom: 10px;
         }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -186,7 +192,7 @@ $current_submode = $config['submode'];
                     fetch('reboot.php', {
                         method: 'POST'
                     }).then(() => {
-                        // Wait for connection restoration after reboot
+                        // After reboot, wait for connection restoration
                         setTimeout(checkConnection, 3000);
                     }).catch(() => {
                         // If request failed, still wait for restoration
@@ -210,80 +216,50 @@ $current_submode = $config['submode'];
                     setTimeout(checkConnection, 2000);
                 });
         }
-        function checkStatus() {
-            fetch('?action=getStatus')
-                .then(response => response.json())
-                .then(data => {
-                    const indicator = document.getElementById('statusIndicator');
-                    indicator.classList.add('active');
-                    setTimeout(() => indicator.classList.remove('active'), 300);
-                    
-                    updateButtonState('pll-btn', data.mode === 'pll');
-                    updateButtonState('ext-btn', data.mode === 'ext');
-                    
-                    updateButtonState('std-btn', data.submode === 'std');
-                    updateButtonState('lr-btn', data.submode === 'lr');
-                    updateButtonState('plr-btn', data.submode === 'plr');
-                    updateButtonState('8ch-btn', data.submode === '8ch');
-                    
-                    updateButtonState('mclk-512-btn', data.mclk === '512');
-                    updateButtonState('mclk-1024-btn', data.mclk === '1024');
-                })
-                .catch(error => console.error('Error getting status:', error));
-        }
-        function updateButtonState(btnId, isActive) {
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                btn.classList.toggle('active', isActive);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            checkStatus();
-            setInterval(checkStatus, 5000);
-        });
     </script>
 </head>
 <body>
-    <!-- Spinner -->
+    <!-- Updated spinner -->
     <div class="spinner-overlay">
-        <div class="spinner-container">
-            <div class="spinner"></div>
-            <div class="spinner-text">Loading...</div>
+	<div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="spinner-text">Loading...</div>
         </div>
     </div>
     <div id="statusIndicator" class="status-indicator"></div>
     <div class="container">
         <div class="header">
-            <a href="index.php" class="home-button" title="Main Menu">
+            <a href="index.php" class="home-button" title="Home">
                 <img src="assets/img/home.svg" class="settings-icon" alt="Home">
             </a>
-            <h1>I2S Settings</h1>
+            <h1 data-lang="i2s_title">I2S Settings</h1>
         </div>
+        
         <form method="post" onsubmit="showOverlay()">
             <div class="group">
-                <h2>Main Mode</h2>
+                <h2 data-lang="mode_title">Main Mode</h2>
                 <div class="row">
                     <button type="submit" name="mode" value="pll" id="pll-btn"
-                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>">PLL</button>
+                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>" data-lang="pll_mode">PLL</button>
                     <button type="submit" name="mode" value="ext" id="ext-btn"
-                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>">EXT</button>
+                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>" data-lang="ext_mode">EXT</button>
                 </div>
             </div>
             <div class="group">
-                <h2>Output Mode</h2>
+                <h2 data-lang="submode_title">Output Mode</h2>
                 <div class="row">
                     <button type="submit" name="submode" value="std" id="std-btn"
-                        class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>">STD</button>
+                        class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>" data-lang="std_mode">STD</button>
                     <button type="submit" name="submode" value="lr" id="lr-btn"
-                        class="btn-custom <?php if ($current_submode === 'lr') echo 'active'; ?>">L/R</button>
+                        class="btn-custom <?php if ($current_submode === 'lr') echo 'active'; ?>" data-lang="lr_mode">L/R</button>
                     <button type="submit" name="submode" value="plr" id="plr-btn"
-                        class="btn-custom <?php if ($current_submode === 'plr') echo 'active'; ?>">±L/±R</button>
+                        class="btn-custom <?php if ($current_submode === 'plr') echo 'active'; ?>" data-lang="plr_mode">±L/±R</button>
                     <button type="submit" name="submode" value="8ch" id="8ch-btn"
-                        class="btn-custom <?php if ($current_submode === '8ch') echo 'active'; ?>">8CH</button>
+                        class="btn-custom <?php if ($current_submode === '8ch') echo 'active'; ?>" data-lang="8ch_mode">8CH</button>
                 </div>
             </div>
             <div class="group">
-                <h2>MCLK</h2>
+                <h2 data-lang="mclk_title">MCLK</h2>
                 <div class="row">
                     <button type="submit" name="mclk" value="512" id="mclk-512-btn"
                         class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>">512</button>
@@ -292,9 +268,9 @@ $current_submode = $config['submode'];
                 </div>
             </div>
             <div class="warning">
-                <span class="pulse">Warning!</span> <br>
-                MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT). <br>
-                System reboot is required after changing I2S settings to apply them.
+                <span class="pulse" data-lang="warning_attention">Warning!</span> <br>
+                <span data-lang="warning_text1">MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).</span> </br>
+                <span data-lang="warning_text2">System reboot is required after changing I2S settings to apply them.</span>
             </div>
         </form>
         <div class="reboot-btn">
@@ -309,10 +285,124 @@ $current_submode = $config['submode'];
         <div class="confirm-content">
             <div id="confirm-message" class="confirm-message"></div>
             <div class="confirm-buttons">
-                <button id="confirm-yes" class="confirm-btn confirm-btn-yes">Yes</button>
-                <button id="confirm-no" class="confirm-btn confirm-btn-no">Cancel</button>
+                <button id="confirm-yes" class="confirm-btn confirm-btn-yes" data-lang="yes_btn">Yes</button>
+                <button id="confirm-no" class="confirm-btn confirm-btn-no" data-lang="cancel_btn">Cancel</button>
             </div>
         </div>
     </div>
+
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script>
+        // Only load translations, no button state management
+        $(document).ready(function() {
+            // Simple language detection without app.js interference
+            function detectLanguage() {
+                const lang = navigator.language || navigator.userLanguage;
+                if (lang.startsWith('ru')) return 'ru';
+                if (lang.startsWith('de')) return 'de';
+                if (lang.startsWith('fr')) return 'fr';
+                if (lang.startsWith('zh')) return 'zh';
+                return 'en';
+            }
+            
+            const translations = {
+                'ru': {
+                    'i2s_title': 'Настройки I2S',
+                    'mode_title': 'Основной режим',
+                    'pll_mode': 'PLL',
+                    'ext_mode': 'EXT',
+                    'submode_title': 'Вариант выхода',
+                    'std_mode': 'STD',
+                    'lr_mode': 'L/R',
+                    'plr_mode': '±L/±R',
+                    '8ch_mode': '8CH',
+                    'mclk_title': 'MCLK',
+                    'warning_attention': 'Внимание!',
+                    'warning_text1': 'Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).',
+                    'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
+                    'yes_btn': 'Да',
+                    'cancel_btn': 'Отмена'
+                },
+                'en': {
+                    'i2s_title': 'I2S Settings',
+                    'mode_title': 'Main Mode',
+                    'pll_mode': 'PLL',
+                    'ext_mode': 'EXT',
+                    'submode_title': 'Output Mode',
+                    'std_mode': 'STD',
+                    'lr_mode': 'L/R',
+                    'plr_mode': '±L/±R',
+                    '8ch_mode': '8CH',
+                    'mclk_title': 'MCLK',
+                    'warning_attention': 'Warning!',
+                    'warning_text1': 'MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).',
+                    'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
+                    'yes_btn': 'Yes',
+                    'cancel_btn': 'Cancel'
+                },
+                'de': {
+                    'i2s_title': 'I2S Einstellungen',
+                    'mode_title': 'Hauptmodus',
+                    'pll_mode': 'PLL',
+                    'ext_mode': 'EXT',
+                    'submode_title': 'Ausgangsmodus',
+                    'std_mode': 'STD',
+                    'lr_mode': 'L/R',
+                    'plr_mode': '±L/±R',
+                    '8ch_mode': '8CH',
+                    'mclk_title': 'MCLK',
+                    'warning_attention': 'Achtung!',
+                    'warning_text1': 'MCLK-Ausgang hat unterschiedliche Einstellungen in PLL- und EXT-Modi (OUTPUT/INPUT).',
+                    'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
+                    'yes_btn': 'Ja',
+                    'cancel_btn': 'Abbrechen'
+                },
+                'fr': {
+                    'i2s_title': 'Paramètres I2S',
+                    'mode_title': 'Mode principal',
+                    'pll_mode': 'PLL',
+                    'ext_mode': 'EXT',
+                    'submode_title': 'Mode de sortie',
+                    'std_mode': 'STD',
+                    'lr_mode': 'L/R',
+                    'plr_mode': '±L/±R',
+                    '8ch_mode': '8CH',
+                    'mclk_title': 'MCLK',
+                    'warning_attention': 'Attention!',
+                    'warning_text1': 'La sortie MCLK a des paramètres différents en modes PLL et EXT (OUTPUT/INPUT).',
+                    'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
+                    'yes_btn': 'Oui',
+                    'cancel_btn': 'Annuler'
+                },
+                'zh': {
+                    'i2s_title': 'I2S 设置',
+                    'mode_title': '主模式',
+                    'pll_mode': 'PLL',
+                    'ext_mode': 'EXT',
+                    'submode_title': '输出模式',
+                    'std_mode': 'STD',
+                    'lr_mode': 'L/R',
+                    'plr_mode': '±L/±R',
+                    '8ch_mode': '8CH',
+                    'mclk_title': 'MCLK',
+                    'warning_attention': '注意！',
+                    'warning_text1': 'MCLK输出在PLL和EXT模式下具有不同的设置（OUTPUT/INPUT）。',
+                    'warning_text2': '更改I2S设置后需要重启系统才能生效。',
+                    'yes_btn': '是',
+                    'cancel_btn': '取消'
+                }
+            };
+            
+            const currentLang = detectLanguage();
+            
+            // Apply translations without touching button states
+            $('[data-lang]').each(function() {
+                const key = $(this).data('lang');
+                if (translations[currentLang] && translations[currentLang][key]) {
+                    $(this).text(translations[currentLang][key]);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
