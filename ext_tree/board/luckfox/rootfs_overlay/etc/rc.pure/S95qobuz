@@ -36,20 +36,53 @@ start() {
     printf "Starting Qobuz: "
     NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
         
+    # Determine output device for test
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        TEST_OUTPUT_DEVICE="hw:1"
+    else
+        TEST_OUTPUT_DEVICE="default"
+    fi
+    
+    # Check if we're in USB mode - CPU fix causes gapless issues with USB
+    IS_USB_MODE=""
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        IS_USB_MODE="yes"
+        echo "USB mode detected - CPU fix will be disabled for better gapless playback"
+    fi
+    
     # Quick test - if timeout, then it works
-    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -g 5
+    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o $TEST_OUTPUT_DEVICE -g 5
     if [[ $? -eq 143 ]]; then
 	# Timeout = works = no need for ALSA wrapper
 	echo "no ALSA wrapper needed"
-	PRELOAD_LIBS="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+	if [ "$IS_USB_MODE" = "yes" ]; then
+	    # USB mode - no CPU fix for better gapless
+	    PRELOAD_LIBS=""
+	else
+	    # I2S mode - use CPU fix for better performance
+	    PRELOAD_LIBS="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+	fi
     else
         # Failed = need ALSA wrapper.
         echo "ALSA wrapper needed"
-        PRELOAD_LIBS="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+        if [ "$IS_USB_MODE" = "yes" ]; then
+	    # USB mode - only ALSA wrapper, no CPU fix
+	    PRELOAD_LIBS="/usr/lib/libfake_alsa.so"
+	else
+	    # I2S mode - both ALSA wrapper and CPU fix
+	    PRELOAD_LIBS="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+	fi
+    fi
+    
+    # Determine output device based on current output setting
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        OUTPUT_DEVICE="hw:1"
+    else
+        OUTPUT_DEVICE="default"
     fi
     
     # Start qobuz-connect with specific LD_PRELOAD, not global export
-    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
+    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o $OUTPUT_DEVICE -n $NAME -g 5 > /dev/null 2>&1 &
     sleep 1
     pid=$(pidof qobuz-connect)
     if [ -n "$pid" ]; then

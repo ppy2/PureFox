@@ -12,8 +12,12 @@
         <!-- Кнопки управления плеерами -->
         <button class="btn-custom warning" data-service="naa" data-process="naa_process">HQPlayer (NAA)</button>
         <button class="btn-custom warning" data-service="raat" data-process="raat_process">Roon (RAAT)</button>
-	<button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
-        <button class="btn-custom warning" data-service="lms" data-process="squeezelite">Squeezelite (LMS)</button>
+        
+        <div class="streaming-buttons">
+            <button class="btn-custom warning" data-service="lms" data-process="squeezelite">Squeezelite (LMS)</button>
+            <button class="btn-custom warning" data-service="shairport" data-process="shairport_process">AirPlay</button>
+        </div>
+        
         <button class="btn-custom warning" data-service="mpd" data-process="mpd">MPD (UPnP)</button>
 
         <div class="player-buttons">
@@ -28,9 +32,9 @@
 
         <div class="ap-buttons">
             <button class="btn-custom primary" data-service="aplayer" data-process="aplayer">
-                APlayer (webradio)
+                APlayer
                 <a href="http://" class="settings-link" data-lang="settings">
-                    <img src="assets/img/settings.svg" class="settings-icon" alt="Settings">
+                    <img src="assets/img/radio.svg" class="settings-icon" alt="Radio">
                 </a>
             </button>
             <button class="btn-custom primary" data-service="apscream" data-process="apscream">
@@ -68,8 +72,11 @@
 
         <!-- Кнопки обновления и управления питанием -->
         <div class="power-controls">
-            <button id="update-firmware" class="btn-custom danger firmware-btn" data-lang="update_firmware">
-                Обновить прошивку
+            <button id="update-firmware" class="btn-custom danger firmware-btn">
+                <div class="firmware-text">
+                    <div class="firmware-title">PureFox v<?php echo VERSION; ?></div>
+                    <div class="firmware-subtitle">for LuckFox Pico MAX</div>
+                </div>
                 <img src="assets/img/firmware.svg" class="settings-icon firmware-icon" alt="Firmware">
             </button>
             <div class="system-buttons">
@@ -81,7 +88,6 @@
                 </button>
             </div>
         </div>
-        PureFox v<?php echo VERSION; ?> for LuckFox Pico MAX
     </div>
 
     <!-- Всплывающее окно с логом обновления -->

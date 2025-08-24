@@ -46,6 +46,7 @@ $(document).ready(function () {
             'Output': 'Выход:',
             'i2s_settings': 'Настройки I2S',
             'update_firmware': 'Обновить прошивку',
+            'update_firmware_short': 'Обновить',
             'firmware_update': 'Обновление прошивки',
             'close': 'Закрыть',
             'update_start': 'Запуск обновления...',
@@ -66,6 +67,7 @@ $(document).ready(function () {
             'alsa_output': 'ALSA Output:',
             'i2s_settings': 'I2S Settings',
             'update_firmware': 'Update Firmware',
+            'update_firmware_short': 'Update',
             'firmware_update': 'Firmware Update',
             'close': 'Close',
             'update_start': 'Starting update...',
@@ -81,18 +83,89 @@ $(document).ready(function () {
             'confirm_reboot': 'Are you sure you want to reboot the system?',
             'confirm_shutdown': 'Are you sure you want to shutdown the system?',
             'shutdown_complete': 'System has been shut down. You can disconnect power.'
+        },
+        'de': {
+            'alsa_output': 'ALSA Ausgang:',
+            'i2s_settings': 'I2S Einstellungen',
+            'update_firmware': 'Firmware aktualisieren',
+            'update_firmware_short': 'Update',
+            'firmware_update': 'Firmware-Update',
+            'close': 'Schließen',
+            'update_start': 'Update wird gestartet...',
+            'update_finish': 'Update abgeschlossen. Bitte LuckFox neu starten',
+            'update_error': 'Update-Fehler.',
+            'confirm_update': 'Sind Sie sicher, dass Sie die Firmware aktualisieren möchten?',
+            'alsa_error': 'Fehler beim Umschalten von ALSA',
+            'service_error': 'Fehler beim Umschalten des Dienstes',
+            'settings': '',
+            'switching_player': 'Player wird gewechselt...',
+            'switching_output': 'Ausgang wird gewechselt...',
+            'usb_dac_missing': 'USB-DAC nicht erkannt.<br>Bitte USB-DAC anschließen',
+            'confirm_reboot': 'Sind Sie sicher, dass Sie das System neu starten möchten?',
+            'confirm_shutdown': 'Sind Sie sicher, dass Sie das System herunterfahren möchten?',
+            'shutdown_complete': 'System wurde heruntergefahren. Sie können die Stromversorgung trennen.'
+        },
+        'fr': {
+            'alsa_output': 'Sortie ALSA:',
+            'i2s_settings': 'Paramètres I2S',
+            'update_firmware': 'Mettre à jour le firmware',
+            'update_firmware_short': 'Mettre à jour',
+            'firmware_update': 'Mise à jour du firmware',
+            'close': 'Fermer',
+            'update_start': 'Démarrage de la mise à jour...',
+            'update_finish': 'Mise à jour terminée. Veuillez redémarrer LuckFox',
+            'update_error': 'Erreur de mise à jour.',
+            'confirm_update': 'Êtes-vous sûr de vouloir mettre à jour le firmware?',
+            'alsa_error': 'Erreur lors du changement ALSA',
+            'service_error': 'Erreur lors du changement de service',
+            'settings': '',
+            'switching_player': 'Changement de lecteur...',
+            'switching_output': 'Changement de sortie...',
+            'usb_dac_missing': 'DAC USB non détecté.<br>Veuillez connecter un DAC USB',
+            'confirm_reboot': 'Êtes-vous sûr de vouloir redémarrer le système?',
+            'confirm_shutdown': 'Êtes-vous sûr de vouloir arrêter le système?',
+            'shutdown_complete': 'Système arrêté. Vous pouvez débrancher l\'alimentation.'
+        },
+        'zh': {
+            'alsa_output': 'ALSA 输出:',
+            'i2s_settings': 'I2S 设置',
+            'update_firmware': '更新固件',
+            'update_firmware_short': '更新',
+            'firmware_update': '固件更新',
+            'close': '关闭',
+            'update_start': '开始更新...',
+            'update_finish': '更新完成。请重启 LuckFox',
+            'update_error': '更新错误。',
+            'confirm_update': '您确定要更新固件吗？',
+            'alsa_error': 'ALSA 切换错误',
+            'service_error': '服务切换错误',
+            'settings': '',
+            'switching_player': '正在切换播放器...',
+            'switching_output': '正在切换输出...',
+            'usb_dac_missing': '未检测到 USB DAC。<br>请连接 USB DAC',
+            'confirm_reboot': '您确定要重启系统吗？',
+            'confirm_shutdown': '您确定要关闭系统吗？',
+            'shutdown_complete': '系统已关闭。您可以断开电源。'
         }
     };
 
     // Browser language detection (PRESERVED!)
     function detectLanguage() {
         const lang = navigator.language || navigator.userLanguage;
-        return lang.startsWith('ru') ? 'ru' : 'en';
+        if (lang.startsWith('ru')) return 'ru';
+        if (lang.startsWith('de')) return 'de';
+        if (lang.startsWith('fr')) return 'fr';
+        if (lang.startsWith('zh')) return 'zh';
+        return 'en';
     }
 
     // Language application (PRESERVED!)
     const currentLang = detectLanguage();
-    const i2sLink = currentLang === 'ru' ? 'i2s_ru.php' : 'i2s_en.php';
+    let i2sLink = 'i2s_en.php';
+    if (currentLang === 'ru') i2sLink = 'i2s_ru.php';
+    else if (currentLang === 'de') i2sLink = 'i2s_de.php';
+    else if (currentLang === 'fr') i2sLink = 'i2s_fr.php';
+    else if (currentLang === 'zh') i2sLink = 'i2s_zh.php';
     $('#i2s-settings-link').attr('href', i2sLink);
 
     function applyTranslations() {
@@ -100,14 +173,7 @@ $(document).ready(function () {
             const key = $(this).data('lang');
             if (translations[currentLang][key] !== undefined) {
                 if (key !== 'settings' || !$(this).find('img').length) {
-                    // Special handling for update_firmware button to preserve icon
-                    if (key === 'update_firmware' && $(this).find('img').length) {
-                        const icon = $(this).find('img').detach();
-                        $(this).text(translations[currentLang][key]);
-                        $(this).append(icon);
-                    } else {
-                        $(this).text(translations[currentLang][key]);
-                    }
+                    $(this).text(translations[currentLang][key]);
                 }
             }
         });
@@ -118,22 +184,22 @@ $(document).ready(function () {
     // Adaptive styles (FULLY PRESERVED!)
     function setResponsiveStyles() {
         if (window.innerWidth < 500) {
-            $('.player-buttons, .ap-buttons').css({
+            $('.player-buttons, .ap-buttons, .streaming-buttons').css({
                 'display': 'block',
                 'gap': '0'
             });
-            $('.player-buttons .btn-custom, .ap-buttons .btn-custom').css({
+            $('.player-buttons .btn-custom, .ap-buttons .btn-custom, .streaming-buttons .btn-custom').css({
                 'width': '100%',
                 'margin-top': '10px',
                 'margin-bottom': '0'
             });
             $('.alsa-button').css('padding', '10px');
         } else {
-            $('.player-buttons, .ap-buttons').css({
+            $('.player-buttons, .ap-buttons, .streaming-buttons').css({
                 'display': 'flex',
                 'gap': '10px'
             });
-            $('.player-buttons .btn-custom, .ap-buttons .btn-custom').css({
+            $('.player-buttons .btn-custom, .ap-buttons .btn-custom, .streaming-buttons .btn-custom').css({
                 'width': 'calc(50% - 5px)',
                 'margin-top': '0',
                 'margin-bottom': '0'
@@ -160,19 +226,19 @@ $(document).ready(function () {
 
     // Force status check on user actions
     function forceStatusCheck() {
-        console.log('Force checking status...');
+        console.log('Принудительная проверка состояния...');
         $.ajax({
             url: 'status_fast.php',
             method: 'GET',
             timeout: 3000,
             dataType: 'json',
             success: function(response) {
-                console.log('Force check:', response);
+                console.log('Принудительная проверка:', response);
                 updateInterfaceFromStatus(response);
                 lastKnownStatus = response;
             },
             error: function() {
-                console.warn('Force check error');
+                console.warn('Ошибка принудительной проверки');
             }
         });
     }
@@ -207,7 +273,7 @@ $(document).ready(function () {
             method: 'GET',
             timeout: 3000,
             dataType: 'json',
-            cache: false, // Force disable caching
+            cache: false, // Принудительно отключаем кеширование
             success: function(response) {
                 lastKnownStatus = response;
                 updateInterfaceFromStatus(response);
@@ -227,9 +293,9 @@ $(document).ready(function () {
         });
     }
 
-    // Force service status check (on demand only)
+    // Принудительная проверка состояния сервисов (только по требованию)
     function checkActiveService(callback) {
-        console.log('Checking active service...');
+        console.log('Проверка активного сервиса...');
         $.ajax({
             url: 'status_fast.php',
             method: 'GET',
@@ -240,7 +306,7 @@ $(document).ready(function () {
                 
                 lastKnownStatus = response;
                 
-                // Update UI
+                // Обновляем UI
                 if (activeService !== previousActiveService) {
                     if (previousActiveService !== null && previousActiveService !== activeService) {
                         hideSpinner();
@@ -258,12 +324,12 @@ $(document).ready(function () {
                 if (callback) callback(activeService);
             },
             error: function() {
-                console.warn('Status check error');
+                console.warn('Ошибка проверки состояния');
             }
         });
     }
 
-    // NEW function for updating ALSA UI
+    // НОВАЯ функция для обновления ALSA UI
     function updateAlsaUI(alsaState) {
         const toggleInput = $('#alsa-toggle');
         const i2sSettingsLink = $('#i2s-settings-link');
@@ -273,7 +339,7 @@ $(document).ready(function () {
         switch (alsaState) {
             case 'usb':
                 toggleInput.prop('checked', false);
-                // Disable I2S settings when USB - instantly!
+                // Отключаем настройки I2S при USB - мгновенно!
                 i2sSettingsLink.addClass('no-transition').css({
                     'opacity': '0.3',
                     'pointer-events': 'none',
@@ -284,7 +350,7 @@ $(document).ready(function () {
             case 'i2s':
                 toggleInput.prop('checked', true);
                 $('.alsa-toggle').addClass('active-i2s');
-                // Enable I2S settings when I2S - instantly!
+                // Включаем настройки I2S при I2S - мгновенно!
                 i2sSettingsLink.addClass('no-transition').css({
                     'opacity': '1',
                     'pointer-events': 'auto',
@@ -293,46 +359,46 @@ $(document).ready(function () {
                 setTimeout(() => i2sSettingsLink.removeClass('no-transition'), 10);
                 break;
             case 'error':
-                console.error('Error reading ALSA configuration');
+                console.error('Ошибка при чтении конфигурации ALSA');
                 break;
         }
     }
 
-    // Check ALSA status via force check
+    // Проверка состояния ALSA через принудительную проверку
     function checkAlsaState() {
-        // Use last known status
+        // Используем последнее известное состояние
         if (lastKnownStatus && lastKnownStatus.alsa_state) {
             updateAlsaUI(lastKnownStatus.alsa_state);
             return;
         }
         
-        // Otherwise force check
+        // Иначе принудительно проверяем
         checkActiveService();
     }
 
-    // Handle ALSA toggle switching
+    // Обработка переключения ALSA toggle
     $('#alsa-toggle').change(function(e) {
         e.preventDefault();
         const checkbox = $(this);
         const isChecked = checkbox.is(':checked');
         const cardType = isChecked ? 'i2s' : 'usb';
         
-        // IMMEDIATELY update UI settings icons when clicking toggle!
+        // СРАЗУ обновляем UI иконки настроек при клике на toggle!
         updateAlsaUI(cardType);
         
-        // Block ALSA updates during switching
+        // Блокируем ALSA обновления во время переключения
         isAlsaSwitching = true;
         
-        forceStatusCheck(); // Force check on click
+        forceStatusCheck(); // Принудительная проверка при клике
 
         if (cardType === 'usb') {
             checkUsbDac(
                 function() { switchAlsa(cardType); },
                 function() { 
-                    // On error, return toggle to original state
+                    // При ошибке возвращаем toggle в исходное состояние
                     checkbox.prop('checked', !isChecked);
-                    updateAlsaUI(!isChecked ? 'i2s' : 'usb'); // Rollback UI icons
-                    isAlsaSwitching = false; // Unblock updates
+                    updateAlsaUI(!isChecked ? 'i2s' : 'usb'); // Откатываем UI иконки
+                    isAlsaSwitching = false; // Разблокируем обновления
                 }
             );
         } else {
@@ -340,38 +406,38 @@ $(document).ready(function () {
         }
     });
 
-    // Simplified ALSA switching function
+    // Упрощенная функция переключения ALSA
     function switchAlsa(cardType) {
-        // UI already updated by user (toggle switch), just send command
+        // UI уже обновлен пользователем (toggle switch), просто отправляем команду
         $.ajax({
             url: 'handle_alsa.php',
             method: 'POST',
             data: { card: cardType },
             timeout: 10000,
             success: function() {
-                // UI already updated on click, just unblock updates
+                // UI уже обновлен при клике, просто разблокируем обновления
                 setTimeout(() => {
                     isAlsaSwitching = false;
                 }, 2000);
             },
             error: function() {
-                // On error, return toggle to original state
+                // При ошибке возвращаем toggle в исходное состояние
                 const oppositeState = (cardType === 'usb') ? 'i2s' : 'usb';
                 updateAlsaUI(oppositeState);
-                isAlsaSwitching = false; // Unblock updates
+                isAlsaSwitching = false; // Разблокируем обновления
             }
         });
     }
 
-    // Handle clicks on service buttons (FULLY PRESERVED!)
+    // Обработка кликов по кнопкам сервисов (ПОЛНОСТЬЮ СОХРАНЕНА!)
     $('.btn-custom').click(function(e) {
         if ($(e.target).is('a') || $(e.target).is('img')) return true;
         if (!$(this).data('service') || $(this).hasClass('active')) return;
 
         const service = $(this).data('service');
-        forceStatusCheck(); // Force check on click
+        forceStatusCheck(); // Принудительная проверка при клике
         
-        // Use last known ALSA state
+        // Используем последнее известное состояние ALSA
         const alsaState = lastKnownStatus ? lastKnownStatus.alsa_state : null;
         if (alsaState === 'usb') {
             checkUsbDac(function() { switchPlayerService(service); });
@@ -380,25 +446,25 @@ $(document).ready(function () {
         }
     });
 
-    // Service switching function with instant button activation
+    // Функция переключения сервиса с мгновенной активацией кнопки
     function switchPlayerService(service) {
-        // Block button updates during switching
+        // Блокируем обновления кнопок во время переключения
         isServiceSwitching = true;
         
-        // IMMEDIATELY make button active for UI responsiveness
+        // СРАЗУ делаем кнопку активной для отзывчивости UI
         $('.btn-custom').removeClass('active');
         $(`button[data-service="${service}"]`).addClass('active');
-        console.log('Button', service, 'activated instantly, waiting for service startup...');
+        console.log('Кнопка', service, 'активирована мгновенно, ожидаем запуск сервиса...');
         
-        // Service switching
+        // Переключение сервиса
         
-        // Increased timeout for services with two-stage startup
+        // Увеличенный таймаут для сервисов с двухэтапным запуском
         const timeoutDuration = (service === 'qobuz') ? 15000 : (service === 'tidalconnect') ? 12000 : 8000;
         
-        // Timeout for button deactivation on failure
+        // Таймаут для деактивации кнопки при неудаче
         let switchingTimeout = setTimeout(() => {
-            console.warn('Switching timeout to', service, '- deactivating button');
-            isServiceSwitching = false; // Unblock updates
+            console.warn('Таймаут переключения на', service, '- деактивируем кнопку');
+            isServiceSwitching = false; // Разблокируем обновления
             $('.btn-custom').removeClass('active');
             customAlert(translations[currentLang]['service_error']);
         }, timeoutDuration);
@@ -409,25 +475,25 @@ $(document).ready(function () {
             data: { service: service },
             timeout: 15000,
             success: function() {
-                // Give time for service startup - increased time for two-stage launches
+                // Даем время на старт сервиса - увеличенное время для двухэтапных запусков
                 const initialDelay = (service === 'qobuz') ? 5000 : (service === 'tidalconnect') ? 4000 : 2000;
                 
-                console.log('Switch command to', service, 'sent, waiting', initialDelay, 'ms...');
+                console.log('Команда переключения на', service, 'отправлена, ждем', initialDelay, 'мс...');
                 if (service === 'qobuz') {
-                    console.log('Qobuz: using maximum delay for two-stage startup (trial + working)');
+                    console.log('Qobuz: используется максимальная задержка для двухэтапного запуска (пробный + рабочий)');
                 } else if (service === 'tidalconnect') {
-                    console.log('Tidal: using increased delay for two-stage startup');
+                    console.log('Tidal: используется увеличенная задержка для двухэтапного запуска');
                 }
                 
-                // ADDED initial delay - give service time to start!
+                // ДОБАВЛЕНА начальная задержка - даем сервису время запуститься!
                 setTimeout(() => {
                     const checkInterval = POLLING_CONFIG.SWITCHING_INTERVAL;
                     let checkCount = 0;
-                    const maxChecks = 60; // 30 seconds maximum
+                    const maxChecks = 60; // 30 секунд максимум
 
                     function checkServiceStatusChange() {
                         $.ajax({
-                            url: 'status_fast.php', // Use optimized request
+                            url: 'status_fast.php', // Используем оптимизированный запрос
                             method: 'GET',
                             timeout: 3000,
                             dataType: 'json',
@@ -435,41 +501,41 @@ $(document).ready(function () {
                                 const activeService = response.active_service || '';
                                 checkCount++;
                                 
-                                console.log('Check', checkCount, ': active service =', activeService, ', expected =', service);
+                                console.log('Проверка', checkCount, ': активный сервис =', activeService, ', ожидаемый =', service);
                                 
                                 if (!activeService) {
-                                    console.warn('No active services, continuing check... (attempt', checkCount, 'of', maxChecks, ')');
+                                    console.warn('Нет активных сервисов, продолжаем проверку... (попытка', checkCount, 'из', maxChecks, ')');
                                     if (checkCount >= maxChecks) {
-                                        console.error('Service', service, 'did not start after maximum attempts');
+                                        console.error('Сервис', service, 'не поднялся после максимального числа попыток');
                                         clearTimeout(switchingTimeout);
                                         $('.btn-custom').removeClass('active');
                                         customAlert(translations[currentLang]['service_error']);
                                         return;
                                     }
-                                    // Continue checking, button remains active
+                                    // Продолжаем проверку, кнопка остается активной
                                     setTimeout(checkServiceStatusChange, checkInterval);
                                     return;
                                 }
                                 
                                 if (activeService === service) {
-                                    console.log('Successfully switched to', service);
-                                    clearTimeout(switchingTimeout); // Cancel failure timeout
-                                    isServiceSwitching = false; // Unblock updates
+                                    console.log('Успешно переключен на', service);
+                                    clearTimeout(switchingTimeout); // Отменяем таймаут неудачи
+                                    isServiceSwitching = false; // Разблокируем обновления
                                     lastKnownStatus = response;
                                     updateInterfaceFromStatus(response);
-                                    console.log('Service switched successfully');
+                                    console.log('Сервис переключен успешно');
                                 } else if (activeService !== service) {
-                                    console.log("Activated service " + activeService + " instead of " + service);
-                                    clearTimeout(switchingTimeout); // Cancel failure timeout
-                                    isServiceSwitching = false; // Unblock updates
+                                    console.log("Активирован сервис " + activeService + " вместо " + service);
+                                    clearTimeout(switchingTimeout); // Отменяем таймаут неудачи
+                                    isServiceSwitching = false; // Разблокируем обновления
                                     $('.btn-custom').removeClass('active');
                                     $(`button[data-service="${activeService}"]`).addClass('active');
                                     lastKnownStatus = response;
                                     updateInterfaceFromStatus(response);
                                 } else if (checkCount >= maxChecks) {
-                                    console.error("Timeout switching to service " + service);
+                                    console.error("Тайм-аут при переключении на сервис " + service);
                                     clearTimeout(switchingTimeout);
-                                    isServiceSwitching = false; // Unblock updates
+                                    isServiceSwitching = false; // Разблокируем обновления
                                     $('.btn-custom').removeClass('active');
                                     customAlert(translations[currentLang]['service_error']);
                                 } else {
@@ -477,46 +543,60 @@ $(document).ready(function () {
                                 }
                             },
                             error: function(xhr, status, error) {
-                                console.error('Status check error:', status, error);
+                                console.error('Ошибка проверки состояния:', status, error);
                                 clearTimeout(switchingTimeout);
-                                isServiceSwitching = false; // Unblock updates
+                                isServiceSwitching = false; // Разблокируем обновления
                                 $('.btn-custom').removeClass('active');
                                 customAlert(translations[currentLang]['service_error']);
                             }
                         });
                     }
 
-                    // Monitoring removed - relying on polling
+                    // Мониторинг удален - полагаемся на polling
 
                     checkServiceStatusChange();
-                }, initialDelay); // Use adaptive delay
+                }, initialDelay); // Используем адаптивную задержку
             },
             error: function(xhr, status, error) {
                 console.error('AJAX error switching to', service, ':', status, error, 'Response:', xhr.responseText);
-                clearTimeout(switchingTimeout); // Cancel timeout on AJAX error
-                isServiceSwitching = false; // Unblock updates
+                clearTimeout(switchingTimeout); // Отменяем таймаут при ошибке AJAX
+                isServiceSwitching = false; // Разблокируем обновления
                 $('.btn-custom').removeClass('active');
                 customAlert(translations[currentLang]['service_error'] + ': ' + status);
             }
         });
     }
 
-    // Initialization
+    // Инициализация
     checkActiveService(function(activeService) {
         previousActiveService = activeService;
     });
     checkAlsaState();
 
-    // Custom confirm dialog
+    // Кастомный confirm диалог
     function customConfirm(message, callback) {
         $('#confirm-message').text(message);
         $('#custom-confirm').addClass('show');
         
-        // Update button text based on language
-        $('#confirm-yes').text(currentLang === 'ru' ? 'Да' : 'Yes');
-        $('#confirm-no').text(currentLang === 'ru' ? 'Отмена' : 'Cancel');
+        // Обновляем текст кнопок на основе языка
+        const yesText = {
+            'ru': 'Да',
+            'de': 'Ja',
+            'fr': 'Oui',
+            'zh': '是',
+            'en': 'Yes'
+        };
+        const cancelText = {
+            'ru': 'Отмена',
+            'de': 'Abbrechen',
+            'fr': 'Annuler',
+            'zh': '取消',
+            'en': 'Cancel'
+        };
+        $('#confirm-yes').text(yesText[currentLang] || yesText['en']);
+        $('#confirm-no').text(cancelText[currentLang] || cancelText['en']);
         
-        // Button handlers
+        // Обработчики кнопок
         $('#confirm-yes').off('click').on('click', function() {
             $('#custom-confirm').removeClass('show');
             callback(true);
@@ -532,15 +612,15 @@ $(document).ready(function () {
         $('#alert-message').html(message);
         $('#custom-alert').addClass('show');
         
-        // Update button text based on language
-        $('#alert-ok').text(currentLang === 'ru' ? 'OK' : 'OK');
+        // Обновляем текст кнопки на основе языка
+        $('#alert-ok').text('OK');
         
-        // Button handler
+        // Обработчик кнопки
         $('#alert-ok').off('click').on('click', function() {
             $('#custom-alert').removeClass('show');
         });
         
-        // Close on background click
+        // Закрытие по клику на фон
         $('#custom-alert').off('click').on('click', function(e) {
             if (e.target === this) {
                 $('#custom-alert').removeClass('show');
@@ -548,7 +628,7 @@ $(document).ready(function () {
         });
     }
 
-    // FULLY PRESERVED firmware update function!
+    // ПОЛНОСТЬЮ СОХРАНЕНА функция обновления прошивки!
     $('#update-firmware').click(function(e) {
         
         customConfirm(translations[currentLang]['confirm_update'], function(confirmed) {
@@ -580,28 +660,35 @@ $(document).ready(function () {
         });
     });
 
-    // PRESERVED modal window close function
+    // СОХРАНЕНА функция закрытия модального окна
     $('.close-modal').click(function() {
         $('#update-log-modal').removeClass('show');
     });
 
-    // Handlers for reboot and shutdown
+    // Обработчики для reboot и shutdown
     $('#reboot-link').click(function(e) {
         e.preventDefault();
         customConfirm(translations[currentLang]['confirm_reboot'], function(confirmed) {
             if (confirmed) {
             $('.spinner-overlay').addClass('show');
-            $('.spinner-text').text(currentLang === 'ru' ? 'Перезагрузка...' : 'Rebooting...');
+            const rebootText = {
+                'ru': 'Перезагрузка...',
+                'de': 'Neustart...',
+                'fr': 'Redémarrage...',
+                'zh': '重启中...',
+                'en': 'Rebooting...'
+            };
+            $('.spinner-text').text(rebootText[currentLang] || rebootText['en']);
             
             $.ajax({
                 url: 'reboot.php',
                 method: 'POST',
                 success: function() {
-                    // Wait for connection restoration after reboot
+                    // Ждем восстановления соединения после перезагрузки
                     setTimeout(checkConnectionAfterReboot, 3000);
                 },
                 error: function() {
-                    // If request failed, still wait for restoration
+                    // Если запрос не прошел, все равно ждем восстановления
                     setTimeout(checkConnectionAfterReboot, 3000);
                 }
             });
@@ -614,20 +701,34 @@ $(document).ready(function () {
         customConfirm(translations[currentLang]['confirm_shutdown'], function(confirmed) {
             if (confirmed) {
             $('.spinner-overlay').addClass('show');
-            $('.spinner-text').text(currentLang === 'ru' ? 'Выключение...' : 'Shutting down...');
+            const shutdownText = {
+                'ru': 'Выключение...',
+                'de': 'Herunterfahren...',
+                'fr': 'Arrêt en cours...',
+                'zh': '关机中...',
+                'en': 'Shutting down...'
+            };
+            $('.spinner-text').text(shutdownText[currentLang] || shutdownText['en']);
             
             $.ajax({
                 url: 'shutdown.php',
                 method: 'POST',
                 success: function() {
-                    // Show completion message after 3 seconds
+                    // Показываем сообщение о завершении через 3 секунды
                     setTimeout(function() {
                         $('.spinner').hide();
                         $('.spinner-text').text(translations[currentLang]['shutdown_complete']);
                     }, 3000);
                 },
                 error: function() {
-                    customAlert(currentLang === 'ru' ? 'Ошибка при выключении' : 'Shutdown error');
+                    const errorText = {
+                        'ru': 'Ошибка при выключении',
+                        'de': 'Fehler beim Herunterfahren',
+                        'fr': 'Erreur d\'arrêt',
+                        'zh': '关机错误',
+                        'en': 'Shutdown error'
+                    };
+                    customAlert(errorText[currentLang] || errorText['en']);
                     $('.spinner-overlay').removeClass('show');
                 }
             });
@@ -635,18 +736,18 @@ $(document).ready(function () {
         });
     });
 
-    // Function for checking connection after reboot
+    // Функция проверки соединения после перезагрузки
     function checkConnectionAfterReboot() {
         $.ajax({
             url: 'status_fast.php',
             method: 'GET',
             timeout: 2000,
             success: function() {
-                // Connection restored, reload page
+                // Соединение восстановлено, перезагружаем страницу
                 location.reload();
             },
             error: function() {
-                // Connection not yet restored, wait more
+                // Соединение еще не восстановлено, ждем еще
                 setTimeout(checkConnectionAfterReboot, 2000);
             }
         });
@@ -658,7 +759,7 @@ $(document).ready(function () {
     let volumeIcon = document.getElementById('volume-icon');
     let isMuted = false;
 
-    // Update volume from already obtained status_fast.php data (NOT a separate request!)
+    // Обновляем громкость из уже полученных данных status_fast.php (НЕ отдельный запрос!)
     function updateVolumeFromStatus(data) {
         // Handle volume and mute control availability separately
         let volumeControlsAvailable = true;
@@ -670,15 +771,16 @@ $(document).ready(function () {
             volumeControlsAvailable = data.volume_control_available;
             if (volumeSlider) {
                 volumeSlider.disabled = !volumeControlsAvailable;
-                volumeSlider.style.opacity = volumeControlsAvailable ? '1' : '0.5';
+                volumeSlider.style.opacity = volumeControlsAvailable ? '1' : '0.4';
                 volumeSlider.style.cursor = volumeControlsAvailable ? 'pointer' : 'not-allowed';
+                volumeSlider.style.pointerEvents = volumeControlsAvailable ? 'auto' : 'none';
             }
         }
         
         if (data.mute_control_available !== undefined) {
             muteControlsAvailable = data.mute_control_available;
             if (volumeIcon) {
-                volumeIcon.style.opacity = muteControlsAvailable ? '1' : '0.5';
+                volumeIcon.style.opacity = muteControlsAvailable ? '1' : '0.4';
                 volumeIcon.style.cursor = muteControlsAvailable ? 'pointer' : 'not-allowed';
                 volumeIcon.style.pointerEvents = muteControlsAvailable ? 'auto' : 'none';
             }
@@ -713,17 +815,31 @@ $(document).ready(function () {
             }
         }
         
-        // Set correct icon depending on mute state
+        // Устанавливаем правильную иконку в зависимости от состояния mute
         if (volumeIcon) {
             const newMuted = data.muted || false;
             if (isMuted !== newMuted) {
                 isMuted = newMuted;
                 if (isMuted) {
                     volumeIcon.src = 'assets/img/mute.svg';
-                    volumeIcon.title = 'Включить звук';
+                    const unmuteText = {
+                        'ru': 'Включить звук',
+                        'de': 'Ton einschalten',
+                        'fr': 'Activer le son',
+                        'zh': '开启声音',
+                        'en': 'Unmute'
+                    };
+                    volumeIcon.title = unmuteText[currentLang] || unmuteText['en'];
                 } else {
                     volumeIcon.src = 'assets/img/volume.svg';
-                    volumeIcon.title = 'Громкость';
+                    const volumeText = {
+                        'ru': 'Громкость',
+                        'de': 'Lautstärke',
+                        'fr': 'Volume',
+                        'zh': '音量',
+                        'en': 'Volume'
+                    };
+                    volumeIcon.title = volumeText[currentLang] || volumeText['en'];
                 }
             }
         }
@@ -731,7 +847,7 @@ $(document).ready(function () {
 
     // Set volume
     function setVolume(volume) {
-        isVolumeChanging = true; // Block volume updates
+        isVolumeChanging = true; // Блокируем обновления громкости
         
         fetch('volume.php', {
             method: 'POST',
@@ -743,14 +859,14 @@ $(document).ready(function () {
             if (data.success) {
                 volumeDisplay.textContent = volume;
             }
-            // Unblock after 1 second to give system time to update
+            // Разблокируем через 1 секунду, чтобы дать время системе обновиться
             setTimeout(() => {
                 isVolumeChanging = false;
             }, 1000);
         })
         .catch(error => {
             console.error('Error setting volume:', error);
-            // Unblock even on error
+            // Разблокируем даже при ошибке
             setTimeout(() => {
                 isVolumeChanging = false;
             }, 1000);
@@ -759,7 +875,7 @@ $(document).ready(function () {
 
     // Toggle mute
     function toggleMute() {
-        isVolumeChanging = true; // Block volume updates
+        isVolumeChanging = true; // Блокируем обновления громкости
         
         fetch('volume.php', {
             method: 'POST',
@@ -772,20 +888,34 @@ $(document).ready(function () {
                 isMuted = data.muted;
                 if (isMuted) {
                     volumeIcon.src = 'assets/img/mute.svg';
-                    volumeIcon.title = 'Включить звук';
+                    const unmuteText = {
+                        'ru': 'Включить звук',
+                        'de': 'Ton einschalten',
+                        'fr': 'Activer le son',
+                        'zh': '开启声音',
+                        'en': 'Unmute'
+                    };
+                    volumeIcon.title = unmuteText[currentLang] || unmuteText['en'];
                 } else {
                     volumeIcon.src = 'assets/img/volume.svg';
-                    volumeIcon.title = 'Громкость';
+                    const volumeText = {
+                        'ru': 'Громкость',
+                        'de': 'Lautstärke',
+                        'fr': 'Volume',
+                        'zh': '音量',
+                        'en': 'Volume'
+                    };
+                    volumeIcon.title = volumeText[currentLang] || volumeText['en'];
                 }
             }
-            // Unblock after 1 second
+            // Разблокируем через 1 секунду
             setTimeout(() => {
                 isVolumeChanging = false;
             }, 1000);
         })
         .catch(error => {
             console.error('Error toggling mute:', error);
-            // Unblock even on error
+            // Разблокируем даже при ошибке
             setTimeout(() => {
                 isVolumeChanging = false;
             }, 1000);
@@ -797,16 +927,16 @@ $(document).ready(function () {
         volumeSlider.addEventListener('input', function() {
             let volume = this.value;
             volumeDisplay.textContent = volume;
-            // Block updates while user moves slider
+            // Блокируем обновления пока пользователь двигает слайдер
             isVolumeChanging = true;
         });
 
         volumeSlider.addEventListener('change', function() {
             let volume = this.value;
-            setVolume(volume); // setVolume manages blocking itself
+            setVolume(volume); // setVolume сам управляет блокировкой
         });
 
-        // Initial state will load through polling
+        // Начальное состояние загрузится через polling
     }
 
     // Volume icon click listener
@@ -817,22 +947,22 @@ $(document).ready(function () {
         });
     }
     
-    // Clear intervals when leaving page
+    // Очистка интервалов при выходе со страницы
     window.addEventListener('beforeunload', function() {
         if (statusInterval) {
             clearInterval(statusInterval);
         }
     });
     
-    // Initialize polling system
+    // Инициализация polling системы
     function startPolling() {
-        // First status check
+        // Первая проверка статуса
         forceStatusCheck();
         
-        // Regular polling every 3 seconds - use fast request
+        // Регулярный polling каждые 3 секунды - используем быстрый запрос
         statusInterval = setInterval(function() {
             if (!isServiceSwitching && !isVolumeChanging) {
-                // Normal monitoring through fast status_fast.php (C-monitor)
+                // Обычный мониторинг через быстрый status_fast.php (C-monitor)
                 $.ajax({
                     url: 'status_fast.php',
                     method: 'GET',
@@ -846,7 +976,7 @@ $(document).ready(function () {
         }, POLLING_CONFIG.NORMAL_INTERVAL);
     }
     
-    // Start polling 2 seconds after loading
+    // Запускаем polling через 2 секунды после загрузки
     setTimeout(startPolling, 2000);
 });
-/* Cache bust version: 1753367743 */
+/* Cache bust version: 1753367744 */
