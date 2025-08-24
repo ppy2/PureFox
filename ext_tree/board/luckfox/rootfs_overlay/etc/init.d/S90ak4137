@@ -10,7 +10,7 @@ case "$1" in
     echo 1 > /sys/class/gpio/gpio52/value
     usleep 10000
 
-    if /usr/sbin/i2cdetect -ry 1 |grep -q "10: 10" ; then
+    if /usr/sbin/i2cdetect -ry 1 |grep -q "10: .. 11" ; then
     /usr/sbin/i2cset -f -y 1 0x10 0x00 0x80
     /usr/sbin/i2cset -f -y 1 0x10 0x01 0x13
     /usr/sbin/i2cset -f -y 1 0x10 0x02 0x00
@@ -18,9 +18,7 @@ case "$1" in
     /usr/sbin/i2cset -f -y 1 0x10 0x04 0x08
     /usr/sbin/i2cset -f -y 1 0x10 0x05 0x03
     /usr/sbin/i2cset -f -y 1 0x10 0x00 0x81
-    fi
-    
-    if /usr/sbin/i2cdetect -ry 1 |grep -q "10: .. 11" ; then
+
     /usr/sbin/i2cset -f -y 1 0x11 0x00 0x80
     /usr/sbin/i2cset -f -y 1 0x11 0x01 0x13
     /usr/sbin/i2cset -f -y 1 0x11 0x02 0x00
