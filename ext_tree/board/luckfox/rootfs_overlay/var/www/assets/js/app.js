@@ -64,7 +64,7 @@ $(document).ready(function () {
             'shutdown_complete': 'Система выключена. Можете отключить питание.',
             'i2s_title': 'I2S Настройки',
             'back_button': '← Назад',
-            'mode_title': 'Основной режим',
+            'mode_title': 'Режим',
             'pll_mode': 'PLL',
             'ext_mode': 'EXT',
             'submode_title': 'Вариант выхода',
@@ -81,7 +81,8 @@ $(document).ready(function () {
             'warning_text1': 'Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).',
             'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
             'yes_btn': 'Да',
-            'cancel_btn': 'Отмена'
+            'cancel_btn': 'Отмена',
+            'apply_reboot': 'Применить и перезагрузить'
         },
         'en': {
             'alsa_output': 'ALSA Output:',
@@ -105,7 +106,7 @@ $(document).ready(function () {
             'shutdown_complete': 'System has been shut down. You can disconnect power.',
             'i2s_title': 'I2S Settings',
             'back_button': '← Back',
-            'mode_title': 'Main Mode',
+            'mode_title': 'Mode',
             'pll_mode': 'PLL',
             'ext_mode': 'EXT',
             'submode_title': 'Output Mode',
@@ -122,7 +123,8 @@ $(document).ready(function () {
             'warning_text1': 'MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).',
             'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
             'yes_btn': 'Yes',
-            'cancel_btn': 'Cancel'
+            'cancel_btn': 'Cancel',
+            'apply_reboot': 'Apply & Reboot'
         },
         'de': {
             'alsa_output': 'ALSA Ausgang:',
@@ -146,7 +148,7 @@ $(document).ready(function () {
             'shutdown_complete': 'System wurde heruntergefahren. Sie können die Stromversorgung trennen.',
             'i2s_title': 'I2S Einstellungen',
             'back_button': '← Zurück',
-            'mode_title': 'Hauptmodus',
+            'mode_title': 'Modus',
             'pll_mode': 'PLL',
             'ext_mode': 'EXT',
             'submode_title': 'Ausgangsmodus',
@@ -163,7 +165,8 @@ $(document).ready(function () {
             'warning_text1': 'MCLK-Ausgang hat unterschiedliche Einstellungen in PLL- und EXT-Modi (OUTPUT/INPUT).',
             'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
             'yes_btn': 'Ja',
-            'cancel_btn': 'Abbrechen'
+            'cancel_btn': 'Abbrechen',
+            'apply_reboot': 'Anwenden & Neustart'
         },
         'fr': {
             'alsa_output': 'Sortie ALSA:',
@@ -187,7 +190,7 @@ $(document).ready(function () {
             'shutdown_complete': 'Système arrêté. Vous pouvez débrancher l\'alimentation.',
             'i2s_title': 'Paramètres I2S',
             'back_button': '← Retour',
-            'mode_title': 'Mode principal',
+            'mode_title': 'Mode',
             'pll_mode': 'PLL',
             'ext_mode': 'EXT',
             'submode_title': 'Mode de sortie',
@@ -204,7 +207,8 @@ $(document).ready(function () {
             'warning_text1': 'La sortie MCLK a des paramètres différents en modes PLL et EXT (OUTPUT/INPUT).',
             'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
             'yes_btn': 'Oui',
-            'cancel_btn': 'Annuler'
+            'cancel_btn': 'Annuler',
+            'apply_reboot': 'Appliquer et redémarrer'
         },
         'zh': {
             'alsa_output': 'ALSA 输出:',
@@ -245,7 +249,8 @@ $(document).ready(function () {
             'warning_text1': 'MCLK输出在PLL和EXT模式下具有不同的设置（OUTPUT/INPUT）。',
             'warning_text2': '更改I2S设置后需要重启系统才能生效。',
             'yes_btn': '是',
-            'cancel_btn': '取消'
+            'cancel_btn': '取消',
+            'apply_reboot': '应用并重启'
         }
     };
 
@@ -1074,5 +1079,188 @@ $(document).ready(function () {
     
     // Запускаем polling через 2 секунды после загрузки
     setTimeout(startPolling, 2000);
+
+    // I2S Modal functions
+    window.openI2SModal = function() {
+        // Load current I2S settings
+        $.ajax({
+            url: 'i2s.php?action=getStatus',
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                // Set mode toggle
+                if (data.mode === 'pll') {
+                    $('#modal-mode-pll').prop('checked', true);
+                } else {
+                    $('#modal-mode-ext').prop('checked', true);
+                }
+                
+                // Set MCLK toggle
+                if (data.mclk === '512') {
+                    $('#modal-mclk-512').prop('checked', true);
+                } else {
+                    $('#modal-mclk-1024').prop('checked', true);
+                }
+                
+                // Set submode buttons active state
+                $('.i2s-submode-btn').removeClass('active');
+                $(`.i2s-submode-btn[value="${data.submode}"]`).addClass('active');
+                
+                // Apply translations
+                applyTranslationsToModal();
+                
+                // Show modal
+                $('#i2s-modal').addClass('show');
+            },
+            error: function() {
+                console.error('Failed to load I2S settings');
+            }
+        });
+    };
+
+    window.closeI2SModal = function() {
+        $('#i2s-modal').removeClass('show');
+    };
+
+    window.confirmRebootI2S = function(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        const currentLang = detectLanguage();
+        const rebootMessages = {
+            'ru': 'Применить настройки I2S и перезагрузить устройство?',
+            'en': 'Apply I2S settings and reboot the device?',
+            'de': 'I2S-Einstellungen anwenden und Gerät neu starten?',
+            'fr': 'Appliquer les paramètres I2S et redémarrer l\'appareil?',
+            'zh': '应用I2S设置并重启设备？'
+        };
+        const message = rebootMessages[currentLang] || rebootMessages['en'];
+        
+        customConfirm(message, function(confirmed) {
+            if (confirmed) {
+                applyI2SSettings();
+            }
+        });
+        return false;
+    };
+
+    function applyI2SSettings() {
+        const formData = new FormData();
+        
+        // Get selected mode
+        const mode = $('input[name="mode"]:checked').val();
+        if (mode) formData.append('mode', mode);
+        
+        // Get selected MCLK
+        const mclk = $('input[name="mclk"]:checked').val();
+        if (mclk) formData.append('mclk', mclk);
+        
+        // Get selected submode
+        const activeSubmodeBtn = $('.i2s-submode-btn.active');
+        if (activeSubmodeBtn.length > 0) {
+            formData.append('submode', activeSubmodeBtn.attr('value'));
+        }
+        
+        // Show spinner
+        $('.spinner-overlay').addClass('show');
+        const currentLang = detectLanguage();
+        const rebootingTexts = {
+            'ru': 'Применение настроек и перезагрузка...',
+            'en': 'Applying settings and rebooting...',
+            'de': 'Anwenden der Einstellungen und Neustart...',
+            'fr': 'Application des paramètres et redémarrage...',
+            'zh': '应用设置并重启中...'
+        };
+        $('.spinner-text').text(rebootingTexts[currentLang] || rebootingTexts['en']);
+        
+        // Close modal first
+        closeI2SModal();
+        
+        // Apply settings
+        fetch('i2s.php', {
+            method: 'POST',
+            body: formData
+        }).then(() => {
+            // Reboot after applying settings
+            return fetch('reboot.php', { method: 'POST' });
+        }).then(() => {
+            setTimeout(checkConnection, 3000);
+        }).catch(() => {
+            setTimeout(checkConnection, 3000);
+        });
+    }
+
+    function applyTranslationsToModal() {
+        const currentLang = detectLanguage();
+        const translations = window.translations[currentLang] || window.translations['en'];
+        
+        $('#i2s-modal [data-lang]').each(function() {
+            const key = $(this).data('lang');
+            if (translations[key]) {
+                $(this).text(translations[key]);
+            }
+        });
+    }
+
+    // I2S Modal event handlers - submit submode immediately like in original i2s.php
+    $(document).on('click', '.i2s-submode-btn', function() {
+        $('.i2s-submode-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        const formData = new FormData();
+        formData.append('submode', $(this).attr('value'));
+        
+        // Apply submode setting immediately
+        fetch('i2s.php', {
+            method: 'POST',
+            body: formData
+        }).then(() => {
+            console.log(`Applied submode: ${$(this).attr('value')}`);
+        }).catch(error => {
+            console.error('Error applying submode:', error);
+        });
+    });
+    
+    // Handle toggle switches in modal - submit immediately like in original i2s.php
+    $(document).on('change', '#i2s-modal .toggle-input-compact', function() {
+        if (this.checked) {
+            const formData = new FormData();
+            
+            if (this.name === 'mode') {
+                formData.append('mode', this.value);
+            } else if (this.name === 'mclk') {
+                formData.append('mclk', this.value);
+            }
+            
+            // Apply setting immediately
+            fetch('i2s.php', {
+                method: 'POST',
+                body: formData
+            }).then(() => {
+                // Settings applied successfully
+                console.log(`Applied ${this.name}: ${this.value}`);
+            }).catch(error => {
+                console.error('Error applying setting:', error);
+            });
+        }
+    });
+
+    // Prevent modal from closing when clicking inside modal content
+    $(document).on('click', '#i2s-modal .modal-content', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Close modal when clicking outside
+    $(document).on('click', '#i2s-modal', function() {
+        closeI2SModal();
+    });
+
+    // I2S settings link handler
+    $(document).on('click', '#i2s-settings-link', function(e) {
+        e.preventDefault();
+        openI2SModal();
+        return false;
+    });
+
 });
 /* Cache bust version: 1753367744 */

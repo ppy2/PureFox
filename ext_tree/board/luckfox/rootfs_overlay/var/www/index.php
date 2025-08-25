@@ -59,7 +59,7 @@
                         <span class="toggle-option right">I2S</span>
                     </label>
                 </div>
-                <a href="#" id="i2s-settings-link" class="i2s-settings-link">
+                <a href="#" id="i2s-settings-link" class="i2s-settings-link" onclick="event.preventDefault(); openI2SModal(); return false;">
                     <img src="assets/img/settings.svg" class="settings-icon" alt="I2S Settings">
                 </a>
             </div>
@@ -125,6 +125,69 @@
             <div class="confirm-buttons">
                 <button id="alert-ok" class="confirm-btn confirm-btn-yes">OK</button>
             </div>
+        </div>
+    </div>
+
+    <!-- I2S Settings Modal -->
+    <div id="i2s-modal" class="modal-overlay">
+        <div class="modal-content i2s-modal-content">
+            <div class="header">
+                <a href="#" onclick="closeI2SModal(); return false;" class="home-button" title="Close">
+                    <img src="assets/img/home.svg" class="settings-icon" alt="Close">
+                </a>
+                <h1 data-lang="i2s_title">I2S Settings</h1>
+            </div>
+            <form id="i2s-form" method="post" action="i2s.php">
+                <div class="i2s-group">
+                    <div class="i2s-group-header">
+                        <h3 data-lang="mode_title">Режим</h3>
+                        <div class="toggle-switch-compact">
+                            <input type="radio" name="mode" value="pll" id="modal-mode-pll" class="toggle-input-compact">
+                            <input type="radio" name="mode" value="ext" id="modal-mode-ext" class="toggle-input-compact">
+                            <label class="toggle-label-compact">
+                                <div class="toggle-slider-compact"></div>
+                                <span class="toggle-option-compact left" data-lang="pll_mode" onclick="document.getElementById('modal-mode-pll').click()">PLL</span>
+                                <span class="toggle-option-compact right" data-lang="ext_mode" onclick="document.getElementById('modal-mode-ext').click()">EXT</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="i2s-group">
+                    <div class="i2s-submode-rows">
+                        <div class="i2s-submode-row">
+                            <button type="button" name="submode" value="std" class="btn-custom i2s-submode-btn" data-lang="std_mode">STD</button>
+                            <button type="button" name="submode" value="8ch" class="btn-custom i2s-submode-btn" data-lang="8ch_mode">8CH</button>
+                        </div>
+                        <div class="i2s-submode-row">
+                            <button type="button" name="submode" value="lr" class="btn-custom i2s-submode-btn" data-lang="lr_mode">L/R</button>
+                            <button type="button" name="submode" value="plr" class="btn-custom i2s-submode-btn" data-lang="plr_mode">±L/±R</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="i2s-group">
+                    <div class="i2s-group-header">
+                        <h3 data-lang="mclk_title">MCLK</h3>
+                        <div class="toggle-switch-compact">
+                            <input type="radio" name="mclk" value="512" id="modal-mclk-512" class="toggle-input-compact">
+                            <input type="radio" name="mclk" value="1024" id="modal-mclk-1024" class="toggle-input-compact">
+                            <label class="toggle-label-compact">
+                                <div class="toggle-slider-compact"></div>
+                                <span class="toggle-option-compact left" onclick="document.getElementById('modal-mclk-512').click()">512</span>
+                                <span class="toggle-option-compact right" onclick="document.getElementById('modal-mclk-1024').click()">1024</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="i2s-warning">
+                    <span class="i2s-pulse" data-lang="warning_attention">Внимание!</span>
+                    <span data-lang="warning_text1">Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).</span> <span data-lang="warning_text2">После изменения настроек I2S необходима перезагрузка системы для вступления в силу.</span>
+                </div>
+                <div class="reboot-btn">
+                    <a href="#" onclick="confirmRebootI2S(event)" class="reboot-link" title="Reboot">
+                        <img src="assets/img/reboot.svg" class="settings-icon reboot-icon" alt="Reboot">
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
 
