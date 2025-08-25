@@ -7,7 +7,7 @@ $config_file = '/etc/i2s.conf';
  * Function for reading the current mode (MODE), MCLK and SUBMODE from configuration file.
  */
 function readConfig($filePath) {
-    $result = ['mode' => '', 'mclk' => '', 'submode' => ''];
+    $result = ['mode' => '', 'mclk' => '', 'submode' => '', 'pcm_swap' => '0', 'dsd_swap' => '1'];
     if (file_exists($filePath)) {
         $contents = file_get_contents($filePath);
         if ($contents !== false) {
@@ -22,9 +22,89 @@ function readConfig($filePath) {
             } else {
                 $result['submode'] = 'std';
             }
+            if (preg_match('/^PCM_SWAP=([01])/m', $contents, $matches)) {
+                $result['pcm_swap'] = $matches[1];
+            }
+            if (preg_match('/^DSD_SWAP=([01])/m', $contents, $matches)) {
+                $result['dsd_swap'] = $matches[1];
+            }
         }
     }
+    
+    // Read current values from sysfs if available
+    if (file_exists('/sys/devices/platform/ffae0000.i2s/pcm_channel_swap')) {
+        $pcm_current = trim(file_get_contents('/sys/devices/platform/ffae0000.i2s/pcm_channel_swap'));
+        if ($pcm_current !== false) {
+            $result['pcm_swap'] = $pcm_current;
+        }
+    }
+    
+    if (file_exists('/sys/devices/platform/ffae0000.i2s/dsd_physical_swap')) {
+        $dsd_current = trim(file_get_contents('/sys/devices/platform/ffae0000.i2s/dsd_physical_swap'));
+        if ($dsd_current !== false) {
+            $result['dsd_swap'] = $dsd_current;
+        }
+    }
+    
     return $result;
+}
+
+/**
+ * Update configuration file with new value
+ */
+function updateConfigValue($filePath, $key, $value) {
+    $contents = '';
+    if (file_exists($filePath)) {
+        $contents = file_get_contents($filePath);
+    }
+    
+    $pattern = "/^$key=.*$/m";
+    $replacement = "$key=$value";
+    
+    if (preg_match($pattern, $contents)) {
+        $contents = preg_replace($pattern, $replacement, $contents);
+    } else {
+        $contents .= "\n$replacement\n";
+    }
+    
+    file_put_contents($filePath, $contents);
+}
+
+/**
+ * Update S01RkLunch init script with new swap settings
+ */
+function updateInitScript($value, $type) {
+    $initScript = '/etc/init.d/S01RkLunch';
+    
+    if (!file_exists($initScript)) {
+        return;
+    }
+    
+    $contents = file_get_contents($initScript);
+    
+    if ($type === 'pcm') {
+        // Update PCM swap line
+        $pattern = '/^#?echo [01] > \/sys\/devices\/platform\/ffae0000\.i2s\/pcm_channel_swap$/m';
+        $replacement = "echo $value > /sys/devices/platform/ffae0000.i2s/pcm_channel_swap";
+        
+        if (preg_match($pattern, $contents)) {
+            $contents = preg_replace($pattern, $replacement, $contents);
+        } else {
+            // Add after DSD swap line
+            $contents = preg_replace(
+                '/(echo [01] > \/sys\/devices\/platform\/ffae0000\.i2s\/dsd_physical_swap)/',
+                "$1\necho $value > /sys/devices/platform/ffae0000.i2s/pcm_channel_swap",
+                $contents
+            );
+        }
+    } else if ($type === 'dsd') {
+        // Update DSD swap line
+        $pattern = '/^echo [01] > \/sys\/devices\/platform\/ffae0000\.i2s\/dsd_physical_swap$/m';
+        $replacement = "echo $value > /sys/devices/platform/ffae0000.i2s/dsd_physical_swap";
+        $contents = preg_replace($pattern, $replacement, $contents);
+    }
+    
+    file_put_contents($initScript, $contents);
 }
 
 // --- Processing AJAX request to get current state ---
@@ -72,6 +152,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // If PCM swap setting is changed
+    if (isset($_POST['pcm_swap'])) {
+        $pcm_swap = $_POST['pcm_swap'];
+        if (in_array($pcm_swap, ['0', '1'])) {
+            // Write to sysfs
+            file_put_contents('/sys/devices/platform/ffae0000.i2s/pcm_channel_swap', $pcm_swap);
+            
+            // Update config file
+            updateConfigValue($config_file, 'PCM_SWAP', $pcm_swap);
+            
+            // Update S01RkLunch script
+            updateInitScript($pcm_swap, 'pcm');
+        }
+    }
+
+    // If DSD swap setting is changed
+    if (isset($_POST['dsd_swap'])) {
+        $dsd_swap = $_POST['dsd_swap'];
+        if (in_array($dsd_swap, ['0', '1'])) {
+            // Write to sysfs
+            file_put_contents('/sys/devices/platform/ffae0000.i2s/dsd_physical_swap', $dsd_swap);
+            
+            // Update config file
+            updateConfigValue($config_file, 'DSD_SWAP', $dsd_swap);
+            
+            // Update S01RkLunch script
+            updateInitScript($dsd_swap, 'dsd');
+        }
+    }
+
     
     // Reboot processing removed - now using reboot.php
 
@@ -85,6 +195,8 @@ $config = readConfig($config_file);
 $current_mode = $config['mode'];
 $current_mclk = $config['mclk'];
 $current_submode = $config['submode'];
+$current_pcm_swap = $config['pcm_swap'];
+$current_dsd_swap = $config['dsd_swap'];
 ?>
 <!DOCTYPE html>
 <html lang="en">

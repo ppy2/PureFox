@@ -82,7 +82,9 @@ $(document).ready(function () {
             'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
             'yes_btn': 'Да',
             'cancel_btn': 'Отмена',
-            'apply_reboot': 'Применить и перезагрузить'
+            'apply_reboot': 'Применить и перезагрузить',
+            'pcm_swap_title': 'PCM Swap',
+            'dsd_swap_title': 'DSD Swap'
         },
         'en': {
             'alsa_output': 'ALSA Output:',
@@ -124,7 +126,9 @@ $(document).ready(function () {
             'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
             'yes_btn': 'Yes',
             'cancel_btn': 'Cancel',
-            'apply_reboot': 'Apply & Reboot'
+            'apply_reboot': 'Apply & Reboot',
+            'pcm_swap_title': 'PCM Swap',
+            'dsd_swap_title': 'DSD Swap'
         },
         'de': {
             'alsa_output': 'ALSA Ausgang:',
@@ -166,7 +170,9 @@ $(document).ready(function () {
             'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
             'yes_btn': 'Ja',
             'cancel_btn': 'Abbrechen',
-            'apply_reboot': 'Anwenden & Neustart'
+            'apply_reboot': 'Anwenden & Neustart',
+            'pcm_swap_title': 'PCM Swap',
+            'dsd_swap_title': 'DSD Swap'
         },
         'fr': {
             'alsa_output': 'Sortie ALSA:',
@@ -208,7 +214,9 @@ $(document).ready(function () {
             'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
             'yes_btn': 'Oui',
             'cancel_btn': 'Annuler',
-            'apply_reboot': 'Appliquer et redémarrer'
+            'apply_reboot': 'Appliquer et redémarrer',
+            'pcm_swap_title': 'PCM Swap',
+            'dsd_swap_title': 'DSD Swap'
         },
         'zh': {
             'alsa_output': 'ALSA 输出:',
@@ -250,7 +258,9 @@ $(document).ready(function () {
             'warning_text2': '更改I2S设置后需要重启系统才能生效。',
             'yes_btn': '是',
             'cancel_btn': '取消',
-            'apply_reboot': '应用并重启'
+            'apply_reboot': '应用并重启',
+            'pcm_swap_title': 'PCM Swap',
+            'dsd_swap_title': 'DSD Swap'
         }
     };
 
@@ -1102,6 +1112,20 @@ $(document).ready(function () {
                     $('#modal-mclk-1024').prop('checked', true);
                 }
                 
+                // Set PCM swap toggle
+                if (data.pcm_swap === '1') {
+                    $('#modal-pcm-swap').prop('checked', true);
+                } else {
+                    $('#modal-pcm-normal').prop('checked', true);
+                }
+                
+                // Set DSD swap toggle
+                if (data.dsd_swap === '1') {
+                    $('#modal-dsd-swap').prop('checked', true);
+                } else {
+                    $('#modal-dsd-normal').prop('checked', true);
+                }
+                
                 // Set submode buttons active state
                 $('.i2s-submode-btn').removeClass('active');
                 $(`.i2s-submode-btn[value="${data.submode}"]`).addClass('active');
@@ -1230,6 +1254,10 @@ $(document).ready(function () {
                 formData.append('mode', this.value);
             } else if (this.name === 'mclk') {
                 formData.append('mclk', this.value);
+            } else if (this.name === 'pcm_swap') {
+                formData.append('pcm_swap', this.value);
+            } else if (this.name === 'dsd_swap') {
+                formData.append('dsd_swap', this.value);
             }
             
             // Apply setting immediately

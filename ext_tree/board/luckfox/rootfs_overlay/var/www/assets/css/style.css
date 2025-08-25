@@ -1181,8 +1181,8 @@ h1 {
    I2S MODAL STYLES
 -------------------------------------------------- */
 .i2s-modal-content {
-    max-width: 350px;
-    width: 320px;
+    max-width: 370px;
+    width: 340px;
 }
 
 .i2s-group {
@@ -1201,7 +1201,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 250px;
+    width: 270px;
     margin: 0 auto;
     gap: 20px;
 }
@@ -1224,14 +1224,14 @@ h1 {
 .i2s-submode-row {
     display: flex;
     justify-content: space-between;
-    width: 250px;
+    width: 270px;
     margin: 0 auto;
 }
 
 .i2s-submode-btn {
     padding: 3px 15px;
     font-size: 14px;
-    width: 122px;
+    width: 132px;
     height: 32px;
     text-align: center;
     box-sizing: border-box;
@@ -1245,7 +1245,7 @@ h1 {
     font-size: 13px;
     font-weight: 500;
     line-height: 1.3;
-    width: 250px;
+    width: 270px;
     margin-left: auto;
     margin-right: auto;
     hyphens: auto;
@@ -1300,7 +1300,7 @@ h1 {
     position: relative;
     display: flex;
     align-items: center;
-    width: 100px;
+    width: 120px;
     height: 32px;
     background-color: transparent;
     border-radius: 16px;
@@ -1346,7 +1346,7 @@ h1 {
 
 .toggle-slider-compact {
     position: absolute;
-    width: 52px;
+    width: 62px;
     height: 32px;
     background-color: #5d5d5d;
     border-radius: 16px;
@@ -1358,7 +1358,7 @@ h1 {
 }
 
 .toggle-input-compact:checked + .toggle-label-compact .toggle-slider-compact {
-    left: 46px;
+    left: 56px;
 }
 
 input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-slider-compact {
@@ -1366,7 +1366,7 @@ input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-slider-c
 }
 
 input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-slider-compact {
-    left: 46px;
+    left: 56px;
 }
 
 input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-slider-compact {
@@ -1374,12 +1374,12 @@ input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-slider-c
 }
 
 input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-slider-compact {
-    left: 46px;
+    left: 56px;
 }
 
 input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
     color: #fff;
-    left: 24px;
+    left: 29px;
     transform: translateX(-50%) translateY(-50%);
 }
 
@@ -1393,13 +1393,13 @@ input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-option-c
 
 input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
     color: #fff;
-    right: 24px;
+    right: 29px;
     transform: translateX(50%) translateY(-50%);
 }
 
 input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
     color: #fff;
-    left: 24px;
+    left: 29px;
     transform: translateX(-50%) translateY(-50%);
 }
 
@@ -1413,7 +1413,63 @@ input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-option-
 
 input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
     color: #fff;
-    right: 24px;
+    right: 29px;
+    transform: translateX(50%) translateY(-50%);
+}
+
+input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+    left: -2px;
+}
+
+input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+    left: 56px;
+}
+
+input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+    color: #fff;
+    left: 29px;
+    transform: translateX(-50%) translateY(-50%);
+}
+
+input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+    color: #888;
+}
+
+input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+    color: #888;
+}
+
+input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+    color: #fff;
+    right: 29px;
+    transform: translateX(50%) translateY(-50%);
+}
+
+input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+    left: -2px;
+}
+
+input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+    left: 56px;
+}
+
+input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+    color: #fff;
+    left: 29px;
+    transform: translateX(-50%) translateY(-50%);
+}
+
+input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+    color: #888;
+}
+
+input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+    color: #888;
+}
+
+input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+    color: #fff;
+    right: 29px;
     transform: translateX(50%) translateY(-50%);
 }
 
