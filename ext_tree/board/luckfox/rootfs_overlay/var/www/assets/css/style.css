@@ -1181,8 +1181,8 @@ h1 {
    I2S MODAL STYLES
 -------------------------------------------------- */
 .i2s-modal-content {
-    max-width: 370px;
-    width: 340px;
+    max-width: 400px;
+    width: 370px;
 }
 
 .i2s-group {
@@ -1201,7 +1201,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 270px;
+    width: 300px;
     margin: 0 auto;
     gap: 20px;
 }
@@ -1224,14 +1224,14 @@ h1 {
 .i2s-submode-row {
     display: flex;
     justify-content: space-between;
-    width: 270px;
+    width: 300px;
     margin: 0 auto;
 }
 
 .i2s-submode-btn {
     padding: 3px 15px;
     font-size: 14px;
-    width: 132px;
+    width: 147px;
     height: 32px;
     text-align: center;
     box-sizing: border-box;
@@ -1245,7 +1245,7 @@ h1 {
     font-size: 13px;
     font-weight: 500;
     line-height: 1.3;
-    width: 270px;
+    width: 300px;
     margin-left: auto;
     margin-right: auto;
     hyphens: auto;

@@ -47,15 +47,6 @@ header('Content-Type: text/html; charset=UTF-8');
       </div>
 
       <div class="form-group">
-        <label for="mmap-mode">MMAP_MODE:</label>
-        <select id="mmap-mode" name="MMAP_MODE">
-          <option value="0">0 - Disabled</option>
-          <option value="1">1 - Enabled</option>
-        </select>
-        <div class="help-text">Enable/disable memory-mapped mode</div>
-      </div>
-
-      <div class="form-group">
         <label for="alsa-period-frames">ALSA_PERIOD_FRAMES:</label>
         <input type="number" id="alsa-period-frames" name="ALSA_PERIOD_FRAMES" min="256" max="65536" step="256">
         <div class="help-text">Number of frames per period (256-65536, in multiples of 256)</div>
@@ -118,7 +109,6 @@ header('Content-Type: text/html; charset=UTF-8');
           if (data.success) {
             document.getElementById('ap-mode').value = data.settings.AP_MODE;
             document.getElementById('tcp-mode').value = data.settings.TCP_MODE;
-            document.getElementById('mmap-mode').value = data.settings.MMAP_MODE;
             document.getElementById('alsa-period-frames').value = data.settings.ALSA_PERIOD_FRAMES;
             document.getElementById('alsa-buffer-frames').value = data.settings.ALSA_BUFFER_FRAMES;
             document.getElementById('alsa-period-time').value = data.settings.ALSA_PERIOD_TIME;
