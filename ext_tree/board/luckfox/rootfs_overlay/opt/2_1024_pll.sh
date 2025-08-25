@@ -8,3 +8,4 @@ echo 1024 > /sys/devices/platform/ffae0000.i2s/mclk_multiplier
 sed -i 's/^MCLK=.*/MCLK=1024/' /etc/i2s.conf
 
 echo "MCLK multiplier set to 1024x for PLL mode"
+sync

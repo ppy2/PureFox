@@ -95,13 +95,25 @@ $current_submode = $config['submode'];
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
         .group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-align: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        .group:last-of-type {
+            border-bottom: none;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
         .group h2 {
-            margin-bottom: 8px;
+            margin: 0;
             font-size: 16px;
             color: #e0e0e0;
+            flex-shrink: 0;
         }
         .group .row {
             display: flex;
@@ -110,13 +122,306 @@ $current_submode = $config['submode'];
             gap: 5px;
         }
         .group .row button {
-            padding: 5px 10px;
+            padding: 3px 10px;
             font-size: 14px;
             margin: 0 2px;
             min-width: 60px;
+            height: 32px;
+        }
+        .group .submode-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .group .submode-row {
+            display: flex;
+            justify-content: space-between;
+            width: 220px;
+            margin: 0 auto;
+        }
+        .group .group-header {
+            width: 220px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .group .submode-row button {
+            padding: 3px 15px;
+            font-size: 14px;
+            width: 105px;
+            height: 32px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        /* Compact toggle switches for I2S */
+        .toggle-switch-compact {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .toggle-input-compact {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            margin: 0;
+            pointer-events: none;
+        }
+        
+        .toggle-label-compact {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100px;
+            height: 32px;
+            background-color: transparent;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #3d3d3d;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+        
+        .toggle-label-compact:hover,
+        .toggle-input-compact:hover + .toggle-label-compact {
+            border-color: #4d4d4d;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-option-compact {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            font-weight: normal;
+            color: #e0e0e0;
+            pointer-events: auto;
+            z-index: 3;
+            transition: color 0.3s ease;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        
+        .toggle-option-compact.left {
+            left: 25%;
+            transform: translateX(-50%) translateY(-50%);
+        }
+        
+        .toggle-option-compact.right {
+            right: 25%;
+            transform: translateX(50%) translateY(-50%);
+        }
+        
+        .toggle-slider-compact {
+            position: absolute;
+            width: 52px;
+            height: 32px;
+            background-color: #5d5d5d;
+            border-radius: 16px;
+            transition: left 0.5s ease;
+            left: -2px;
+            z-index: 1;
+            filter: brightness(1.3);
+            box-sizing: border-box;
+        }
+        
+        .toggle-input-compact:checked + .toggle-label-compact .toggle-slider-compact {
+            left: 46px;
+        }
+        
+        input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: -2px;
+        }
+        
+        input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: 46px;
+        }
+        
+        input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: -2px;
+        }
+        
+        input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: 46px;
+        }
+        
+        input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #fff;
+            left: 24px;
+            transform: translateX(-50%) translateY(-50%);
+        }
+        
+        input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #888;
+        }
+        
+        input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #888;
+        }
+        
+        input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #fff;
+            right: 24px;
+            transform: translateX(50%) translateY(-50%);
+        }
+        
+        input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #fff;
+            left: 24px;
+            transform: translateX(-50%) translateY(-50%);
+        }
+        
+        input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #888;
+        }
+        
+        input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #888;
+        }
+        
+        input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #fff;
+            right: 24px;
+            transform: translateX(50%) translateY(-50%);
+        }
+        
+        /* Reduce overall container width */
+        .container {
+            max-width: 350px !important;
+        }
+        
+        /* Spinner overlay */
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .spinner-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #3d3d3d;
+            border-top: 4px solid #e0e0e0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .spinner-text {
+            color: #e0e0e0;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Confirm dialog */
+        .confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .confirm-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .confirm-content {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+        
+        .confirm-message {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .confirm-btn-yes {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .confirm-btn-yes:hover {
+            background-color: #c82333;
+        }
+        
+        .confirm-btn-no {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .confirm-btn-no:hover {
+            background-color: #5a6268;
         }
         .reboot-btn {
-            margin-top: 15px;
+            margin-top: 12px;
             text-align: right;
         }
         .reboot-link {
@@ -126,12 +431,12 @@ $current_submode = $config['submode'];
             text-decoration: none;
         }
         .warning {
-            margin-top: 15px;
+            margin-top: 12px;
             text-align: left;
             color: #e0e0e0;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .pulse {
             color: #ff4444;
@@ -140,7 +445,7 @@ $current_submode = $config['submode'];
             font-weight: bold;
             display: block;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -162,6 +467,16 @@ $current_submode = $config['submode'];
         }
     </style>
     <script>
+        // Simple language detection - defined globally
+        function detectLanguage() {
+            const lang = navigator.language || navigator.userLanguage;
+            if (lang.startsWith('ru')) return 'ru';
+            if (lang.startsWith('de')) return 'de';
+            if (lang.startsWith('fr')) return 'fr';
+            if (lang.startsWith('zh')) return 'zh';
+            return 'en';
+        }
+        
         function showOverlay() {
             document.querySelector('.spinner-overlay').classList.add('show');
         }
@@ -184,10 +499,34 @@ $current_submode = $config['submode'];
 
         function confirmReboot(event) {
             event.preventDefault();
-            customConfirm("Are you sure you want to reboot the device?", function(confirmed) {
+            
+            // Get current language once
+            const currentLang = detectLanguage();
+            
+            // Get reboot confirmation text in current language
+            const rebootMessages = {
+                'ru': 'Вы уверены, что хотите перезагрузить устройство?',
+                'en': 'Are you sure you want to reboot the device?',
+                'de': 'Sind Sie sicher, dass Sie das Gerät neu starten möchten?',
+                'fr': 'Êtes-vous sûr de vouloir redémarrer l\'appareil?',
+                'zh': '您确定要重启设备吗？'
+            };
+            const message = rebootMessages[currentLang] || rebootMessages['en'];
+            
+            // Get rebooting text in current language
+            const rebootingTexts = {
+                'ru': 'Перезагрузка...',
+                'en': 'Rebooting...',
+                'de': 'Neustart...',
+                'fr': 'Redémarrage...',
+                'zh': '重启中...'
+            };
+            const rebootingText = rebootingTexts[currentLang] || rebootingTexts['en'];
+            
+            customConfirm(message, function(confirmed) {
                 if (confirmed) {
                     document.querySelector('.spinner-overlay').classList.add('show');
-                    document.querySelector('.spinner-text').textContent = 'Rebooting...';
+                    document.querySelector('.spinner-text').textContent = rebootingText;
                     
                     fetch('reboot.php', {
                         method: 'POST'
@@ -223,7 +562,7 @@ $current_submode = $config['submode'];
     <div class="spinner-overlay">
 	<div class="spinner-container">
         <div class="spinner"></div>
-        <div class="spinner-text">Loading...</div>
+        <div class="spinner-text" data-lang="loading">Loading...</div>
         </div>
     </div>
     <div id="statusIndicator" class="status-indicator"></div>
@@ -237,39 +576,56 @@ $current_submode = $config['submode'];
         
         <form method="post" onsubmit="showOverlay()">
             <div class="group">
-                <h2 data-lang="mode_title">Main Mode</h2>
-                <div class="row">
-                    <button type="submit" name="mode" value="pll" id="pll-btn"
-                        class="btn-custom <?php if ($current_mode === 'pll') echo 'active'; ?>" data-lang="pll_mode">PLL</button>
-                    <button type="submit" name="mode" value="ext" id="ext-btn"
-                        class="btn-custom <?php if ($current_mode === 'ext') echo 'active'; ?>" data-lang="ext_mode">EXT</button>
+                <div class="group-header">
+                    <h2 data-lang="mode_title">Mode</h2>
+                    <div class="toggle-switch-compact">
+                        <input type="radio" name="mode" value="pll" id="mode-pll" class="toggle-input-compact" 
+                               <?php if ($current_mode === 'pll') echo 'checked'; ?>>
+                        <input type="radio" name="mode" value="ext" id="mode-ext" class="toggle-input-compact" 
+                               <?php if ($current_mode === 'ext') echo 'checked'; ?>>
+                        <label class="toggle-label-compact">
+                            <div class="toggle-slider-compact"></div>
+                            <span class="toggle-option-compact left" data-lang="pll_mode" onclick="document.getElementById('mode-pll').click()">PLL</span>
+                            <span class="toggle-option-compact right" data-lang="ext_mode" onclick="document.getElementById('mode-ext').click()">EXT</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="group">
-                <h2 data-lang="submode_title">Output Mode</h2>
-                <div class="row">
-                    <button type="submit" name="submode" value="std" id="std-btn"
-                        class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>" data-lang="std_mode">STD</button>
-                    <button type="submit" name="submode" value="lr" id="lr-btn"
-                        class="btn-custom <?php if ($current_submode === 'lr') echo 'active'; ?>" data-lang="lr_mode">L/R</button>
-                    <button type="submit" name="submode" value="plr" id="plr-btn"
-                        class="btn-custom <?php if ($current_submode === 'plr') echo 'active'; ?>" data-lang="plr_mode">±L/±R</button>
-                    <button type="submit" name="submode" value="8ch" id="8ch-btn"
-                        class="btn-custom <?php if ($current_submode === '8ch') echo 'active'; ?>" data-lang="8ch_mode">8CH</button>
+                <div class="submode-rows">
+                    <div class="submode-row">
+                        <button type="submit" name="submode" value="std" id="std-btn"
+                            class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>" data-lang="std_mode">STD</button>
+                        <button type="submit" name="submode" value="8ch" id="8ch-btn"
+                            class="btn-custom <?php if ($current_submode === '8ch') echo 'active'; ?>" data-lang="8ch_mode">8CH</button>
+                    </div>
+                    <div class="submode-row">
+                        <button type="submit" name="submode" value="lr" id="lr-btn"
+                            class="btn-custom <?php if ($current_submode === 'lr') echo 'active'; ?>" data-lang="lr_mode">L/R</button>
+                        <button type="submit" name="submode" value="plr" id="plr-btn"
+                            class="btn-custom <?php if ($current_submode === 'plr') echo 'active'; ?>" data-lang="plr_mode">±L/±R</button>
+                    </div>
                 </div>
             </div>
             <div class="group">
-                <h2 data-lang="mclk_title">MCLK</h2>
-                <div class="row">
-                    <button type="submit" name="mclk" value="512" id="mclk-512-btn"
-                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>">512</button>
-                    <button type="submit" name="mclk" value="1024" id="mclk-1024-btn"
-                        class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">1024</button>
+                <div class="group-header">
+                    <h2 data-lang="mclk_title">MCLK</h2>
+                    <div class="toggle-switch-compact">
+                        <input type="radio" name="mclk" value="512" id="mclk-512" class="toggle-input-compact" 
+                               <?php if ($current_mclk === '512') echo 'checked'; ?>>
+                        <input type="radio" name="mclk" value="1024" id="mclk-1024" class="toggle-input-compact" 
+                               <?php if ($current_mclk === '1024') echo 'checked'; ?>>
+                        <label class="toggle-label-compact">
+                            <div class="toggle-slider-compact"></div>
+                            <span class="toggle-option-compact left" onclick="document.getElementById('mclk-512').click()">512</span>
+                            <span class="toggle-option-compact right" onclick="document.getElementById('mclk-1024').click()">1024</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="warning">
-                <span class="pulse" data-lang="warning_attention">Warning!</span> <br>
-                <span data-lang="warning_text1">MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).</span> </br>
+                <span class="pulse" data-lang="warning_attention">Warning!</span>
+                <span data-lang="warning_text1">MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).</span> <br>
                 <span data-lang="warning_text2">System reboot is required after changing I2S settings to apply them.</span>
             </div>
         </form>
@@ -295,20 +651,11 @@ $current_submode = $config['submode'];
     <script>
         // Only load translations, no button state management
         $(document).ready(function() {
-            // Simple language detection without app.js interference
-            function detectLanguage() {
-                const lang = navigator.language || navigator.userLanguage;
-                if (lang.startsWith('ru')) return 'ru';
-                if (lang.startsWith('de')) return 'de';
-                if (lang.startsWith('fr')) return 'fr';
-                if (lang.startsWith('zh')) return 'zh';
-                return 'en';
-            }
             
             const translations = {
                 'ru': {
                     'i2s_title': 'Настройки I2S',
-                    'mode_title': 'Основной режим',
+                    'mode_title': 'Режим',
                     'pll_mode': 'PLL',
                     'ext_mode': 'EXT',
                     'submode_title': 'Вариант выхода',
@@ -321,11 +668,12 @@ $current_submode = $config['submode'];
                     'warning_text1': 'Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).',
                     'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
                     'yes_btn': 'Да',
-                    'cancel_btn': 'Отмена'
+                    'cancel_btn': 'Отмена',
+                    'loading': 'Загрузка...'
                 },
                 'en': {
                     'i2s_title': 'I2S Settings',
-                    'mode_title': 'Main Mode',
+                    'mode_title': 'Mode',
                     'pll_mode': 'PLL',
                     'ext_mode': 'EXT',
                     'submode_title': 'Output Mode',
@@ -338,11 +686,12 @@ $current_submode = $config['submode'];
                     'warning_text1': 'MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).',
                     'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
                     'yes_btn': 'Yes',
-                    'cancel_btn': 'Cancel'
+                    'cancel_btn': 'Cancel',
+                    'loading': 'Loading...'
                 },
                 'de': {
                     'i2s_title': 'I2S Einstellungen',
-                    'mode_title': 'Hauptmodus',
+                    'mode_title': 'Modus',
                     'pll_mode': 'PLL',
                     'ext_mode': 'EXT',
                     'submode_title': 'Ausgangsmodus',
@@ -355,11 +704,12 @@ $current_submode = $config['submode'];
                     'warning_text1': 'MCLK-Ausgang hat unterschiedliche Einstellungen in PLL- und EXT-Modi (OUTPUT/INPUT).',
                     'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
                     'yes_btn': 'Ja',
-                    'cancel_btn': 'Abbrechen'
+                    'cancel_btn': 'Abbrechen',
+                    'loading': 'Laden...'
                 },
                 'fr': {
                     'i2s_title': 'Paramètres I2S',
-                    'mode_title': 'Mode principal',
+                    'mode_title': 'Mode',
                     'pll_mode': 'PLL',
                     'ext_mode': 'EXT',
                     'submode_title': 'Mode de sortie',
@@ -372,11 +722,12 @@ $current_submode = $config['submode'];
                     'warning_text1': 'La sortie MCLK a des paramètres différents en modes PLL et EXT (OUTPUT/INPUT).',
                     'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
                     'yes_btn': 'Oui',
-                    'cancel_btn': 'Annuler'
+                    'cancel_btn': 'Annuler',
+                    'loading': 'Chargement...'
                 },
                 'zh': {
                     'i2s_title': 'I2S 设置',
-                    'mode_title': '主模式',
+                    'mode_title': '模式',
                     'pll_mode': 'PLL',
                     'ext_mode': 'EXT',
                     'submode_title': '输出模式',
@@ -389,7 +740,8 @@ $current_submode = $config['submode'];
                     'warning_text1': 'MCLK输出在PLL和EXT模式下具有不同的设置（OUTPUT/INPUT）。',
                     'warning_text2': '更改I2S设置后需要重启系统才能生效。',
                     'yes_btn': '是',
-                    'cancel_btn': '取消'
+                    'cancel_btn': '取消',
+                    'loading': '加载中...'
                 }
             };
             
@@ -401,6 +753,17 @@ $current_submode = $config['submode'];
                 if (translations[currentLang] && translations[currentLang][key]) {
                     $(this).text(translations[currentLang][key]);
                 }
+            });
+            
+            // Handle toggle switches - submit form when radio button changes
+            document.querySelectorAll('.toggle-input-compact').forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.checked) {
+                        setTimeout(() => {
+                            this.closest('form').submit();
+                        }, 200);
+                    }
+                });
             });
         });
     </script>
