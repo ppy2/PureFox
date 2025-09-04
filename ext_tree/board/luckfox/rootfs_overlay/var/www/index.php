@@ -132,9 +132,6 @@
     <div id="i2s-modal" class="modal-overlay">
         <div class="modal-content i2s-modal-content">
             <div class="header">
-                <a href="#" onclick="closeI2SModal(); return false;" class="home-button" title="Close">
-                    <img src="assets/img/home.svg" class="settings-icon" alt="Close">
-                </a>
                 <h1 data-lang="i2s_title">I2S Settings</h1>
             </div>
             <form id="i2s-form" method="post" action="i2s.php">
@@ -210,9 +207,12 @@
                     <span class="i2s-pulse" data-lang="warning_attention">Внимание!</span>
                     <span data-lang="warning_text1">Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT).</span> <span data-lang="warning_text2">После изменения настроек I2S необходима перезагрузка системы для вступления в силу.</span>
                 </div>
-                <div class="reboot-btn">
-                    <a href="#" onclick="confirmRebootI2S(event)" class="reboot-link" title="Reboot">
-                        <img src="assets/img/reboot.svg" class="settings-icon reboot-icon" alt="Reboot">
+                <div class="modal-bottom-buttons">
+                    <a href="#" onclick="closeI2SModal(); return false;" class="close-link">
+                        <img src="assets/img/home.svg" class="settings-icon close-icon" alt="">
+                    </a>
+                    <a href="#" onclick="confirmRebootI2S(event)" class="reboot-link">
+                        <img src="assets/img/reboot.svg" class="settings-icon reboot-icon" alt="">
                     </a>
                 </div>
             </form>

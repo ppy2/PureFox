@@ -258,12 +258,12 @@ h1 {
 .firmware-title {
   font-size: 16px;
   font-weight: normal;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 .firmware-subtitle {
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 0.4;
 }
 
 /* Fallback for old browsers without gap support */
@@ -349,29 +349,29 @@ h1 {
 }
 
 .btn-custom.active {
-  background-color: #5d5d5d;
-  border-color: #5d5d5d;
+  background-color: #5D636B;
+  border-color: #5D636B;
   color: #fff;
   filter: brightness(1.3);
 }
 
 .btn-custom.primary.active {
-  background-color: #5d5d5d;
+  background-color: #5D636B;
   filter: brightness(1.3);
 }
 
 .btn-custom.success.active {
-  background-color: #5d5d5d;
+  background-color: #5D636B;
   filter: brightness(1.3);
 }
 
 .btn-custom.warning.active {
-  background-color: #5d5d5d;
+  background-color: #5D636B;
   filter: brightness(1.3);
 }
 
 .btn-custom.danger.active {
-  background-color: #5d5d5d;
+  background-color: #5D636B;
   filter: brightness(1.3);
 }
 
@@ -448,7 +448,7 @@ h1 {
   vertical-align: middle;
   opacity: 0.6;
   transition: transform 0.2s ease;
-  filter: brightness(0) saturate(100%) invert(60%);
+  filter: brightness(0) saturate(100%) invert(75%);
   margin: -5px 0;
 }
 
@@ -520,7 +520,7 @@ h1 {
   transition: opacity 0.2s ease;
   cursor: pointer;
   flex-shrink: 0;
-  margin-left: 13px;
+  margin-left: -10px;
 }
 
 .volume-control:hover .settings-icon.volume-icon {
@@ -646,10 +646,10 @@ h1 {
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background: #2d2d2d;
-  border: 3px solid #ffffff;
+  border: 2.5px solid #777;
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -661,10 +661,10 @@ h1 {
 }
 
 .volume-slider::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   background: #2d2d2d;
-  border: 3px solid #ffffff;
+  border: 2.5px solid #777;
   border-radius: 50%;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -702,17 +702,21 @@ h1 {
 /* Disabled styles for volume controls when in ±L/±R mode - same as USB DACs without volume */
 .volume-slider:disabled {
   opacity: 0.4 !important;
-  cursor: not-allowed !important;
+  cursor: not	-allowed !important;
   pointer-events: none;
 }
 
 .volume-slider:disabled::-webkit-slider-thumb {
-  opacity: 0.4;
+  background: #2d2d2d !important;
+  border: 2.5px solid #777 !important;
+  opacity: 1 !important;
   cursor: not-allowed;
 }
 
 .volume-slider:disabled::-moz-range-thumb {
-  opacity: 0.4;
+  background: #2d2d2d !important;
+  border: 2.5px solid #777 !important;
+  opacity: 1 !important;
   cursor: not-allowed;
 }
 
@@ -726,7 +730,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
+  margin-left: 25px;
   opacity: 0.5;
   pointer-events: none;
   transition: opacity 0.3s;
@@ -854,7 +858,7 @@ h1 {
   position: relative;
   display: flex;
   align-items: center;
-  width: 129px;
+  width: 135px;
   height: 40px;
   background-color: transparent;
   border-radius: 20px;
@@ -869,13 +873,11 @@ h1 {
 
 .toggle-label:hover,
 .toggle-input:hover + .toggle-label {
-  border-color: #4d4d4d;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  /* Animation removed */
 }
 
 .toggle-input:focus-visible + .toggle-label {
-  border-color: #5d5d5d;
+  border-color: #5D636B;
   box-shadow: 0 0 0 1px rgba(93, 93, 93, 0.5);
 }
 
@@ -909,7 +911,7 @@ h1 {
   position: absolute;
   width: 68px;
   height: 40px;
-  background-color: #5d5d5d;
+  background-color: #5D636B;
   border-radius: 20px;
   transition: left 0.5s ease;
   left: -2px;
@@ -918,7 +920,7 @@ h1 {
 }
 
 .toggle-input:checked + .toggle-label .toggle-slider {
-  left: 59px;
+  left: 65px;
 }
 
 .toggle-input + .toggle-label .toggle-option.left {
@@ -1018,20 +1020,29 @@ h1 {
    MODAL WINDOWS
 -------------------------------------------------- */
 .modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0);
     z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
 }
 
 .modal-overlay.show {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    opacity: 1;
+    visibility: visible;
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0.9) 100%);
+}
+
+.modal-overlay.show .modal-content {
+    transform: scale(1) translateY(0);
 }
 
 .modal-content {
@@ -1042,9 +1053,15 @@ h1 {
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.9),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 10px 20px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
     color: #ddd;
-    border: 2px solid #555;
+    border: none;
+    transform: scale(0.7) translateY(-50px);
+    transition: all 0.5s ease;
     margin: 20px;
 }
 
@@ -1094,7 +1111,7 @@ h1 {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.75);
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0.9) 100%);
     z-index: 10000;
 }
 
@@ -1111,9 +1128,13 @@ h1 {
     width: auto;
     min-width: 300px;
     max-width: 90%;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.9),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 10px 20px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
     color: #e0e0e0;
-    border: 2px solid #555;
+    border: none;
     text-align: center;
 }
 
@@ -1269,16 +1290,44 @@ h1 {
     50% { opacity: 0.5; }
 }
 
-.i2s-modal-content .reboot-btn {
+.i2s-modal-content .header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.i2s-modal-content .header .home-button {
+    display: none !important;
+}
+
+.i2s-modal-content .modal-bottom-buttons {
     margin-top: 8px;
-    text-align: right;
+    position: relative !important;
+    width: 100% !important;
+    height: 40px !important;
+    padding: 0 !important;
+}
+
+.i2s-modal-content .close-link {
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
 }
 
 .i2s-modal-content .reboot-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
 }
 
 /* Compact toggle switches for I2S Modal */
@@ -1348,7 +1397,7 @@ h1 {
     position: absolute;
     width: 62px;
     height: 32px;
-    background-color: #5d5d5d;
+    background-color: #5D636B;
     border-radius: 16px;
     transition: left 0.5s ease;
     left: -2px;

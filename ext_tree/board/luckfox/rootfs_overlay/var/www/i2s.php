@@ -288,7 +288,7 @@ $current_dsd_swap = $config['dsd_swap'];
             position: relative;
             display: flex;
             align-items: center;
-            width: 100px;
+            width: 120px;
             height: 32px;
             background-color: transparent;
             border-radius: 16px;
@@ -334,7 +334,7 @@ $current_dsd_swap = $config['dsd_swap'];
         
         .toggle-slider-compact {
             position: absolute;
-            width: 52px;
+            width: 62px;
             height: 32px;
             background-color: #5d5d5d;
             border-radius: 16px;
@@ -346,7 +346,7 @@ $current_dsd_swap = $config['dsd_swap'];
         }
         
         .toggle-input-compact:checked + .toggle-label-compact .toggle-slider-compact {
-            left: 46px;
+            left: 56px;
         }
         
         input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-slider-compact {
@@ -354,7 +354,7 @@ $current_dsd_swap = $config['dsd_swap'];
         }
         
         input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-slider-compact {
-            left: 46px;
+            left: 56px;
         }
         
         input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-slider-compact {
@@ -362,12 +362,28 @@ $current_dsd_swap = $config['dsd_swap'];
         }
         
         input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-slider-compact {
-            left: 46px;
+            left: 56px;
+        }
+        
+        input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: -2px;
+        }
+        
+        input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: 56px;
+        }
+        
+        input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: -2px;
+        }
+        
+        input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-slider-compact {
+            left: 56px;
         }
         
         input[name="mode"][value="pll"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
             color: #fff;
-            left: 24px;
+            left: 29px;
             transform: translateX(-50%) translateY(-50%);
         }
         
@@ -381,13 +397,13 @@ $current_dsd_swap = $config['dsd_swap'];
         
         input[name="mode"][value="ext"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
             color: #fff;
-            right: 24px;
+            right: 29px;
             transform: translateX(50%) translateY(-50%);
         }
         
         input[name="mclk"][value="512"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
             color: #fff;
-            left: 24px;
+            left: 29px;
             transform: translateX(-50%) translateY(-50%);
         }
         
@@ -401,7 +417,47 @@ $current_dsd_swap = $config['dsd_swap'];
         
         input[name="mclk"][value="1024"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
             color: #fff;
-            right: 24px;
+            right: 29px;
+            transform: translateX(50%) translateY(-50%);
+        }
+        
+        input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #fff;
+            left: 29px;
+            transform: translateX(-50%) translateY(-50%);
+        }
+        
+        input[name="pcm_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #888;
+        }
+        
+        input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #888;
+        }
+        
+        input[name="pcm_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #fff;
+            right: 29px;
+            transform: translateX(50%) translateY(-50%);
+        }
+        
+        input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #fff;
+            left: 29px;
+            transform: translateX(-50%) translateY(-50%);
+        }
+        
+        input[name="dsd_swap"][value="0"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #888;
+        }
+        
+        input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.left {
+            color: #888;
+        }
+        
+        input[name="dsd_swap"][value="1"]:checked ~ .toggle-label-compact .toggle-option-compact.right {
+            color: #fff;
+            right: 29px;
             transform: translateX(50%) translateY(-50%);
         }
         
@@ -735,6 +791,38 @@ $current_dsd_swap = $config['dsd_swap'];
                     </div>
                 </div>
             </div>
+            <div class="group">
+                <div class="group-header">
+                    <h2 data-lang="pcm_swap_title">PCM Swap</h2>
+                    <div class="toggle-switch-compact">
+                        <input type="radio" name="pcm_swap" value="0" id="pcm-normal" class="toggle-input-compact" 
+                               <?php if ($current_pcm_swap === '0') echo 'checked'; ?>>
+                        <input type="radio" name="pcm_swap" value="1" id="pcm-swap" class="toggle-input-compact" 
+                               <?php if ($current_pcm_swap === '1') echo 'checked'; ?>>
+                        <label class="toggle-label-compact">
+                            <div class="toggle-slider-compact"></div>
+                            <span class="toggle-option-compact left" onclick="document.getElementById('pcm-normal').click()">OFF</span>
+                            <span class="toggle-option-compact right" onclick="document.getElementById('pcm-swap').click()">ON</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="group">
+                <div class="group-header">
+                    <h2 data-lang="dsd_swap_title">DSD Swap</h2>
+                    <div class="toggle-switch-compact">
+                        <input type="radio" name="dsd_swap" value="0" id="dsd-normal" class="toggle-input-compact" 
+                               <?php if ($current_dsd_swap === '0') echo 'checked'; ?>>
+                        <input type="radio" name="dsd_swap" value="1" id="dsd-swap" class="toggle-input-compact" 
+                               <?php if ($current_dsd_swap === '1') echo 'checked'; ?>>
+                        <label class="toggle-label-compact">
+                            <div class="toggle-slider-compact"></div>
+                            <span class="toggle-option-compact left" onclick="document.getElementById('dsd-normal').click()">OFF</span>
+                            <span class="toggle-option-compact right" onclick="document.getElementById('dsd-swap').click()">ON</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="warning">
                 <span class="pulse" data-lang="warning_attention">Warning!</span>
                 <span data-lang="warning_text1">MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT).</span> <br>
@@ -781,7 +869,9 @@ $current_dsd_swap = $config['dsd_swap'];
                     'warning_text2': 'После изменения настроек I2S необходима перезагрузка системы для вступления в силу.',
                     'yes_btn': 'Да',
                     'cancel_btn': 'Отмена',
-                    'loading': 'Загрузка...'
+                    'loading': 'Загрузка...',
+                    'pcm_swap_title': 'PCM Swap',
+                    'dsd_swap_title': 'DSD Swap'
                 },
                 'en': {
                     'i2s_title': 'I2S Settings',
@@ -799,7 +889,9 @@ $current_dsd_swap = $config['dsd_swap'];
                     'warning_text2': 'System reboot is required after changing I2S settings to apply them.',
                     'yes_btn': 'Yes',
                     'cancel_btn': 'Cancel',
-                    'loading': 'Loading...'
+                    'loading': 'Loading...',
+                    'pcm_swap_title': 'PCM Swap',
+                    'dsd_swap_title': 'DSD Swap'
                 },
                 'de': {
                     'i2s_title': 'I2S Einstellungen',
@@ -817,7 +909,9 @@ $current_dsd_swap = $config['dsd_swap'];
                     'warning_text2': 'Systemneustart ist erforderlich, nachdem I2S-Einstellungen geändert wurden.',
                     'yes_btn': 'Ja',
                     'cancel_btn': 'Abbrechen',
-                    'loading': 'Laden...'
+                    'loading': 'Laden...',
+                    'pcm_swap_title': 'PCM Swap',
+                    'dsd_swap_title': 'DSD Swap'
                 },
                 'fr': {
                     'i2s_title': 'Paramètres I2S',
@@ -835,7 +929,9 @@ $current_dsd_swap = $config['dsd_swap'];
                     'warning_text2': 'Un redémarrage du système est nécessaire après modification des paramètres I2S.',
                     'yes_btn': 'Oui',
                     'cancel_btn': 'Annuler',
-                    'loading': 'Chargement...'
+                    'loading': 'Chargement...',
+                    'pcm_swap_title': 'PCM Swap',
+                    'dsd_swap_title': 'DSD Swap'
                 },
                 'zh': {
                     'i2s_title': 'I2S 设置',
@@ -853,7 +949,9 @@ $current_dsd_swap = $config['dsd_swap'];
                     'warning_text2': '更改I2S设置后需要重启系统才能生效。',
                     'yes_btn': '是',
                     'cancel_btn': '取消',
-                    'loading': '加载中...'
+                    'loading': '加载中...',
+                    'pcm_swap_title': 'PCM Swap',
+                    'dsd_swap_title': 'DSD Swap'
                 }
             };
             
