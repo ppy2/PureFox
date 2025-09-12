@@ -5,10 +5,21 @@ OPTIONS="-z -D 1000:u32be -r 44100-705600:1000 -a 400:3::0 -M $NAME"
 
 start() {
         printf "Starting Squeezelite: "
-        /usr/bin/squeezelite $OPTIONS
-	renice -15 `pidof squeezelite`
+	/usr/bin/squeezelite $OPTIONS
+        sleep 0.5
+        pid=$(pidof squeezelite)
+        if [ -n "$pid" ]; then
+        renice -15 $pid
+        for tid in $(ls /proc/$pid/task/); do
+            renice -15 $tid
+        done
+        fi
+        MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+	/usr/bin/amixer set "$MIXER" unmute
     }
 stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
     killall -9 squeezelite
 }
 restart() {

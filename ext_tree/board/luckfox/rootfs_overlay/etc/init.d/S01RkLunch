@@ -5,17 +5,34 @@ resize2fs /dev/mmcblk0p6
 #resize2fs /dev/mmcblk0p5
 mount -a
 
-if [ -f /data/ethaddr.txt ]; then
-    echo ""
-else    
-    OUI="BE10E0"
-    SERIAL=$(grep -o 'Serial[[:space:]]*:[[:space:]]*[[:xdigit:]]*' /proc/cpuinfo | awk '{print $NF}')
-    MAC_PART=$(echo "$SERIAL" | tail -c 7)
-    MAC="${OUI}${MAC_PART}"
-    MAC=$(echo "$MAC" | sed 's/\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1:\2:\3:\4:\5:\6/')
-    MAC=$(echo "$MAC" | tr '[:lower:]' '[:upper:]')
-    echo $MAC > /data/ethaddr.txt
-fi
+echo 1 > /sys/devices/platform/ffae0000.i2s/mute
+MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+/usr/bin/amixer set "$MIXER" mute
+
+	if [ -f /data/ethaddr.txt ]; then
+	    MAC=`cat /data/ethaddr.txt`
+	else    
+	    OUI="BE10E0"
+	    SERIAL=$(grep -o 'Serial[[:space:]]*:[[:space:]]*[[:xdigit:]]*' /proc/cpuinfo | awk '{print $NF}')
+	    MAC_PART=$(echo "$SERIAL" | tail -c 7)
+	    MAC="${OUI}${MAC_PART}"
+	    MAC=$(echo "$MAC" | sed 's/\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1:\2:\3:\4:\5:\6/')
+	    MAC=$(echo "$MAC" | tr '[:lower:]' '[:upper:]')
+	    echo $MAC > /data/ethaddr.txt
+	    chattr +i /data/ethaddr.txt
+	    sync
+	fi
+
+/sbin/ifconfig eth0 down
+/sbin/ifconfig eth0 hw ether $MAC
+/sbin/ifconfig eth0 up && /sbin/udhcpc -i eth0
+
+grep MCLK=1024 /etc/i2s.conf && echo 1024 > /sys/devices/platform/ffae0000.i2s/mclk_multiplier
+echo 100 >  /sys/devices/platform/ffae0000.i2s/premute_delay_ms 
+echo 300 >  /sys/devices/platform/ffae0000.i2s/postmute_delay_ms 
+echo 1 > /sys/devices/platform/ffae0000.i2s/dsd_physical_swap
+echo 0 > /sys/devices/platform/ffae0000.i2s/pcm_channel_swap
+
 
 rcS()
 {
@@ -46,99 +63,6 @@ check_linker()
         [ ! -L "$2" ] && ln -sf $1 $2
 }
 
-network_init()
-{
-
-
-
-	ethaddr1=`ifconfig -a | grep "eth.*HWaddr" | awk '{print $5}'`
-
-	if [ -f /data/ethaddr.txt ]; then
-		ethaddr2=`cat /data/ethaddr.txt`
-		if [ $ethaddr1 == $ethaddr2 ]; then
-			echo "eth HWaddr cfg ok"
-		else
-			ifconfig eth0 down
-			ifconfig eth0 hw ether $ethaddr2
-		fi
-	else
-
-		echo $ethaddr1 > /data/ethaddr.txt
-	fi
-
-	ifconfig eth0 up && udhcpc -i eth0
-}
-
-post_chk()
-{
-	#TODO: ensure /userdata mount done
-	cnt=0
-	while [ $cnt -lt 30 ];
-	do
-		cnt=$(( cnt + 1 ))
-		if mount | grep -w userdata; then
-			break
-		fi
-		sleep .1
-	done
-
-	# if ko exist, install ko first
-#	default_ko_dir=/ko
-#	if [ -f "/oem/usr/ko/insmod_ko.sh" ];then
-#		default_ko_dir=/oem/usr/ko
-#	fi
-#	if [ -f "$default_ko_dir/insmod_ko.sh" ];then
-#		cd $default_ko_dir && sh insmod_ko.sh && cd -
-#	fi
-#
-	network_init &
-#	check_linker /userdata   /usr/www/userdata
-#	check_linker /media/usb0 /usr/www/usb0
-#	check_linker /mnt/sdcard /usr/www/sdcard
-#	# if /data/rkipc not exist, cp /usr/share
-#	rkipc_ini=/userdata/rkipc.ini
-#	default_rkipc_ini=/tmp/rkipc-factory-config.ini
-#	ln -s -f /oem/usr/share/rkipc.ini $default_rkipc_ini
-#
-#	tmp_md5=/tmp/.rkipc-ini.md5sum
-#	data_md5=/userdata/.rkipc-default.md5sum
-#	md5sum $default_rkipc_ini > $tmp_md5
-#	chk_rkipc=`cat $tmp_md5|awk '{print $1}'`
-#	rm $tmp_md5
-#	if [ ! -f $data_md5 ];then
-#		md5sum $default_rkipc_ini > $data_md5
-#	fi
-#	grep -w $chk_rkipc $data_md5
-#	if [ $? -ne 0 ] ;then
-#		rm -f $rkipc_ini
-#		echo "$chk_rkipc" > $data_md5
-#	fi
-#
-#	if [ ! -f "$default_rkipc_ini" ];then
-#		echo "Error: not found rkipc.ini !!!"
-#		exit -1
-#	fi
-#	if [ ! -f "$rkipc_ini" ]; then
-#		cp $default_rkipc_ini $rkipc_ini -f
-#	fi
-#
-#	if [ ! -f "/userdata/image.bmp" ]; then
-#		cp -fa /oem/usr/share/image.bmp /userdata/
-#	fi
-#
-#	cd /sys/devices/system/cpu/cpufreq/policy0/
-#	echo userspace > scaling_governor
-#	cat scaling_available_frequencies
-#	echo 1416000 > scaling_setspeed
-#	cat scaling_cur_freq
-#
-#	io -4 0xff110008 0x404
-#
-#	if [ -d "/oem/usr/share/iqfiles" ];then
-#		rkipc -a /oem/usr/share/iqfiles &
-#	else
-#		rkipc &
-#	fi
 }
 
 rcS

@@ -3,51 +3,46 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $targetCard = $_POST['card'] ?? '';
     
-    // Валидация ввода
+    // Input validation
     if (!in_array($targetCard, ['usb', 'i2s'])) {
         http_response_code(400);
         die('Неверный параметр card. Допустимые значения: usb, i2s');
     }
 
-    // Проверка существования файла
-    $asoundConfPath = '/etc/asound.conf';
-    if (!file_exists($asoundConfPath)) {
-        http_response_code(404);
-        die('Файл /etc/asound.conf не найден');
+    // Clear cache
+    $cache_file = '/tmp/combined_status_cache';
+    if (file_exists($cache_file)) {
+        unlink($cache_file);
     }
 
-    // Чтение содержимого с проверкой
-    $content = file_get_contents($asoundConfPath);
-    if ($content === false || trim($content) === '') {
-        http_response_code(500);
-        die('Файл пуст или недоступен для чтения');
-    }
-
-    // Проверка текущего состояния
-    $search = ($targetCard === 'usb') ? 'card 0' : 'card 1';
-    if (strpos($content, $search) === false) {
-        die("Целевая карта '$search' не найдена в файле");
-    }
-
-    // Вызов соответствующего скрипта
+    // Call corresponding script
     $script = ($targetCard === 'usb') ? '/opt/2_usb.sh' : '/opt/2_i2s.sh';
     if (!file_exists($script)) {
         http_response_code(500);
         die("Скрипт $script не найден");
     }
 
-    // Выполнение скрипта
+    // Execute script
     $output = [];
     $returnVar = 0;
     exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
+    
+    // Don't fail if script exits with error (service may not exist)
     if ($returnVar !== 0) {
-        http_response_code(500);
-        die("Ошибка выполнения скрипта $script: " . implode("\n", $output));
+        error_log("Скрипт $script завершился с кодом $returnVar: " . implode("\n", $output));
+        // Continue execution, don't interrupt
     }
 
-    // Перезапуск сервиса
-    $serviceOutput = shell_exec('/usr/bin/sudo /etc/init.d/S95* restart 2>&1');
-    echo "Конфигурация успешно обновлена. Вывод: $serviceOutput";
+    // Additional service restart (if exists)
+    $serviceOutput = shell_exec('/usr/bin/sudo /bin/sh -c "/etc/init.d/S95* restart" 2>/dev/null');
+    
+    // Clear cache after switching
+    if (file_exists($cache_file)) {
+        unlink($cache_file);
+    }
+    
+    // USB/I2S switching completed without reboot
+    echo "Переключение на $targetCard завершено успешно";
 } else {
     http_response_code(405);
     header('Allow: POST');

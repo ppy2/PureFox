@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 // Path to configuration file
 $config_file = '/etc/i2s.conf';
 
@@ -58,15 +59,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['mclk'])) {
         $mclk = $_POST['mclk'];
         if (in_array($mclk, ['512', '1024'])) {
-            $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
+            // Choose script based on current mode
+            $config = readConfig($config_file);
+            $mode = $config['mode'];
+            
+            if ($mode === 'pll') {
+                $script = ($mclk === '1024') ? '/opt/2_1024_pll.sh' : '/opt/2_512_pll.sh';
+            } else {
+                $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
+            }
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
         }
     }
     
     // Reboot
-    if (isset($_POST['reboot'])) {
-        exec('/usr/bin/sudo /sbin/reboot 2>&1', $output, $returnVar);
-    }
+    // Reboot handling removed - now using reboot.php
 
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
@@ -84,7 +91,7 @@ $current_submode = $config['submode'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I2S Mode Settings</title>
-    <link rel="stylesheet" href="style.css?v=<?php echo filemtime('style.css'); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
         .group {
             margin-bottom: 20px;
@@ -109,19 +116,13 @@ $current_submode = $config['submode'];
         }
         .reboot-btn {
             margin-top: 15px;
-            text-align: center;
+            text-align: right;
         }
-        .btn-reboot {
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-reboot:hover {
-            background-color: #c82333;
+        .reboot-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
         }
         .warning {
             margin-top: 15px;
@@ -156,10 +157,58 @@ $current_submode = $config['submode'];
     </style>
     <script>
         function showOverlay() {
-            document.querySelector('.spinner-overlay').style.display = 'flex';
+            document.querySelector('.spinner-overlay').classList.add('show');
         }
-        function confirmReboot() {
-            return confirm("Are you sure you want to reboot the device?");
+        // Custom confirm dialog
+        function customConfirm(message, callback) {
+            document.getElementById('confirm-message').textContent = message;
+            document.getElementById('custom-confirm').classList.add('show');
+            
+            // Button handlers
+            document.getElementById('confirm-yes').onclick = function() {
+                document.getElementById('custom-confirm').classList.remove('show');
+                callback(true);
+            };
+            
+            document.getElementById('confirm-no').onclick = function() {
+                document.getElementById('custom-confirm').classList.remove('show');
+                callback(false);
+            };
+        }
+
+        function confirmReboot(event) {
+            event.preventDefault();
+            customConfirm("Are you sure you want to reboot the device?", function(confirmed) {
+                if (confirmed) {
+                    document.querySelector('.spinner-overlay').classList.add('show');
+                    document.querySelector('.spinner-text').textContent = 'Rebooting...';
+                    
+                    fetch('reboot.php', {
+                        method: 'POST'
+                    }).then(() => {
+                        // Wait for connection restoration after reboot
+                        setTimeout(checkConnection, 3000);
+                    }).catch(() => {
+                        // If request failed, still wait for restoration
+                        setTimeout(checkConnection, 3000);
+                    });
+                }
+            });
+            return false;
+        }
+        
+        function checkConnection() {
+            fetch('?action=getStatus')
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        setTimeout(checkConnection, 2000);
+                    }
+                })
+                .catch(() => {
+                    setTimeout(checkConnection, 2000);
+                });
         }
         function checkStatus() {
             fetch('?action=getStatus')
@@ -179,8 +228,6 @@ $current_submode = $config['submode'];
                     
                     updateButtonState('mclk-512-btn', data.mclk === '512');
                     updateButtonState('mclk-1024-btn', data.mclk === '1024');
-                    
-                    document.getElementById('mclk-512-btn').disabled = (data.mode === 'pll');
                 })
                 .catch(error => console.error('Error getting status:', error));
         }
@@ -207,11 +254,8 @@ $current_submode = $config['submode'];
     <div id="statusIndicator" class="status-indicator"></div>
     <div class="container">
         <div class="header">
-            <a href="index.php" class="home-button">
-                <svg class="home-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/>
-                </svg>
-                Main Menu
+            <a href="index.php" class="home-button" title="Main Menu">
+                <img src="assets/img/home.svg" class="settings-icon" alt="Home">
             </a>
             <h1>I2S Settings</h1>
         </div>
@@ -242,8 +286,7 @@ $current_submode = $config['submode'];
                 <h2>MCLK</h2>
                 <div class="row">
                     <button type="submit" name="mclk" value="512" id="mclk-512-btn"
-                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>"
-                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>512</button>
+                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>">512</button>
                     <button type="submit" name="mclk" value="1024" id="mclk-1024-btn"
                         class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">1024</button>
                 </div>
@@ -251,15 +294,25 @@ $current_submode = $config['submode'];
             <div class="warning">
                 <span class="pulse">Warning!</span> <br>
                 MCLK output has different settings in PLL and EXT modes (OUTPUT/INPUT). <br>
-                Only MCLK = 1024 is available in PLL mode. <br>
-                Device reboot required after any changes.
+                System reboot is required after changing I2S settings to apply them.
             </div>
         </form>
-        <form method="post" onsubmit="return confirmReboot() && showOverlay()">
-            <div class="reboot-btn">
-                <button type="submit" name="reboot" value="1" class="btn-reboot">Reboot</button>
+        <div class="reboot-btn">
+            <a href="#" onclick="confirmReboot(event)" class="reboot-link" title="Reboot">
+                <img src="assets/img/reboot.svg" class="settings-icon reboot-icon" alt="Reboot">
+            </a>
+        </div>
+    </div>
+
+    <!-- Custom confirm dialog -->
+    <div id="custom-confirm" class="confirm-overlay">
+        <div class="confirm-content">
+            <div id="confirm-message" class="confirm-message"></div>
+            <div class="confirm-buttons">
+                <button id="confirm-yes" class="confirm-btn confirm-btn-yes">Yes</button>
+                <button id="confirm-no" class="confirm-btn confirm-btn-no">Cancel</button>
             </div>
-        </form>
+        </div>
     </div>
 </body>
 </html>

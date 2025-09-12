@@ -13,9 +13,20 @@ start() {
     /usr/bin/upmpdcli $DAEMON_ARGS
     sleep 0.5
     /usr/bin/mpd
-    renice -15 `pidof mpd`
+    sleep 0.5
+    pid=$(pidof /usr/bin/mpd)
+    if [ -n "$pid" ]; then
+    renice -15 $pid
+    for tid in $(ls /proc/$pid/task/); do
+        renice -15 $tid
+    done
+    fi
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
     }
 stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
     killall -9 mpd
     killall -9 upmpdcli
     }

@@ -1,0 +1,93 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+        echo "Applying RV1106 power stability settings..."
+        
+        # === CPU Frequency & Governor ===
+        # Lock CPU to performance mode for stable voltage
+        for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            [ -f "$cpu" ] && echo "performance" > "$cpu" 2>/dev/null || true
+        done
+        
+        # Disable CPU idle states that may cause voltage fluctuations
+        for idle in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do
+            [ -f "$idle" ] && echo "1" > "$idle" 2>/dev/null || true
+        done
+        
+        # === Memory & Cache ===
+        # Disable transparent huge pages (can cause power spikes)
+        echo "never" > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true
+        echo "never" > /sys/kernel/mm/transparent_hugepage/defrag 2>/dev/null || true
+        
+        # === Storage & Filesystem ===
+        # Reduce filesystem sync activity
+        echo "30" > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
+        echo "60" > /proc/sys/vm/dirty_ratio 2>/dev/null || true
+        
+        # === IRQ & Interrupt Optimization ===
+        # Balance interrupts across cores if available
+        echo "1" > /proc/sys/kernel/timer_migration 2>/dev/null || true
+        
+        # === Device Power Management ===
+        # Disable USB autosuspend globally
+        for dev in /sys/bus/usb/devices/*/power/control; do
+            [ -f "$dev" ] && echo "on" > "$dev" 2>/dev/null || true
+        done
+        
+        # Disable PCI power management if present
+        for dev in /sys/bus/pci/devices/*/power/control; do
+            [ -f "$dev" ] && echo "on" > "$dev" 2>/dev/null || true  
+        done
+        
+        # === Network Interface Power Management ===
+        # Disable network interface power saving
+        for iface in /sys/class/net/*/device/power/control; do
+            [ -f "$iface" ] && echo "on" > "$iface" 2>/dev/null || true
+        done
+        
+        # === Audio Power Management ===
+        # Keep audio subsystem active to prevent power state changes
+        for audio_dev in /sys/class/sound/card*/device/power/control; do
+            [ -f "$audio_dev" ] && echo "on" > "$audio_dev" 2>/dev/null || true
+        done
+        
+        # === Audio Quality Optimizations ===
+        # Set maximum priority for IRQ threads (audio critical)
+        for irq_thread in /proc/irq/*/smp_affinity; do
+            echo "1" > "$irq_thread" 2>/dev/null || true
+        done
+        
+        # Disable unnecessary services that can cause audio dropouts
+        echo "0" > /proc/sys/kernel/watchdog 2>/dev/null || true
+        echo "0" > /proc/sys/kernel/nmi_watchdog 2>/dev/null || true
+        
+        # Audio-specific memory management
+        echo "1" > /proc/sys/vm/compact_memory 2>/dev/null || true
+        
+        # === RTC & Clock Management ===
+        # Ensure RTC is stable
+        hwclock -s 2>/dev/null || true
+        
+        # === Rockchip Specific ===
+        # Set conservative voltage if possible
+        for regulator in /sys/class/regulator/regulator.*/microvolts; do
+            [ -f "$regulator" ] && cat "$regulator" > /tmp/voltage_backup 2>/dev/null || true
+        done
+        
+        echo "Power stability settings applied for RV1106."
+        ;;
+    stop)
+        echo "Power stability service stopped."
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

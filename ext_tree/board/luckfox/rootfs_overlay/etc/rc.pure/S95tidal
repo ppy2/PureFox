@@ -20,10 +20,14 @@ start() {
     ) &
     sleep 1
     renice -10 `pidof tidalconnect` 2>/dev/null
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
     exit
     }
 stop() {
-    killall -9 tidalconnect
+	MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+	/usr/bin/amixer set "$MIXER" mute
+	killall -9 tidalconnect
 }
 restart() {
 	stop

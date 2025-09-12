@@ -15,7 +15,7 @@ if (empty($name) || empty($url) || empty($category)) {
     exit;
 }
 
-// Обработка загрузки логотипа
+// Process logo upload
 $logoFilename = '';
 if (isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
     $uploadDir = 'logos/';
@@ -30,7 +30,7 @@ if (isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
     }
 }
 
-// Чтение существующих данных
+// Read existing data
 $jsonFile = 'radio.json';
 if (file_exists($jsonFile)) {
     $data = json_decode(file_get_contents($jsonFile), true);
@@ -41,7 +41,7 @@ if (file_exists($jsonFile)) {
     $data = array('stations' => array());
 }
 
-// Генерация нового уникального ID
+// Generate new unique ID
 $newId = 1;
 foreach ($data['stations'] as $station) {
     if ($station['id'] >= $newId) {
@@ -49,7 +49,7 @@ foreach ($data['stations'] as $station) {
     }
 }
 
-// Создание записи о новой станции
+// Create new station record
 $newStation = array(
     'id'       => $newId,
     'name'     => $name,
@@ -60,7 +60,7 @@ $newStation = array(
 
 $data['stations'][] = $newStation;
 
-// Сохранение обновлённого JSON с форматированием
+// Save updated JSON with formatting
 file_put_contents($jsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
 header('Location: radio.php');

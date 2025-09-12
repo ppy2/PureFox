@@ -73,7 +73,23 @@
 &usbdrd_dwc3 {
 	status = "okay";
 	dr_mode = "host";
+	
+	/* Настройки для стабильности с длинными кабелями */
+/*	snps,tx-ipgap-linecheck-dis-quirk;
+	snps,u2exit_lfps_quirk;
+	snps,u2ss_inp3_quirk;
+	snps,usb3_lmp_capable;
+	snps,dis_rxdet_inp3_quirk;
+	snps,dis-del-phy-power-chg-quirk; */
+	
+	/* Консервативные тайминги */
+/*	maximum-speed = "high-speed"; */
+	
+	/* Снижение производительности для стабильности */
+/*	snps,host-tx-fifo-resize;
+	snps,host-rx-fifo-resize; */
 };
+
 
 /**********I2C**********/
 &i2c1 {

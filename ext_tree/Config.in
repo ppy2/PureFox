@@ -1,4 +1,3 @@
-
 menu "Audio Renderers"
 	source "../ext_tree/package/aprenderer/Config.in"
 	source "../ext_tree/package/aplayer/Config.in"
@@ -8,8 +7,10 @@ menu "Audio Renderers"
 	source "../ext_tree/package/apscream/Config.in"
 	source "../ext_tree/package/scream/Config.in"
 	source "../ext_tree/package/tidalconnect/Config.in"
+	source "../ext_tree/package/qobuz-connect/Config.in"
 	source "../ext_tree/package/squeezeliteR2/Config.in"
 	source "../ext_tree/package/s2mono/Config.in"
 	source "../ext_tree/package/qobuz-cpu-fix/Config.in"
 	source "../ext_tree/package/alsa-wrapper/Config.in"
+	source "../ext_tree/package/status-monitor/Config.in"
 endmenu

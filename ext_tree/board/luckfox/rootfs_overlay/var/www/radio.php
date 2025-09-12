@@ -1,12 +1,13 @@
+<?php require_once 'config.php'; ?>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRadio</title>
-    <link rel="stylesheet" href="style.css?v=<?php echo filemtime('style.css'); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
-        /* Стили для раскрывающихся категорий */
+        /* Styles for collapsible categories */
         .category-header {
             cursor: pointer;
             padding: 10px;
@@ -39,12 +40,12 @@
         .delete-btn:hover {
             color: #fff;
         }
-        /* Стили для логотипов */
+        /* Styles for logos */
         .category-list li img {
             width: 100px;
             height: auto;
         }
-        /* Панель плеера внизу экрана */
+        /* Player panel at bottom of screen */
         .player-bar {
             position: fixed;
             bottom: 0;
@@ -67,14 +68,14 @@
         .player-bar button:hover {
             color: #fff;
         }
-        /* Элементы списка в строку */
+        /* List items in a row */
         li {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 8px;
         }
-        /* Адаптивные стили для мобильных устройств */
+        /* Responsive styles for mobile devices */
         @media (max-width: 600px) {
             .container {
                 max-width: 90%;
@@ -122,17 +123,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>Список радиостанций</h1>
-        <p><a href="add_station.html">Добавить новую станцию</a></p>
+        <h1>Radio Station List</h1>
+        <p><a href="add_station.html">Add New Station</a></p>
         <?php
         $jsonFile = 'radio.json';
         $data = file_exists($jsonFile) ? json_decode(file_get_contents($jsonFile), true) : array('stations' => array());
         $stations = $data['stations'];
         
-        // Группировка по категориям
+        // Group by categories
         $grouped = array();
         foreach ($stations as $station) {
-            $category = !empty($station['category']) ? $station['category'] : 'Без категории';
+            $category = !empty($station['category']) ? $station['category'] : 'Uncategorized';
             if (!isset($grouped[$category])) {
                 $grouped[$category] = array();
             }
@@ -143,17 +144,17 @@
             <div class="category-header">
                 <span class="toggle-icon">►</span>
                 <span><?php echo htmlspecialchars($category); ?></span>
-                <button class="delete-btn" title="Удалить категорию" onclick="event.stopPropagation(); if(confirm('Удалить категорию <?php echo htmlspecialchars($category); ?> и все связанные станции?')) { window.location.href='delete_category.php?category=<?php echo urlencode($category); ?>'; }">✖</button>
+                <button class="delete-btn" title="Delete Category" onclick="event.stopPropagation(); if(confirm('Delete category <?php echo htmlspecialchars($category); ?> and all associated stations?')) { window.location.href='delete_category.php?category=<?php echo urlencode($category); ?>'; }">✖</button>
             </div>
             <ul class="category-list">
                 <?php foreach ($stationsInCategory as $station): ?>
                     <li>
-                        <button class="delete-btn" title="Удалить станцию" onclick="if(confirm('Удалить радиостанцию <?php echo htmlspecialchars($station['name']); ?>?')) { window.location.href='delete_station.php?id=<?php echo urlencode($station['id']); ?>'; }">✖</button>
+                        <button class="delete-btn" title="Delete Station" onclick="if(confirm('Delete radio station <?php echo htmlspecialchars($station['name']); ?>?')) { window.location.href='delete_station.php?id=<?php echo urlencode($station['id']); ?>'; }">✖</button>
                         <?php if (!empty($station['logo'])): ?>
                             <img src="logos/<?php echo htmlspecialchars($station['logo']); ?>" alt="<?php echo htmlspecialchars($station['name']); ?>">
                         <?php endif; ?>
                         <strong><?php echo htmlspecialchars($station['name']); ?></strong>
-                        <a href="play.php?id=<?php echo urlencode($station['id']); ?>" title="Воспроизвести">▶</a>
+                        <a href="play.php?id=<?php echo urlencode($station['id']); ?>" title="Play">▶</a>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -165,10 +166,10 @@
     ?>
     <div class="player-bar">
         <?php if ($currentStation): ?>
-            Сейчас играет: <strong><?php echo htmlspecialchars($currentStation['name']); ?></strong>
-            <button title="Остановить" onclick="window.location.href='stop.php';">⏹</button>
+            Now playing: <strong><?php echo htmlspecialchars($currentStation['name']); ?></strong>
+            <button title="Stop" onclick="window.location.href='stop.php';">⏹</button>
         <?php else: ?>
-            Плеер не активен.
+            Player is not active.
         <?php endif; ?>
     </div>
 </body>

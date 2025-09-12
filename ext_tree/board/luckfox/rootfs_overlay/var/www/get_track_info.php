@@ -3,7 +3,7 @@ function updateTrackInfo() {
     .then(response => response.json())
     .then(data => {
       let info = "";
-      // Проверяем оба варианта ключей для исполнителя и названия
+      // Check both key variants for artist and title
       let title = data.Title || data.title || "";
       let artist = data.Artist || data.artist || "";
       let album = data.Album || data.album || "";

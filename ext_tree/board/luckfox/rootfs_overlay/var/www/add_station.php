@@ -1,16 +1,17 @@
+<?php require_once 'config.php'; ?>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Добавить радиостанцию</title>
-    <link rel="stylesheet" href="style.css?v=<?php echo filemtime('style.css'); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
-        /* Глобальное правило для корректного расчёта размеров */
+        /* Global rule for correct size calculation */
         *, *::before, *::after {
             box-sizing: border-box;
         }
-        /* Контейнер формы */
+        /* Form container */
         .container {
             max-width: 600px;
             width: 100%;
@@ -55,7 +56,7 @@
             background-color: #4d4d4d;
             transform: translateY(-2px);
         }
-        /* Адаптив для мобильных устройств */
+        /* Mobile adaptive design */
         @media (max-width: 600px) {
             .container {
                 max-width: 90%;

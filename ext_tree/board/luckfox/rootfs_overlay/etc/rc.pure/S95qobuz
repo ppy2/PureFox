@@ -2,44 +2,103 @@
 
 start() {
 
-    TIMEOUT=10
-    count=0
+	# Internet connection check function
+	check_internet() {
+	    # Check Google DNS availability via ping
+	    ping -c 1 -W 1 8.8.8.8 > /dev/null 2>&1
+	    return $?
+	}
 
-    while [ $count -lt $TIMEOUT ]; do
-    nc -zw 1 8.8.8.8 443 && break
-        sleep 1
-    count=$((count + 1))
-    done
+	start_time=$(date +%s)  # Remember start time
+	timeout=10              # Maximum wait time in seconds
 
-    if [ $count -eq $TIMEOUT ]; then
-        echo "Интернет не доступен после $TIMEOUT секунд"
-        exit 1
-    fi
-    echo "Интернет доступен"
+	echo "Waiting for internet connection..."
+
+	while true; do
+	    # Check internet availability
+	    if check_internet; then
+	        echo "Internet connected."
+	        break
+	    fi
+
+	    # Check if time has expired
+	    current_time=$(date +%s)
+	    elapsed=$((current_time - start_time))
+	    if ((elapsed >= timeout)); then
+	        echo "Error: No internet access for $timeout seconds." >&2
+	        exit 1
+	    fi
+
+	    sleep 1  # Pause between checks
+	done
     
-    /etc/init.d/S48sntp start
+    date |grep 1970 && /etc/init.d/S48sntp start
     printf "Starting Qobuz: "
     NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
         
-    # Быстрый тест - если timeout, значит работает
-    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -g 5
-    if [[ $? -eq 143 ]]; then
-	# Timeout = работает = не нужен ALSA wrapper
-	echo "не нужен ALSA wrapper"
-	export LD_PRELOAD="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+    # Determine output device for test
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        TEST_OUTPUT_DEVICE="hw:1"
     else
-        # Упал = нужен ALSA wrapper.
-        echo "нужен ALSA wrapper"
-        export LD_PRELOAD="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+        TEST_OUTPUT_DEVICE="default"
     fi
     
-    /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o default -n $NAME -g 5 > /dev/null 2>&1 &
-    renice -10 `pidof qobuz-connect`
+    # Check if we're in USB mode - CPU fix causes gapless issues with USB
+    IS_USB_MODE=""
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        IS_USB_MODE="yes"
+        echo "USB mode detected - CPU fix will be disabled for better gapless playback"
+    fi
+    
+    # Quick test - if timeout, then it works
+    timeout 1 /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o $TEST_OUTPUT_DEVICE -g 5
+    if [[ $? -eq 143 ]]; then
+	# Timeout = works = no need for ALSA wrapper
+	echo "no ALSA wrapper needed"
+	if [ "$IS_USB_MODE" = "yes" ]; then
+	    # USB mode - no CPU fix for better gapless
+	    PRELOAD_LIBS=""
+	else
+	    # I2S mode - use CPU fix for better performance
+	    PRELOAD_LIBS="/opt/qobuz-connect/libqobuz_cpu_fix.so"
+	fi
+    else
+        # Failed = need ALSA wrapper.
+        echo "ALSA wrapper needed"
+        if [ "$IS_USB_MODE" = "yes" ]; then
+	    # USB mode - only ALSA wrapper, no CPU fix
+	    PRELOAD_LIBS="/usr/lib/libfake_alsa.so"
+	else
+	    # I2S mode - both ALSA wrapper and CPU fix
+	    PRELOAD_LIBS="/usr/lib/libfake_alsa.so:/opt/qobuz-connect/libqobuz_cpu_fix.so"
+	fi
+    fi
+    
+    # Determine output device based on current output setting
+    if [ -f /etc/output ] && grep -q "USB" /etc/output; then
+        OUTPUT_DEVICE="hw:1"
+    else
+        OUTPUT_DEVICE="default"
+    fi
+    
+    # Start qobuz-connect with specific LD_PRELOAD, not global export
+    env LD_PRELOAD="$PRELOAD_LIBS" /opt/qobuz-connect/qobuz-connect -a 642029913 -b c467f65698bbfac443801a456763226c -o $OUTPUT_DEVICE -n $NAME -g 5 > /dev/null 2>&1 &
+    sleep 1
+    pid=$(pidof qobuz-connect)
+    if [ -n "$pid" ]; then
+    renice -15 $pid
+    for tid in $(ls /proc/$pid/task/); do
+        renice -15 $tid
+    done
+    fi
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute 2>/dev/null || echo "No mixer controls available"
     }
 
 stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute 2>/dev/null || echo "No mixer controls available"
     kill -9 `pidof qobuz-connect`
-    unset LD_PRELOAD
 }
 restart() {
 	stop

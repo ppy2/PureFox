@@ -2,10 +2,13 @@
 
 start() {
     printf "Starting APScream: "
-    /usr/apscream/apscream  > /dev/null 2>&1 &
-    renice -15 `pidof apscream`
+    nice -n -30 /usr/apscream/apscream  > /dev/null 2>&1 &
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
     }
 stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
     killall -9 apscream
 }
 restart() {

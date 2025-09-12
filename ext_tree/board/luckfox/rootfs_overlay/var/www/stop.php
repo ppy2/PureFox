@@ -16,7 +16,7 @@ while (!feof($fp)) {
     if (strpos($line, "OK") === 0 || strpos($line, "ACK") === 0) break;
 }
 fclose($fp);
-// Удаляем информацию о текущей станции
+// Remove current station information
 if (file_exists('current_station.json')) {
     unlink('current_station.json');
 }

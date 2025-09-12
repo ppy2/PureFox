@@ -4,17 +4,22 @@ start() {
     touch /var/log/aprenderer.log
     ln -s -f /var/log/aprenderer.log /usr/aprenderer/aprenderer.log
     printf "Starting APlayer UPNP: "
-    MAC=`cat /sys/class/net/eth0/address`
-    NAME=`hostname`_`ifconfig eth0 | awk '/inet addr/{print substr($2,6)}'`
-    sed -i -e "s/<mac>.*<\/mac>/<mac>$MAC<\/mac>/g" /usr/aprenderer/upnp/config.xml
-    sed -i -e "s/<name>.*<\/name>/<name>$NAME<\/name>/g" /usr/aprenderer/upnp/config.xml
-#    chown pure:pure /usr/aprenderer/*
-#    /usr/aprenderer/upnp/squeeze2upnp -z -k -x /usr/aprenderer/upnp/config.xml > /dev/null 2>&1
     cd /usr/aprenderer; ./ap2renderer > /dev/null 2>&1 && echo "OK" || echo "FAIL"
-    renice -15 `pidof ap2renderer`
+    sleep 0.5
+    pid=$(pidof ap2renderer)
+    if [ -n "$pid" ]; then
+    renice -15 $pid
+    for tid in $(ls /proc/$pid/task/); do
+        renice -15 $tid
+    done
+    fi
     sync
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" unmute
     }
 stop() {
+    MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
+    /usr/bin/amixer set "$MIXER" mute
     killall -9 ap2renderer
 }
 restart() {

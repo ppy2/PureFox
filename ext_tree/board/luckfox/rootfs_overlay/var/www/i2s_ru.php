@@ -1,9 +1,10 @@
 <?php
-// Путь к конфигурационному файлу
+require_once 'config.php';
+// Path to configuration file
 $config_file = '/etc/i2s.conf';
 
 /**
- * Функция для чтения текущего режима (MODE), MCLK и SUBMODE из конфигурационного файла.
+ * Function for reading the current mode (MODE), MCLK and SUBMODE from configuration file.
  */
 function readConfig($filePath) {
     $result = ['mode' => '', 'mclk' => '', 'submode' => ''];
@@ -26,7 +27,7 @@ function readConfig($filePath) {
     return $result;
 }
 
-// --- Обработка AJAX-запроса для получения текущего состояния ---
+// --- Processing AJAX request to get current state ---
 if (isset($_GET['action']) && $_GET['action'] === 'getStatus') {
     $config = readConfig($config_file);
     header('Content-Type: application/json');
@@ -34,9 +35,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'getStatus') {
     exit;
 }
 
-// --- Обработка POST-запроса ---
+// --- Processing POST request ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Если нажата кнопка для изменения режима (PLL/EXT)
+    // If button for changing mode (PLL/EXT) is pressed
     if (isset($_POST['mode'])) {
         $mode = $_POST['mode'];
         if (in_array($mode, ['pll', 'ext'])) {
@@ -45,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Если нажата кнопка для изменения SUBMODE (STD/L/R/±L/±R/8CH)
+    // If button for changing SUBMODE (STD/L/R/±L/±R/8CH) is pressed
     if (isset($_POST['submode'])) {
         $submode = $_POST['submode'];
         if (in_array($submode, ['std', 'lr', 'plr', '8ch'])) {
@@ -54,26 +55,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Если нажата кнопка для изменения MCLK
+    // If button for changing MCLK is pressed
     if (isset($_POST['mclk'])) {
         $mclk = $_POST['mclk'];
         if (in_array($mclk, ['512', '1024'])) {
-            $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
+            // Choose script depending on current mode
+            $config = readConfig($config_file);
+            $mode = $config['mode'];
+            
+            if ($mode === 'pll') {
+                $script = ($mclk === '1024') ? '/opt/2_1024_pll.sh' : '/opt/2_512_pll.sh';
+            } else {
+                $script = ($mclk === '1024') ? '/opt/2_1024_ext.sh' : '/opt/2_512_ext.sh';
+            }
             exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
         }
     }
     
-    // Если нажата кнопка перезагрузки
-    if (isset($_POST['reboot'])) {
-        exec('/usr/bin/sudo /sbin/reboot 2>&1', $output, $returnVar);
-    }
+    // Reboot processing removed - now using reboot.php
 
-    // После выполнения действий перенаправляем (PRG)
+    // After performing actions, redirect (PRG)
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
-// --- GET-запрос: читаем текущее состояние ---
+// --- GET request: reading current state ---
 $config = readConfig($config_file);
 $current_mode = $config['mode'];
 $current_mclk = $config['mclk'];
@@ -85,7 +91,7 @@ $current_submode = $config['submode'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройки режима I2S</title>
-    <link rel="stylesheet" href="style.css?v=<?php echo filemtime('style.css'); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>">
     <style>
         .group {
             margin-bottom: 20px;
@@ -110,19 +116,13 @@ $current_submode = $config['submode'];
         }
         .reboot-btn {
             margin-top: 15px;
-            text-align: center;
+            text-align: right;
         }
-        .btn-reboot {
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-reboot:hover {
-            background-color: #c82333;
+        .reboot-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
         }
         .warning {
             margin-top: 15px;
@@ -157,10 +157,58 @@ $current_submode = $config['submode'];
     </style>
     <script>
         function showOverlay() {
-            document.querySelector('.spinner-overlay').style.display = 'flex';
+            document.querySelector('.spinner-overlay').classList.add('show');
         }
-        function confirmReboot() {
-            return confirm("Вы уверены, что хотите перезагрузить устройство?");
+        // Custom confirm dialog
+        function customConfirm(message, callback) {
+            document.getElementById('confirm-message').textContent = message;
+            document.getElementById('custom-confirm').classList.add('show');
+            
+            // Button handlers
+            document.getElementById('confirm-yes').onclick = function() {
+                document.getElementById('custom-confirm').classList.remove('show');
+                callback(true);
+            };
+            
+            document.getElementById('confirm-no').onclick = function() {
+                document.getElementById('custom-confirm').classList.remove('show');
+                callback(false);
+            };
+        }
+
+        function confirmReboot(event) {
+            event.preventDefault();
+            customConfirm("Вы уверены, что хотите перезагрузить устройство?", function(confirmed) {
+                if (confirmed) {
+                    document.querySelector('.spinner-overlay').classList.add('show');
+                    document.querySelector('.spinner-text').textContent = 'Перезагрузка...';
+                    
+                    fetch('reboot.php', {
+                        method: 'POST'
+                    }).then(() => {
+                        // After reboot, wait for connection restoration
+                        setTimeout(checkConnection, 3000);
+                    }).catch(() => {
+                        // If request failed, still wait for restoration
+                        setTimeout(checkConnection, 3000);
+                    });
+                }
+            });
+            return false;
+        }
+        
+        function checkConnection() {
+            fetch('?action=getStatus')
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        setTimeout(checkConnection, 2000);
+                    }
+                })
+                .catch(() => {
+                    setTimeout(checkConnection, 2000);
+                });
         }
         function checkStatus() {
             fetch('?action=getStatus')
@@ -180,10 +228,8 @@ $current_submode = $config['submode'];
                     
                     updateButtonState('mclk-512-btn', data.mclk === '512');
                     updateButtonState('mclk-1024-btn', data.mclk === '1024');
-                    
-                    document.getElementById('mclk-512-btn').disabled = (data.mode === 'pll');
                 })
-                .catch(error => console.error('Ошибка при получении статуса:', error));
+                .catch(error => console.error('Error getting status:', error));
         }
         function updateButtonState(btnId, isActive) {
             const btn = document.getElementById(btnId);
@@ -198,7 +244,7 @@ $current_submode = $config['submode'];
     </script>
 </head>
 <body>
-    <!-- Обновленный спиннер -->
+    <!-- Updated spinner -->
     <div class="spinner-overlay">
 	<div class="spinner-container">
         <div class="spinner"></div>
@@ -208,11 +254,8 @@ $current_submode = $config['submode'];
     <div id="statusIndicator" class="status-indicator"></div>
     <div class="container">
         <div class="header">
-            <a href="index.php" class="home-button">
-                <svg class="home-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/>
-                </svg>
-                На главную
+            <a href="index.php" class="home-button" title="Home">
+                <img src="assets/img/home.svg" class="settings-icon" alt="Home">
             </a>
             <h1>Настройки I2S</h1>
         </div>
@@ -227,7 +270,7 @@ $current_submode = $config['submode'];
                 </div>
             </div>
             <div class="group">
-                <h2>Вариант вывода</h2>
+                <h2>Вариант выхода</h2>
                 <div class="row">
                     <button type="submit" name="submode" value="std" id="std-btn"
                         class="btn-custom <?php if ($current_submode === 'std') echo 'active'; ?>">STD</button>
@@ -243,24 +286,33 @@ $current_submode = $config['submode'];
                 <h2>MCLK</h2>
                 <div class="row">
                     <button type="submit" name="mclk" value="512" id="mclk-512-btn"
-                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>"
-                        <?php if ($current_mode === 'pll') echo 'disabled'; ?>>512</button>
+                        class="btn-custom <?php if ($current_mclk === '512') echo 'active'; ?>">512</button>
                     <button type="submit" name="mclk" value="1024" id="mclk-1024-btn"
                         class="btn-custom <?php if ($current_mclk === '1024') echo 'active'; ?>">1024</button>
                 </div>
             </div>
             <div class="warning">
                 <span class="pulse">Внимание!</span> <br>
-                Вывод MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). </br>
-                В режиме PLL доступен только MCLK = 1024. </br>
-                После изменения любых настроек требуется перезагрузка.
+                Выход MCLK в режимах PLL и EXT имеет разные настройки (OUTPUT/INPUT). </br>
+                После изменения настроек I2S необходима перезагрузка системы для вступления в силу.
             </div>
         </form>
-        <form method="post" onsubmit="return confirmReboot() && showOverlay()">
-            <div class="reboot-btn">
-                <button type="submit" name="reboot" value="1" class="btn-reboot">Перезагрузить</button>
+        <div class="reboot-btn">
+            <a href="#" onclick="confirmReboot(event)" class="reboot-link" title="Reboot">
+                <img src="assets/img/reboot.svg" class="settings-icon reboot-icon" alt="Reboot">
+            </a>
+        </div>
+    </div>
+
+    <!-- Custom confirm dialog -->
+    <div id="custom-confirm" class="confirm-overlay">
+        <div class="confirm-content">
+            <div id="confirm-message" class="confirm-message"></div>
+            <div class="confirm-buttons">
+                <button id="confirm-yes" class="confirm-btn confirm-btn-yes">Да</button>
+                <button id="confirm-no" class="confirm-btn confirm-btn-no">Отмена</button>
             </div>
-        </form>
+        </div>
     </div>
 </body>
 </html>
