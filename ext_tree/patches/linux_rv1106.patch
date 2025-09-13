@@ -1,15 +1,14 @@
 diff -Naur original_dir/arch/arm/boot/dts/Makefile modified_dir/arch/arm/boot/dts/Makefile
 --- original_dir/arch/arm/boot/dts/Makefile	2025-07-13 23:11:14.000000000 +0300
-+++ modified_dir/arch/arm/boot/dts/Makefile	2025-09-08 17:32:06.477808291 +0300
-@@ -971,7 +971,11 @@
++++ modified_dir/arch/arm/boot/dts/Makefile	2025-09-13 10:44:42.294569467 +0300
+@@ -971,7 +971,10 @@
  	r8a7794-silk.dtb \
  	r9a06g032-rzn1d400-db.dtb \
  	sh73a0-kzm9g.dtb 
 -# dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 +	rv1106_ext.dtb \
-+       rv1106_512_ext.dtb \
-+#	rv1106_usb.dtb \
++	rv1106_512_ext.dtb \
 +	rv1106_pll.dtb
  #	rv1103g-38x38-ipc-v10.dtb \
  #	rv1103g-battery-ipc-v10.dtb \
@@ -53,7 +52,7 @@ diff -Naur original_dir/sound/soc/codecs/dummy-codec.c modified_dir/sound/soc/co
  };
 diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c
 --- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-07-13 23:11:14.000000000 +0300
-+++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-09-04 16:30:32.830684268 +0300
++++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-09-13 08:24:04.098878229 +0300
 @@ -1,21 +1,19 @@
  /* sound/soc/rockchip/rockchip_i2s_tdm.c
   *
@@ -126,7 +125,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  #define CLK_PPM_MIN				(-1000)
  #define CLK_PPM_MAX				(1000)
 -#define MAXBURST_PER_FIFO			8
-+#define MAXBURST_PER_FIFO			32
++#define MAXBURST_PER_FIFO			64
 +
 +/* Auto-mute timing defaults */
 +#define DEFAULT_PREMUTE_DELAY_MS		50
@@ -1693,7 +1692,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -446,2088 +1337,3392 @@
+@@ -446,2088 +1337,3394 @@
   */
  static void rockchip_i2s_tdm_tx_fifo_padding(struct rk_i2s_tdm_dev *i2s_tdm, bool en)
  {
@@ -1748,9 +1747,11 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    /* clear irq status which was asserted before RXOIE enabled */
 +    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
 +       I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
++    /* Disable RX overrun interrupts for external clock mode to reduce CPU load
++     * RX is used only for clock sync, overruns are expected at high sample rates */
 +    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
 +       I2S_INTCR_RXOIE_MASK,
-+       I2S_INTCR_RXOIE(en));
++       I2S_INTCR_RXOIE(0)); /* Force disable RX overrun interrupts */
 +    }
  }
  
@@ -5915,12 +5916,12 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    }
 +
 +    if (val & I2S_INTSR_RXOI_ACT) {
-+    dev_warn_ratelimited(i2s_tdm->dev, "RX FIFO Overrun\n");
-+    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
-+       I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
-+    substream = i2s_tdm->substreams[SNDRV_PCM_STREAM_CAPTURE];
-+    if (substream)
-+        snd_pcm_stop_xrun(substream);
++        /* Silently clear RX FIFO Overrun for external clock mode
++         * RX is used only for clock sync at high sample rates (192kHz)
++         * Suppress logging to reduce CPU overhead */
++        regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
++           I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
++        /* Don't stop capture stream for external clock sync mode */
 +    }
  
 -	return IRQ_HANDLED;

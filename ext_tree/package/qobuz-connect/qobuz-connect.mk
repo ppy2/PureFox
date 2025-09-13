@@ -24,7 +24,7 @@ define QOBUZ_CONNECT_BUILD_CMDS
 		-DCMAKE_TOOLCHAIN_FILE=$(HOST_DIR)/share/buildroot/toolchainfile.cmake \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_C_FLAGS="-O2 -DDISABLE_LOGGING -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format" \
+		-DCMAKE_C_FLAGS="-O2 -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format" \
 		-DCMAKE_PREFIX_PATH=$(STAGING_DIR)/usr \
 		-DCIVETWEB_LIB="$(STAGING_DIR)/usr/lib/libcivetweb.a;-lz" \
 		-DCIVETWEB_INCLUDE_DIR=$(STAGING_DIR)/usr/include \
