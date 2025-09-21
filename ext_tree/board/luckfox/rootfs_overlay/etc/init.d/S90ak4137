@@ -7,7 +7,13 @@ case "$1" in
     # Enable AK4137 via GPIO52
     echo 52 > /sys/class/gpio/export
     echo out > /sys/class/gpio/gpio52/direction
-    echo 1 > /sys/class/gpio/gpio52/value
+
+    if grep -q "SUBMODE=plr" /etc/i2s.conf; then
+	echo 0 > /sys/class/gpio/gpio52/value
+    else
+        echo 1 > /sys/class/gpio/gpio52/value
+    fi
+
     usleep 10000
 
     if /usr/sbin/i2cdetect -ry 1 |grep -q "10: .. 11" ; then

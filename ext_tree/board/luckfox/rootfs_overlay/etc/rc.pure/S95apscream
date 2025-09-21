@@ -6,13 +6,6 @@ start() {
     printf "Starting APscream: "
     cd /usr/apscream; ./apscream > /dev/null 2>&1 && echo "OK" || echo "FAIL"
     sleep 0.5
-    pid=$(pidof apscream)
-    if [ -n "$pid" ]; then
-    renice -15 $pid
-    for tid in $(ls /proc/$pid/task/); do
-        renice -15 $tid
-    done
-    fi
     sync
     MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
     /usr/bin/amixer set "$MIXER" unmute

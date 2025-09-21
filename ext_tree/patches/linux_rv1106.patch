@@ -1,6 +1,6 @@
 diff -Naur original_dir/arch/arm/boot/dts/Makefile modified_dir/arch/arm/boot/dts/Makefile
---- original_dir/arch/arm/boot/dts/Makefile	2025-03-12 14:48:17.000000000 +0300
-+++ modified_dir/arch/arm/boot/dts/Makefile	2025-07-28 13:41:22.584099345 +0300
+--- original_dir/arch/arm/boot/dts/Makefile	2025-07-13 23:11:14.000000000 +0300
++++ modified_dir/arch/arm/boot/dts/Makefile	2025-09-13 10:44:42.294569467 +0300
 @@ -971,7 +971,10 @@
  	r8a7794-silk.dtb \
  	r9a06g032-rzn1d400-db.dtb \
@@ -8,14 +8,14 @@ diff -Naur original_dir/arch/arm/boot/dts/Makefile modified_dir/arch/arm/boot/dt
 -# dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 +dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 +	rv1106_ext.dtb \
-+        rv1106_512_ext.dtb \
-+        rv1106_pll.dtb
++	rv1106_512_ext.dtb \
++	rv1106_pll.dtb
  #	rv1103g-38x38-ipc-v10.dtb \
  #	rv1103g-battery-ipc-v10.dtb \
  #	rv1103g-battery-ipc-v11.dtb \
 diff -Naur original_dir/sound/soc/codecs/dummy-codec.c modified_dir/sound/soc/codecs/dummy-codec.c
---- original_dir/sound/soc/codecs/dummy-codec.c	2025-03-12 14:48:17.000000000 +0300
-+++ modified_dir/sound/soc/codecs/dummy-codec.c	2025-08-03 09:10:43.767581277 +0300
+--- original_dir/sound/soc/codecs/dummy-codec.c	2025-07-13 23:11:14.000000000 +0300
++++ modified_dir/sound/soc/codecs/dummy-codec.c	2025-09-04 12:00:56.590543319 +0300
 @@ -50,21 +50,29 @@
  		.stream_name = "Dummy Playback",
  		.channels_min = 2,
@@ -51,13 +51,9 @@ diff -Naur original_dir/sound/soc/codecs/dummy-codec.c modified_dir/sound/soc/co
  	.ops = &dummy_codec_dai_ops,
  };
 diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c
---- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-03-12 14:48:17.000000000 +0300
-+++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-08-22 11:42:38.926890997 +0300
-@@ -1,21 +1,19 @@
- /* sound/soc/rockchip/rockchip_i2s_tdm.c
-  *
-  * ALSA SoC Audio Layer - Rockchip I2S/TDM Controller driver
-+ * Enhanced with Audiophile Processing (Fixed for Buildroot)
+--- original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-07-13 23:11:14.000000000 +0300
++++ modified_dir/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-09-19 16:34:53.528822895 +0300
+@@ -4,18 +4,14 @@
   *
   * Copyright (c) 2018 Rockchip Electronics Co. Ltd.
   * Author: Sugar Zhang <sugar.zhang@rock-chips.com>
@@ -65,7 +61,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 - * This program is free software; you can redistribute it and/or modify
 - * it under the terms of the GNU General Public License version 2 as
 - * published by the Free Software Foundation.
-+ * Audiophile Enhancement: 2025
   */
 -
  #include <linux/module.h>
@@ -78,7 +73,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  #include <linux/clk.h>
  #include <linux/clk-provider.h>
  #include <linux/clk/rockchip.h>
-@@ -23,15 +21,28 @@
+@@ -23,15 +19,28 @@
  #include <linux/regmap.h>
  #include <linux/reset.h>
  #include <linux/spinlock.h>
@@ -105,47 +100,37 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +#endif
  
 -//+++
--//#define DBGOUT(msg...)		do { printk(msg); } while (0)
+-#define DBGOUT(msg...)		do { printk(msg); } while (0)
 -//+++
 +#include "rockchip_i2s_tdm.h"
 +#include "rockchip_dlp.h"
  
  #define DRV_NAME "rockchip-i2s-tdm"
  
-@@ -47,320 +58,1196 @@
- #define CLK_PPM_MAX				(1000)
- #define MAXBURST_PER_FIFO			8
+@@ -39,328 +48,472 @@
+ #define HAVE_SYNC_RESET
+ #endif
  
+-#define DEFAULT_MCLK_FS				512
+-#define DEFAULT_FS				44100
++#define DEFAULT_MCLK_FS				256
++#define DEFAULT_FS				48000
+ #define CH_GRP_MAX				4  /* The max channel 8 / 2 */
+ #define MULTIPLEX_CH_MAX			10
+ #define CLK_PPM_MIN				(-1000)
+ #define CLK_PPM_MAX				(1000)
+-#define MAXBURST_PER_FIFO			8
++#define MAXBURST_PER_FIFO			64
++
 +/* Auto-mute timing defaults */
 +#define DEFAULT_PREMUTE_DELAY_MS		50
 +#define DEFAULT_POSTMUTE_DELAY_MS		450
 +#define AUTOMUTE_DEBOUNCE_MS			1000
-+
+ 
  #define QUIRK_ALWAYS_ON				BIT(0)
  #define QUIRK_HDMI_PATH				BIT(1)
 +#define QUIRK_MCLK_ALWAYS_ON			BIT(2)
 +
-+/* Structure for audiophile processing (simplified version) */
-+struct rk_audiophile_processor {
-+    /* Logarithmic volume coefficients (fixed point) */
-+    int32_t volume_linear_q16;    // Q15.16 fixed point (0-65536)
-+    int32_t volume_db_q8;         // Q23.8 fixed point (-96*256 - 0)
-+    
-+    /* Dithering */
-+    uint32_t dither_state[4];     // PRNG state for dithering
-+    bool dither_enabled;          // Is dithering enabled
-+    
-+    /* Format parameters */
-+    unsigned int sample_rate;
-+    unsigned int channels;
-+    unsigned int bit_depth;
-+    snd_pcm_format_t format;
-+    
-+    /* Statistics and metrics */
-+    uint64_t samples_processed;
-+    uint32_t peak_level;          // Peak level
-+    bool clipping_detected;       // Clipping detection
-+};
  
  struct txrx_config {
 -	u32 addr;
@@ -247,7 +232,10 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -	void __iomem *cru_base;
 -	int tx_reset_id;
 -	int rx_reset_id;
--#endif
++    void __iomem *cru_base;
++    int tx_reset_id;
++    int rx_reset_id;
+ #endif
 -	bool is_master_mode;
 -	bool io_multiplex;
 -	bool mclk_calibrate;
@@ -267,10 +255,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -	int clk_ppm;
 -	atomic_t refcount;
 -	spinlock_t lock; /* xfer lock */
-+    void __iomem *cru_base;
-+    int tx_reset_id;
-+    int rx_reset_id;
-+#endif
+-};
 +    bool is_master_mode;
 +    bool io_multiplex;
 +    bool mclk_calibrate;
@@ -304,9 +289,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    struct delayed_work mute_post_work;   // Timer to disable mute after 400ms
 +    struct mutex mute_lock;         // Mutex for protecting mute operations
 +    
-+    /* Audiophile processor */
-+    struct rk_audiophile_processor *audio_proc;
-+    spinlock_t audio_proc_lock;   // Protection for real-time processing
 +    
 +    /* Add pause state */
 +    bool playback_paused;
@@ -341,8 +323,8 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    
 +    /* Saved format for forced changes application */
 +    unsigned int format;
- };
- 
++};
++
 +/* Forward declarations for auto-mute functions */
 +static void rockchip_i2s_tdm_apply_mute(struct rk_i2s_tdm_dev *i2s_tdm, bool enable);
 +static void rockchip_i2s_tdm_tx_path_config(struct rk_i2s_tdm_dev *i2s_tdm, int num);
@@ -428,7 +410,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +static void rockchip_i2s_tdm_trigger_stop_mute(struct rk_i2s_tdm_dev *i2s_tdm);
 +static void rockchip_i2s_tdm_mute_pre_work(struct work_struct *work);
 +static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
-+
+ 
  static struct i2s_of_quirks {
 -	char *quirk;
 -	int id;
@@ -455,716 +437,8 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    .quirk = "rockchip,mclk-always-on",
 +    .id = QUIRK_MCLK_ALWAYS_ON,
 +    },
-+};
-+
-+/* Simple LINEAR table for testing smoothness */
-+/* Each percent = 655 units (65536/100) */
-+static const int32_t volume_linear_table[101] = {
-+    0,     655,   1310,  1965,  2621,  3276,  3931,  4586,  5242,  5897,   // 0-9%
-+    6552,  7207,  7863,  8518,  9173,  9828,  10484, 11139, 11794, 12449, // 10-19%
-+    13105, 13760, 14415, 15070, 15726, 16381, 17036, 17691, 18347, 19002, // 20-29%
-+    19657, 20312, 20968, 21623, 22278, 22933, 23589, 24244, 24899, 25554, // 30-39%
-+    26210, 26865, 27520, 28175, 28831, 29486, 30141, 30796, 31452, 32107, // 40-49%
-+    32762, 33417, 34073, 34728, 35383, 36038, 36694, 37349, 38004, 38659, // 50-59%
-+    39315, 39970, 40625, 41280, 41936, 42591, 43246, 43901, 44557, 45212, // 60-69%
-+    45867, 46522, 47178, 47833, 48488, 49143, 49799, 50454, 51109, 51764, // 70-79%
-+    52420, 53075, 53730, 54385, 55041, 55696, 56351, 57006, 57662, 58317, // 80-89%
-+    58972, 59627, 60283, 60938, 61593, 62248, 62904, 63559, 64214, 64869, // 90-99%
-+    65536  // 100% = 1.0 in Q15.16
-+};
-+
-+/* Simplified dB table - not used yet */
-+static const int32_t volume_db_table[101] = {
-+    -15360, -2048, -1792, -1600, -1458, -1344, -1248, -1168, -1098, -1038, // 0-9%
-+    -984,  -936,  -892,  -852,  -816,  -782,  -750,  -720,  -692,  -666,  // 10-19%
-+    -640,  -616,  -594,  -572,  -552,  -532,  -514,  -496,  -478,  -462,  // 20-29%
-+    -446,  -430,  -416,  -402,  -388,  -374,  -362,  -350,  -338,  -326,  // 30-39%
-+    -316,  -306,  -296,  -286,  -276,  -268,  -260,  -252,  -244,  -236,  // 40-49%
-+    -228,  -222,  -216,  -210,  -204,  -198,  -192,  -186,  -182,  -178,  // 50-59%
-+    -174,  -170,  -166,  -162,  -158,  -154,  -150,  -146,  -142,  -138,  // 60-69%
-+    -134,  -130,  -126,  -122,  -118,  -114,  -110,  -106,  -102,  -98,   // 70-79%
-+    -94,   -90,   -86,   -82,   -78,   -74,   -70,   -66,   -62,   -58,   // 80-89%
-+    -54,   -50,   -46,   -42,   -38,   -34,   -30,   -26,   -22,   -18,   // 90-99%
-+    0      // 100% = 0dB
  };
  
-+/* Improved 32-bit LFSR for dithering with maximum period */
-+static inline uint32_t simple_lfsr(uint32_t *state)
-+{
-+    uint32_t bit = ((*state >> 0) ^ (*state >> 2) ^ (*state >> 3) ^ (*state >> 5)) & 1;
-+    *state = (*state >> 1) | (bit << 31);
-+    return *state;
-+}
-+
-+/* TPDF dithering generation with fixed point */
-+static inline int32_t generate_dither_tpdf(struct rk_audiophile_processor *proc, int bit_depth)
-+{
-+    uint32_t rand1 = simple_lfsr(&proc->dither_state[0]);
-+    uint32_t rand2 = simple_lfsr(&proc->dither_state[1]);
-+    
-+    /* Correct TPDF: use 16-bit values to avoid overflow */
-+    int32_t dither = (int32_t)((rand1 & 0xFFFF) + (rand2 & 0xFFFF)) - 65536;
-+    
-+    /* Scale for appropriate bit depth */
-+    switch (bit_depth) {
-+        case 16: return dither >> 16;       // 1 LSB for 16-bit
-+        case 24: return dither >> 8;        // 1 LSB for 24-bit  
-+        case 32: return dither;             // 1 LSB for 32-bit
-+        default: return dither >> 16;
-+    }
-+}
-+
-+/* Maximally optimized 16-bit stereo processing */
-+static void process_stereo_16bit_fixed(struct rk_audiophile_processor *proc,
-+                                      int16_t *buffer, size_t frames)
-+{
-+    const int32_t volume = proc->volume_linear_q16;
-+    const bool dither_enabled = proc->dither_enabled;
-+    size_t i;
-+    int32_t left, right;
-+    bool clipping_detected = false;
-+    
-+    if (dither_enabled) {
-+        /* Path with dithering - generate dithering for stereo pair */
-+        for (i = 0; i < frames; i++) {
-+            /* Generate dithering for stereo pair simultaneously */
-+            uint32_t rand1 = simple_lfsr(&proc->dither_state[0]);
-+            uint32_t rand2 = simple_lfsr(&proc->dither_state[1]);
-+            int32_t dither_base = (int32_t)((rand1 & 0xFFFF) + (rand2 & 0xFFFF)) - 65536;
-+            int32_t dither_l = dither_base >> 16;
-+            int32_t dither_r = (dither_base + 1) >> 16; // Slightly different for channels
-+            
-+            /* Process both channels */
-+            left = ((int32_t)buffer[i * 2] * volume) >> 16;
-+            right = ((int32_t)buffer[i * 2 + 1] * volume) >> 16;
-+            
-+            left += dither_l;
-+            right += dither_r;
-+            
-+            /* Fast clipping without detailed tracking */
-+            left = (left > 32767) ? 32767 : (left < -32768) ? -32768 : left;
-+            right = (right > 32767) ? 32767 : (right < -32768) ? -32768 : right;
-+            
-+            buffer[i * 2] = (int16_t)left;
-+            buffer[i * 2 + 1] = (int16_t)right;
-+        }
-+    } else {
-+        /* Fast path without dithering */
-+        for (i = 0; i < frames; i++) {
-+            /* Process both channels */
-+            left = ((int32_t)buffer[i * 2] * volume) >> 16;
-+            right = ((int32_t)buffer[i * 2 + 1] * volume) >> 16;
-+            
-+            /* Check clipping only if needed */
-+            if (unlikely(left > 32767 || left < -32768 || right > 32767 || right < -32768)) {
-+                clipping_detected = true;
-+                left = (left > 32767) ? 32767 : (left < -32768) ? -32768 : left;
-+                right = (right > 32767) ? 32767 : (right < -32768) ? -32768 : right;
-+            }
-+            
-+            buffer[i * 2] = (int16_t)left;
-+            buffer[i * 2 + 1] = (int16_t)right;
-+        }
-+    }
-+    
-+    /* Update statistics in batches */
-+    proc->samples_processed += frames * 2;
-+    if (clipping_detected) {
-+        proc->clipping_detected = true;
-+    }
-+}
-+
-+
-+
-+/* Maximally optimized 32-bit stereo processing */
-+static void process_stereo_32bit_fixed(struct rk_audiophile_processor *proc,
-+                                      int32_t *buffer, size_t frames)
-+{
-+    const int32_t volume = proc->volume_linear_q16;
-+    const bool dither_enabled = proc->dither_enabled;
-+    size_t i;
-+    int64_t left, right;
-+    bool clipping_detected = false;
-+    
-+    if (dither_enabled) {
-+        /* Path with dithering */
-+        for (i = 0; i < frames; i++) {
-+            int32_t dither_l = generate_dither_tpdf(proc, 32);
-+            int32_t dither_r = generate_dither_tpdf(proc, 32);
-+            
-+            /* Process both channels */
-+            left = ((int64_t)buffer[i * 2] * volume) >> 16;
-+            right = ((int64_t)buffer[i * 2 + 1] * volume) >> 16;
-+            
-+            left += dither_l;
-+            right += dither_r;
-+            
-+            /* Fast clipping without detailed tracking */
-+            left = (left > 2147483647LL) ? 2147483647LL : (left < -2147483648LL) ? -2147483648LL : left;
-+            right = (right > 2147483647LL) ? 2147483647LL : (right < -2147483648LL) ? -2147483648LL : right;
-+            
-+            buffer[i * 2] = (int32_t)left;
-+            buffer[i * 2 + 1] = (int32_t)right;
-+        }
-+    } else {
-+        /* Fast path without dithering */
-+        for (i = 0; i < frames; i++) {
-+            /* Process both channels */
-+            left = ((int64_t)buffer[i * 2] * volume) >> 16;
-+            right = ((int64_t)buffer[i * 2 + 1] * volume) >> 16;
-+            
-+            /* Check clipping only if needed */
-+            if (unlikely(left > 2147483647LL || left < -2147483648LL || 
-+                        right > 2147483647LL || right < -2147483648LL)) {
-+                clipping_detected = true;
-+                left = (left > 2147483647LL) ? 2147483647LL : (left < -2147483648LL) ? -2147483648LL : left;
-+                right = (right > 2147483647LL) ? 2147483647LL : (right < -2147483648LL) ? -2147483648LL : right;
-+            }
-+            
-+            buffer[i * 2] = (int32_t)left;
-+            buffer[i * 2 + 1] = (int32_t)right;
-+        }
-+    }
-+    
-+    /* Update statistics in batches */
-+    proc->samples_processed += frames * 2;
-+    if (clipping_detected) {
-+        proc->clipping_detected = true;
-+    }
-+}
-+
-+/* Optimized 24-bit stereo processing with fixed point */
-+static void process_stereo_24bit_fixed(struct rk_audiophile_processor *proc,
-+                                      int32_t *buffer, size_t frames)
-+{
-+    const int32_t volume = proc->volume_linear_q16;
-+    size_t i;
-+    int32_t left, right;
-+    
-+    const bool dither_enabled = proc->dither_enabled;
-+    bool clipping_detected = false;
-+    
-+    if (dither_enabled) {
-+        /* Path with dithering */
-+        for (i = 0; i < frames; i++) {
-+            int32_t dither_l = generate_dither_tpdf(proc, 24);
-+            int32_t dither_r = generate_dither_tpdf(proc, 24);
-+            
-+            /* Sign extension and multiplication in one expression */
-+            left = (((buffer[i * 2] << 8) >> 8) * volume) >> 16;
-+            right = (((buffer[i * 2 + 1] << 8) >> 8) * volume) >> 16;
-+            
-+            left += dither_l;
-+            right += dither_r;
-+            
-+            /* Fast clipping without detailed tracking */
-+            left = (left > 8388607) ? 8388607 : (left < -8388608) ? -8388608 : left;
-+            right = (right > 8388607) ? 8388607 : (right < -8388608) ? -8388608 : right;
-+            
-+            buffer[i * 2] = left & 0xFFFFFF00;
-+            buffer[i * 2 + 1] = right & 0xFFFFFF00;
-+        }
-+    } else {
-+        /* Fast path without dithering */
-+        for (i = 0; i < frames; i++) {
-+            /* Sign extension and multiplication in one expression */
-+            left = (((buffer[i * 2] << 8) >> 8) * volume) >> 16;
-+            right = (((buffer[i * 2 + 1] << 8) >> 8) * volume) >> 16;
-+            
-+            /* Check clipping only if needed */
-+            if (unlikely(left > 8388607 || left < -8388608 || right > 8388607 || right < -8388608)) {
-+                clipping_detected = true;
-+                left = (left > 8388607) ? 8388607 : (left < -8388608) ? -8388608 : left;
-+                right = (right > 8388607) ? 8388607 : (right < -8388608) ? -8388608 : right;
-+            }
-+            
-+            buffer[i * 2] = left & 0xFFFFFF00;
-+            buffer[i * 2 + 1] = right & 0xFFFFFF00;
-+        }
-+    }
-+    
-+    /* Update statistics in batches */
-+    proc->samples_processed += frames * 2;
-+    if (clipping_detected) {
-+        proc->clipping_detected = true;
-+    }
-+}
-+
-+#ifdef HAVE_NEON_SUPPORT
-+/* Maximally optimized NEON version for 16-bit stereo */
-+static void process_stereo_16bit_neon(struct rk_audiophile_processor *proc,
-+                                     int16_t *buffer, size_t frames)
-+{
-+    if (may_use_simd()) {
-+        kernel_neon_begin();
-+        
-+        const int32_t volume = proc->volume_linear_q16;
-+        size_t neon_frames = frames & ~3; // Process 4 frames at a time
-+        size_t i;
-+        
-+        /* NEON optimized loop: 4 stereo frames at a time */
-+        for (i = 0; i < neon_frames; i += 4) {
-+            /* Load 8 int16 values (4 stereo frames) */
-+            int16x8_t samples = vld1q_s16(&buffer[i * 2]);
-+            
-+            /* Convert to 32-bit for multiplication */
-+            int32x4_t left = vmovl_s16(vget_low_s16(samples));
-+            int32x4_t right = vmovl_s16(vget_high_s16(samples));
-+            
-+            /* Apply volume */
-+            left = vshrq_n_s32(vmulq_n_s32(left, volume), 16);
-+            right = vshrq_n_s32(vmulq_n_s32(right, volume), 16);
-+            
-+            /* Add dithering if enabled */
-+            if (proc->dither_enabled) {
-+                /* Simple dithering for NEON */
-+                int32x4_t dither_l = vdupq_n_s32(generate_dither_tpdf(proc, 16));
-+                int32x4_t dither_r = vdupq_n_s32(generate_dither_tpdf(proc, 16));
-+                left = vaddq_s32(left, dither_l);
-+                right = vaddq_s32(right, dither_r);
-+            }
-+            
-+            /* Limit and convert back to 16-bit */
-+            int16x4_t left_16 = vqmovn_s32(left);
-+            int16x4_t right_16 = vqmovn_s32(right);
-+            
-+            /* Save result */
-+            vst1q_s16(&buffer[i * 2], vcombine_s16(left_16, right_16));
-+        }
-+        
-+        /* Process remainder the usual way */
-+        for (; i < frames; i++) {
-+            int32_t left = (int32_t)buffer[i * 2];
-+            int32_t right = (int32_t)buffer[i * 2 + 1];
-+            
-+            left = (left * volume) >> 16;
-+            right = (right * volume) >> 16;
-+            
-+            if (proc->dither_enabled) {
-+                left += generate_dither_tpdf(proc, 16);
-+                right += generate_dither_tpdf(proc, 16);
-+            }
-+            
-+            left = (left > 32767) ? 32767 : (left < -32768) ? -32768 : left;
-+            right = (right > 32767) ? 32767 : (right < -32768) ? -32768 : right;
-+            
-+            buffer[i * 2] = (int16_t)left;
-+            buffer[i * 2 + 1] = (int16_t)right;
-+        }
-+        
-+        kernel_neon_end();
-+    } else {
-+        /* Fallback to normal processing */
-+        process_stereo_16bit_fixed(proc, buffer, frames);
-+    }
-+    
-+    proc->samples_processed += frames * 2;
-+}
-+
-+/* NEON version for 24-bit stereo */
-+static void process_stereo_24bit_neon(struct rk_audiophile_processor *proc,
-+                                     int32_t *buffer, size_t frames)
-+{
-+    if (may_use_simd()) {
-+        kernel_neon_begin();
-+        
-+        const int32_t volume = proc->volume_linear_q16;
-+        size_t neon_frames = frames & ~1; // Process 2 frames at a time
-+        size_t i;
-+        
-+        /* NEON optimized loop: 2 stereo frames at a time */
-+        for (i = 0; i < neon_frames; i += 2) {
-+            /* Load 4 int32 values (2 stereo frames) */
-+            int32x4_t samples = vld1q_s32(&buffer[i * 2]);
-+            
-+            /* Sign extension to 24-bit */
-+            samples = vshlq_n_s32(vshrq_n_s32(samples, 8), 8);
-+            
-+            /* Apply volume */
-+            int64x2_t left = vmull_n_s32(vget_low_s32(samples), volume);
-+            int64x2_t right = vmull_n_s32(vget_high_s32(samples), volume);
-+            
-+            int32x2_t left_32 = vshrn_n_s64(left, 16);
-+            int32x2_t right_32 = vshrn_n_s64(right, 16);
-+            
-+            /* Add dithering if enabled */
-+            if (proc->dither_enabled) {
-+                int32x2_t dither_l = vdup_n_s32(generate_dither_tpdf(proc, 24));
-+                int32x2_t dither_r = vdup_n_s32(generate_dither_tpdf(proc, 24));
-+                left_32 = vadd_s32(left_32, dither_l);
-+                right_32 = vadd_s32(right_32, dither_r);
-+            }
-+            
-+            /* Limit to 24-bit */
-+            left_32 = vmin_s32(vmax_s32(left_32, vdup_n_s32(-8388608)), vdup_n_s32(8388607));
-+            right_32 = vmin_s32(vmax_s32(right_32, vdup_n_s32(-8388608)), vdup_n_s32(8388607));
-+            
-+            /* Mask to 24-bit and save */
-+            int32x4_t result = vcombine_s32(left_32, right_32);
-+            result = vandq_s32(result, vdupq_n_s32(0xFFFFFF00));
-+            vst1q_s32(&buffer[i * 2], result);
-+        }
-+        
-+        /* Process remainder */
-+        for (; i < frames; i++) {
-+            int32_t left = (buffer[i * 2] << 8) >> 8;
-+            int32_t right = (buffer[i * 2 + 1] << 8) >> 8;
-+            
-+            left = (left * volume) >> 16;
-+            right = (right * volume) >> 16;
-+            
-+            if (proc->dither_enabled) {
-+                left += generate_dither_tpdf(proc, 24);
-+                right += generate_dither_tpdf(proc, 24);
-+            }
-+            
-+            left = (left > 8388607) ? 8388607 : (left < -8388608) ? -8388608 : left;
-+            right = (right > 8388607) ? 8388607 : (right < -8388608) ? -8388608 : right;
-+            
-+            buffer[i * 2] = left & 0xFFFFFF00;
-+            buffer[i * 2 + 1] = right & 0xFFFFFF00;
-+        }
-+        
-+        kernel_neon_end();
-+    } else {
-+        process_stereo_24bit_fixed(proc, buffer, frames);
-+    }
-+    
-+    proc->samples_processed += frames * 2;
-+}
-+
-+/* NEON version for 32-bit stereo */
-+static void process_stereo_32bit_neon(struct rk_audiophile_processor *proc,
-+                                     int32_t *buffer, size_t frames)
-+{
-+    if (may_use_simd()) {
-+        kernel_neon_begin();
-+        
-+        const int32_t volume = proc->volume_linear_q16;
-+        size_t neon_frames = frames & ~1; // Process 2 frames at a time
-+        size_t i;
-+        
-+        /* NEON optimized loop: 2 stereo frames at a time */
-+        for (i = 0; i < neon_frames; i += 2) {
-+            /* Load 4 int32 values (2 stereo frames) */
-+            int32x4_t samples = vld1q_s32(&buffer[i * 2]);
-+            
-+            /* Apply volume with 64-bit precision */
-+            int64x2_t left = vmull_n_s32(vget_low_s32(samples), volume);
-+            int64x2_t right = vmull_n_s32(vget_high_s32(samples), volume);
-+            
-+            int32x2_t left_32 = vshrn_n_s64(left, 16);
-+            int32x2_t right_32 = vshrn_n_s64(right, 16);
-+            
-+            /* Add dithering if enabled */
-+            if (proc->dither_enabled) {
-+                int32x2_t dither_l = vdup_n_s32(generate_dither_tpdf(proc, 32));
-+                int32x2_t dither_r = vdup_n_s32(generate_dither_tpdf(proc, 32));
-+                left_32 = vadd_s32(left_32, dither_l);
-+                right_32 = vadd_s32(right_32, dither_r);
-+            }
-+            
-+            /* Limit to 32-bit */
-+            left_32 = vmin_s32(vmax_s32(left_32, vdup_n_s32(-2147483648)), vdup_n_s32(2147483647));
-+            right_32 = vmin_s32(vmax_s32(right_32, vdup_n_s32(-2147483648)), vdup_n_s32(2147483647));
-+            
-+            /* Save result */
-+            vst1q_s32(&buffer[i * 2], vcombine_s32(left_32, right_32));
-+        }
-+        
-+        /* Process remainder */
-+        for (; i < frames; i++) {
-+            int64_t left = ((int64_t)buffer[i * 2] * volume) >> 16;
-+            int64_t right = ((int64_t)buffer[i * 2 + 1] * volume) >> 16;
-+            
-+            if (proc->dither_enabled) {
-+                left += generate_dither_tpdf(proc, 32);
-+                right += generate_dither_tpdf(proc, 32);
-+            }
-+            
-+            left = (left > 2147483647LL) ? 2147483647LL : (left < -2147483648LL) ? -2147483648LL : left;
-+            right = (right > 2147483647LL) ? 2147483647LL : (right < -2147483648LL) ? -2147483648LL : right;
-+            
-+            buffer[i * 2] = (int32_t)left;
-+            buffer[i * 2 + 1] = (int32_t)right;
-+        }
-+        
-+        kernel_neon_end();
-+    } else {
-+        process_stereo_32bit_fixed(proc, buffer, frames);
-+    }
-+    
-+    proc->samples_processed += frames * 2;
-+}
-+#endif
-+
-+/* Main audio processing function */
-+static int rockchip_audiophile_process_buffer(struct rk_i2s_tdm_dev *i2s_tdm,
-+                                            void *buffer, size_t buffer_size)
-+{
-+    struct rk_audiophile_processor *proc = i2s_tdm->audio_proc;
-+    unsigned long flags;
-+    size_t frame_size, frames;
-+    static int call_count = 0; /* Call counter for debugging */
-+    static bool debug_samples = true; /* Output first samples for debugging */
-+    static bool high_rate_warning_shown = false;
-+    
-+    if (!proc) {
-+        dev_warn_ratelimited(i2s_tdm->dev, "Audio processor not initialized\n");
-+        return 0;
-+    }
-+    
-+    /* IMPORTANT: Disable processing for DSD formats - they should pass through directly */
-+    if (proc->format == SNDRV_PCM_FORMAT_DSD_U8 ||
-+        proc->format == SNDRV_PCM_FORMAT_DSD_U16_LE ||
-+        proc->format == SNDRV_PCM_FORMAT_DSD_U32_LE) {
-+        dev_dbg(i2s_tdm->dev, "DSD format detected - bypassing audiophile processing\n");
-+        return 0;
-+    }
-+    
-+    /* IMPORTANT: Disable processing for ultra-high sampling rates (> 384 kHz) */
-+    /* For 352.8/384 kHz keep processing but monitor performance */
-+    if (proc->sample_rate > 384000) {
-+        if (!high_rate_warning_shown) {
-+            dev_info(i2s_tdm->dev, "Ultra high sample rate detected (%d Hz) - disabling processing for performance\n", 
-+                     proc->sample_rate);
-+            high_rate_warning_shown = true;
-+        }
-+        /* Skip processing for ultra-high frequencies */
-+        return 0;
-+    }
-+    
-+    if (i2s_tdm->mute) {
-+        /* Fast path - fill with silence when muted */
-+        memset(buffer, 0, buffer_size);
-+        
-+        /* Debug message only for first calls */
-+        if (call_count < 5) {
-+            dev_info(i2s_tdm->dev, "Audio processing: MUTED (call %d)\n", call_count++);
-+        }
-+        return 0;
-+    }
-+    
-+    spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    frame_size = (proc->bit_depth / 8) * proc->channels;
-+    frames = buffer_size / frame_size;
-+    
-+    proc->clipping_detected = false;
-+    
-+    /* Debug message only for first calls */
-+    if (call_count < 5) {
-+        dev_info(i2s_tdm->dev, 
-+                 "Audio processing: %zu frames, %dbit, %dch, %dHz, vol=0x%x (call %d)\n",
-+                 frames, proc->bit_depth, proc->channels, proc->sample_rate,
-+                 proc->volume_linear_q16, call_count++);
-+    } else if (call_count == 5) {
-+        dev_info(i2s_tdm->dev, "Audio processing working, suppressing further debug messages\n");
-+        call_count++;
-+    }
-+    
-+    /* Debug output of first samples for 32-bit */
-+    if (debug_samples && proc->format == SNDRV_PCM_FORMAT_S32_LE && frames > 0) {
-+        int32_t *samples = (int32_t*)buffer;
-+        dev_info(i2s_tdm->dev, "First samples BEFORE: [0]=%d [1]=%d [2]=%d [3]=%d\n",
-+                 samples[0], samples[1], samples[2], samples[3]);
-+    }
-+    
-+    /* Simple volume processing for testing - apply only if volume is not 100% */
-+    if (proc->volume_linear_q16 != 65536) {
-+        /* Choose processing function based on format */
-+        switch (proc->format) {
-+            case SNDRV_PCM_FORMAT_S16_LE:
-+                if (proc->channels == 2) {
-+#ifdef HAVE_NEON_SUPPORT
-+                    process_stereo_16bit_neon(proc, (int16_t*)buffer, frames);
-+#else
-+                    process_stereo_16bit_fixed(proc, (int16_t*)buffer, frames);
-+#endif
-+                }
-+                break;
-+                
-+            case SNDRV_PCM_FORMAT_S24_LE:
-+                if (proc->channels == 2) {
-+#ifdef HAVE_NEON_SUPPORT
-+                    process_stereo_24bit_neon(proc, (int32_t*)buffer, frames);
-+#else
-+                    process_stereo_24bit_fixed(proc, (int32_t*)buffer, frames);
-+#endif
-+                }
-+                break;
-+                
-+            case SNDRV_PCM_FORMAT_S32_LE:
-+            case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE:
-+                if (proc->channels == 2) {
-+#ifdef HAVE_NEON_SUPPORT
-+                    process_stereo_32bit_neon(proc, (int32_t*)buffer, frames);
-+#else
-+                    process_stereo_32bit_fixed(proc, (int32_t*)buffer, frames);
-+#endif
-+                }
-+                break;
-+                
-+            case SNDRV_PCM_FORMAT_DSD_U8:
-+            case SNDRV_PCM_FORMAT_DSD_U16_LE:
-+            case SNDRV_PCM_FORMAT_DSD_U32_LE:
-+                /* DSD formats not processed - passed through directly */
-+                dev_dbg(i2s_tdm->dev, "DSD format - no processing applied\n");
-+                break;
-+                
-+            default:
-+                /* Fallback - do not process unsupported formats */
-+                spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+                dev_warn_ratelimited(i2s_tdm->dev, "Unsupported audio format: %d\n", proc->format);
-+                return 0;
-+        }
-+    }
-+    
-+    /* Debug output of first samples AFTER processing */
-+    if (debug_samples && proc->format == SNDRV_PCM_FORMAT_S32_LE && frames > 0) {
-+        int32_t *samples = (int32_t*)buffer;
-+        dev_info(i2s_tdm->dev, "First samples AFTER: [0]=%d [1]=%d [2]=%d [3]=%d\n",
-+                 samples[0], samples[1], samples[2], samples[3]);
-+        debug_samples = false; /* Show only once */
-+    }
-+    
-+    spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    if (proc->clipping_detected) {
-+        dev_warn_ratelimited(i2s_tdm->dev, 
-+                           "Audiophile: Clipping detected at volume %d%%\n", 
-+                           i2s_tdm->volume);
-+    }
-+    
-+    return 0;
-+}
-+
-+/* Update audiophile processing parameters */
-+static void rockchip_audiophile_update_volume(struct rk_i2s_tdm_dev *i2s_tdm)
-+{
-+    struct rk_audiophile_processor *proc = i2s_tdm->audio_proc;
-+    unsigned long flags;
-+    
-+    if (!proc) return;
-+    
-+    spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    /* Use pre-calculated tables */
-+    if (i2s_tdm->volume >= 0 && i2s_tdm->volume <= 100) {
-+        proc->volume_db_q8 = volume_db_table[i2s_tdm->volume];
-+        /* DO NOT apply volume if mute is enabled - preserve silence */
-+        if (!i2s_tdm->mute) {
-+            proc->volume_linear_q16 = volume_linear_table[i2s_tdm->volume];
-+        }
-+        /* If mute is enabled - leave volume_linear_q16 = 0 */
-+    } else {
-+        proc->volume_db_q8 = -24576; // -96dB
-+        proc->volume_linear_q16 = 0;
-+    }
-+    
-+    spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    /* Logging without float operations - use integer representation */
-+    dev_info(i2s_tdm->dev, 
-+             "Audiophile: Volume %d%% = %d/256 dB (linear: 0x%x, mute: %s)\n",
-+             i2s_tdm->volume, 
-+             proc->volume_db_q8,
-+             proc->volume_linear_q16,
-+             i2s_tdm->mute ? "ON" : "OFF");
-+}
-+
-+/* Update parameters when format changes */
-+static int rockchip_audiophile_set_format(struct rk_i2s_tdm_dev *i2s_tdm,
-+                                         struct snd_pcm_hw_params *params)
-+{
-+    struct rk_audiophile_processor *proc = i2s_tdm->audio_proc;
-+    unsigned long flags;
-+    
-+    if (!proc) return 0;
-+    
-+    spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    proc->sample_rate = params_rate(params);
-+    proc->channels = params_channels(params);
-+    proc->format = params_format(params);
-+    
-+    switch (proc->format) {
-+        case SNDRV_PCM_FORMAT_S16_LE:
-+            proc->bit_depth = 16;
-+            break;
-+        case SNDRV_PCM_FORMAT_S20_3LE:
-+            proc->bit_depth = 20;
-+            break;
-+        case SNDRV_PCM_FORMAT_S24_LE:
-+            proc->bit_depth = 24;
-+            break;
-+        case SNDRV_PCM_FORMAT_S32_LE:
-+        case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE:
-+            proc->bit_depth = 32;
-+            break;
-+        case SNDRV_PCM_FORMAT_DSD_U8:
-+            proc->bit_depth = 8;
-+            break;
-+        case SNDRV_PCM_FORMAT_DSD_U16_LE:
-+            proc->bit_depth = 16;
-+            break;
-+        case SNDRV_PCM_FORMAT_DSD_U32_LE:
-+            proc->bit_depth = 32;
-+            break;
-+        default:
-+            proc->bit_depth = 16;
-+            break;
-+    }
-+    
-+    /* Reset statistics */
-+    proc->samples_processed = 0;
-+    proc->peak_level = 0;
-+    proc->clipping_detected = false;
-+    
-+    spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    dev_info(i2s_tdm->dev, 
-+             "Audiophile: Format updated - %dHz, %dch, %dbit\n",
-+             proc->sample_rate, proc->channels, proc->bit_depth);
-+    
-+    return 0;
-+}
-+
-+/* Initialize audiophile processor */
-+static int rockchip_audiophile_init(struct rk_i2s_tdm_dev *i2s_tdm)
-+{
-+    struct rk_audiophile_processor *proc;
-+    
-+    proc = devm_kzalloc(i2s_tdm->dev, sizeof(*proc), GFP_KERNEL);
-+    if (!proc)
-+        return -ENOMEM;
-+    
-+    /* Initialize parameters */
-+    proc->volume_linear_q16 = 65536;  // 100% = 1.0 in Q15.16
-+    proc->volume_db_q8 = 0;           // 0dB in Q23.8
-+    proc->dither_enabled = true;      // Enable dithering by default
-+    
-+    /* Initialize PRNG for dithering */
-+    get_random_bytes(proc->dither_state, sizeof(proc->dither_state));
-+    
-+    /* Make sure state is not 0 (for LFSR) */
-+    if (proc->dither_state[0] == 0) proc->dither_state[0] = 0xACE1;
-+    if (proc->dither_state[1] == 0) proc->dither_state[1] = 0xDEAD;
-+    if (proc->dither_state[2] == 0) proc->dither_state[2] = 0xBEEF;
-+    if (proc->dither_state[3] == 0) proc->dither_state[3] = 0xCAFE;
-+    
-+    i2s_tdm->audio_proc = proc;
-+    spin_lock_init(&i2s_tdm->audio_proc_lock);
-+    
-+#ifdef HAVE_NEON_SUPPORT
-+    dev_info(i2s_tdm->dev, "Audiophile processor initialized with NEON support (dither OFF)\n");
-+#else
-+    dev_info(i2s_tdm->dev, "Audiophile processor initialized (fixed-point mode, dither OFF)\n");
-+    dev_info(i2s_tdm->dev, "NEON disabled: CONFIG_KERNEL_MODE_NEON not set in kernel config\n");
-+#endif
-+    
-+    return 0;
-+}
 +
  static int to_ch_num(unsigned int val)
  {
@@ -1558,7 +832,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -369,16 +1256,18 @@
+@@ -369,16 +522,18 @@
   */
  static void rockchip_i2s_tdm_sync_reset(struct rk_i2s_tdm_dev *i2s_tdm)
  {
@@ -1579,7 +853,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  static inline void rockchip_i2s_tdm_sync_reset(struct rk_i2s_tdm_dev *i2s_tdm)
  {
  }
-@@ -386,57 +1275,59 @@
+@@ -386,57 +541,59 @@
  
  static void rockchip_i2s_tdm_reset(struct reset_control *rc)
  {
@@ -1681,7 +955,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  }
  
  /*
-@@ -446,2088 +1337,3392 @@
+@@ -446,2088 +603,3275 @@
   */
  static void rockchip_i2s_tdm_tx_fifo_padding(struct rk_i2s_tdm_dev *i2s_tdm, bool en)
  {
@@ -1736,9 +1010,11 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    /* clear irq status which was asserted before RXOIE enabled */
 +    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
 +       I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
++    /* Disable RX overrun interrupts for external clock mode to reduce CPU load
++     * RX is used only for clock sync, overruns are expected at high sample rates */
 +    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
 +       I2S_INTCR_RXOIE_MASK,
-+       I2S_INTCR_RXOIE(en));
++       I2S_INTCR_RXOIE(0)); /* Force disable RX overrun interrupts */
 +    }
  }
  
@@ -1948,14 +1224,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  {
 -	int bstream = SNDRV_PCM_STREAM_LAST - substream->stream;
 +    int bstream = SNDRV_PCM_STREAM_LAST - substream->stream;
-+
-+    /*
-+     * just resume bstream, because current stream will be
-+     * startup in the trigger-cmd-START
-+     */
-+    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, bstream, 1);
-+    rockchip_i2s_tdm_xfer_start(i2s_tdm, bstream);
-+}
  
 -	/*
 -	 * just resume bstream, because current stream will be
@@ -1963,6 +1231,14 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -	 */
 -	rockchip_i2s_tdm_dma_ctrl(i2s_tdm, bstream, 1);
 -	rockchip_i2s_tdm_xfer_start(i2s_tdm, bstream);
++    /*
++     * just resume bstream, because current stream will be
++     * startup in the trigger-cmd-START
++     */
++    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, bstream, 1);
++    rockchip_i2s_tdm_xfer_start(i2s_tdm, bstream);
++}
++
 +/* Additional function to check pause state */
 +static bool rockchip_i2s_tdm_is_paused(struct rk_i2s_tdm_dev *i2s_tdm, int stream)
 +{
@@ -2007,10 +1283,9 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    else
 +    rockchip_i2s_tdm_xfer_start(i2s_tdm, stream);
 +    
-+    /* Check mute considering audiophile processing */
-+    if (stream == SNDRV_PCM_STREAM_PLAYBACK && 
-+        (i2s_tdm->mute || (i2s_tdm->audio_proc && i2s_tdm->audio_proc->volume_linear_q16 == 0))) {
-+    dev_dbg(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: Playback started with mute or zero volume\n");
++    /* Check mute */
++    if (stream == SNDRV_PCM_STREAM_PLAYBACK && i2s_tdm->mute) {
++    dev_dbg(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: Playback started with mute\n");
 +    /* DO NOT disable DMA when muted - let GPIO mute do its job */
 +    /* rockchip_i2s_tdm_dma_ctrl(i2s_tdm, stream, 0); */
 +    }
@@ -2108,14 +1383,14 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +           I2S_XFER_RXS_START);
 +    }
 +    }
-+
-+    /* Enable DMA */
-+    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, stream, 1);
  
 -	if (i2s_tdm->clk_trcm)
 -		rockchip_i2s_tdm_xfer_trcm_stop(i2s_tdm);
 -	else
 -		rockchip_i2s_tdm_xfer_stop(i2s_tdm, stream, false);
++    /* Enable DMA */
++    rockchip_i2s_tdm_dma_ctrl(i2s_tdm, stream, 1);
++
 +    dev_dbg(i2s_tdm->dev, "I2S/TDM %s stream resumed\n",
 +    stream == SNDRV_PCM_STREAM_PLAYBACK ? "playback" : "capture");
  }
@@ -2986,11 +2261,11 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    regmap_read(i2s_tdm->regmap, I2S_RXCR, &val);
 +    last_fmt = val & (I2S_RXCR_VDW_MASK | I2S_RXCR_CSR_MASK);
 +    }
- 
--	return false;
++
 +    if (last_fmt != fmt)
 +    return true;
-+
+ 
+-	return false;
 +    return false;
  }
  
@@ -3270,7 +2545,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    return ret;
  }
  
-+/* Updated hw_params function with audiophile processing */
  static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
 -				      struct snd_pcm_hw_params *params,
 -				      struct snd_soc_dai *dai)
@@ -3309,12 +2583,9 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    dma_data = snd_soc_dai_get_dma_data(dai, substream);
 +    dma_data->maxburst = MAXBURST_PER_FIFO * params_channels(params) / 2;
 +
++
 +    /* Note: Mute is now handled in trigger for proper timing */
 +    
-+    /* Update audiophile processor parameters */
-+    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-+        rockchip_audiophile_set_format(i2s_tdm, params);
-+    }
 +
 +    if (i2s_tdm->is_master_mode) {
 +        if (i2s_tdm->mclk_calibrate)
@@ -3400,6 +2671,14 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -		div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
 -		div_lrck = bclk_rate / params_rate(params);
 -	}
+-
+-//+++
+-	if( s2mono && (params_format(params) != SNDRV_PCM_FORMAT_S16_LE) ) {
+-		val |= I2S_TXCR_VDW(16);
+-		val |= I2S_CHN_4;
+-		goto s2mono_l;
+-	}
+-//+++
 +        mclk_rate = clk_get_rate(mclk);
 +        
 +        /* Special handling for DSD formats */
@@ -3422,6 +2701,8 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +        div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
 +        div_lrck = bclk_rate / params_rate(params);
 +    }
++
++    /* Static 1MB buffers are set in rockchip_i2s_tdm_pcm_hardware structure */
 +
 +    switch (params_format(params)) {
 +    case SNDRV_PCM_FORMAT_S8:
@@ -3567,14 +2848,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    else
 +        rockchip_i2s_tdm_params(substream, dai, div_bclk, div_lrck, val);
  
--//+++
--	if( s2mono && (params_format(params) != SNDRV_PCM_FORMAT_S16_LE) ) {
--		val |= I2S_TXCR_VDW(16);
--		val |= I2S_CHN_4;
--		goto s2mono_l;
--	}
--//+++
--
 -	switch (params_format(params)) {
 -	case SNDRV_PCM_FORMAT_S8:
 -		val |= I2S_TXCR_VDW(8);
@@ -3986,18 +3259,15 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  
 -	return 0;
 -}
-+/* Loopback mode functions and definitions removed - not needed for audiophile use */
  
  static const struct snd_kcontrol_new rockchip_i2s_tdm_snd_controls[] = {
 -	SOC_ENUM_EXT("I2STDM Digital Loopback Mode", loopback_mode,
 -		     rockchip_i2s_tdm_loopback_get,
 -		     rockchip_i2s_tdm_loopback_put),
-+    /* Loopback Mode control removed - not needed for audiophile use */
- };
- 
++};
++
 +/* Control structures defined after functions */
 +
-+/* Audiophile ALSA controls */
 +static int rockchip_i2s_tdm_volume_info(struct snd_kcontrol *kcontrol,
 +                                        struct snd_ctl_elem_info *uinfo)
 +{
@@ -4019,7 +3289,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    return 0;
 +}
 +
-+/* Updated volume setting function */
++/* Basic volume setting function */
 +static int rockchip_i2s_tdm_volume_put(struct snd_kcontrol *kcontrol,
 +                                       struct snd_ctl_elem_value *ucontrol)
 +{
@@ -4027,8 +3297,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
 +    int volume = ucontrol->value.integer.value[0];
 +    int old_volume = i2s_tdm->volume;
-+    int old_linear = 0, new_linear = 0;
-+    int ratio_x1000 = 0; /* Ratio * 1000 to avoid float */
 +
 +    if (volume < 0 || volume > 100)
 +        return -EINVAL;
@@ -4036,39 +3304,10 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    if (volume == old_volume)
 +        return 0;
 +
-+    /* Save old value for comparison */
-+    if (i2s_tdm->audio_proc) {
-+        old_linear = i2s_tdm->audio_proc->volume_linear_q16;
-+    }
-+
 +    i2s_tdm->volume = volume;
 +    
-+    /* Update audiophile processing */
-+    rockchip_audiophile_update_volume(i2s_tdm);
-+    
-+    /* Get new value */
-+    if (i2s_tdm->audio_proc) {
-+        new_linear = i2s_tdm->audio_proc->volume_linear_q16;
-+    }
-+    
-+    /* Calculate ratio without float */
-+    if (old_linear > 0 && new_linear > 0) {
-+        ratio_x1000 = (new_linear * 1000) / old_linear;
-+    }
-+    
-+    /* Detailed transition information */
-+    dev_info(i2s_tdm->dev, "Volume: %d%% -> %d%% | Linear: 0x%x (%d) -> 0x%x (%d) | Ratio x1000: %d\n", 
-+             old_volume, volume, 
-+             old_linear, old_linear, 
-+             new_linear, new_linear,
-+             ratio_x1000);
-+    
-+    /* Check for large jumps (ratio less than 0.5 or greater than 2.0) */
-+    if (old_linear > 0 && new_linear > 0) {
-+        if (ratio_x1000 < 500 || ratio_x1000 > 2000) {
-+            dev_warn(i2s_tdm->dev, "WARNING: Large volume jump detected! Ratio x1000: %d\n", ratio_x1000);
-+        }
-+    }
++    dev_info(i2s_tdm->dev, "Volume changed: %d%% -> %d%%\n",
++             old_volume, volume);
 +    
 +    return 1;
 +}
@@ -4157,12 +3396,18 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +            gpiod_set_value(i2s_tdm->mute_gpio, 1);
 +        
 +        /* Software mute through volume = 0% for DACs without GPIO mute */
-+        /* Always apply - DSD copy_user will check and replace with silence */
-+        if (i2s_tdm->audio_proc) {
-+            spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+            i2s_tdm->audio_proc->volume_linear_q16 = 0;  /* Complete silence */
-+            spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
++        /* Clear active DMA buffers immediately for instant mute effect */
++        if (i2s_tdm->substreams[SNDRV_PCM_STREAM_PLAYBACK]) {
++            struct snd_pcm_substream *substream = i2s_tdm->substreams[SNDRV_PCM_STREAM_PLAYBACK];
++            struct snd_pcm_runtime *runtime = substream->runtime;
++            
++            if (runtime && runtime->status->state == SNDRV_PCM_STATE_RUNNING && runtime->dma_area) {
++                /* Clear current DMA buffers for immediate silence */
++                memset(runtime->dma_area, 0, runtime->dma_bytes);
++                dev_dbg(i2s_tdm->dev, "DMA buffers cleared for immediate mute\n");
++            }
 +        }
++        
 +        
 +        /* DO NOT disable DMA - this leads to pause instead of mute */
 +        /* DMA continues to work, but sound is muted through GPIO + software */
@@ -4173,18 +3418,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +            gpiod_set_value(i2s_tdm->mute_gpio, 0);
 +        }
 +        
-+        /* Restore software volume */
-+        /* Always apply - DSD copy_user will replace with correct signal anyway */
-+        if (i2s_tdm->audio_proc) {
-+            spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+            /* Restore volume from current i2s_tdm->volume setting */
-+            if (i2s_tdm->volume >= 0 && i2s_tdm->volume <= 100) {
-+                i2s_tdm->audio_proc->volume_linear_q16 = volume_linear_table[i2s_tdm->volume];
-+            } else {
-+                i2s_tdm->audio_proc->volume_linear_q16 = 65536; /* 100% */
-+            }
-+            spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+        }
 +        
 +        /* DMA is already working, mute lifted through GPIO + software */
 +    }
@@ -4623,92 +3856,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +
 +static DEVICE_ATTR(mute, 0644, mute_show, mute_store);
 +
-+/* Dithering control */
-+static int rockchip_i2s_tdm_dither_info(struct snd_kcontrol *kcontrol,
-+                                       struct snd_ctl_elem_info *uinfo)
-+{
-+    uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
-+    uinfo->count = 1;
-+    uinfo->value.integer.min = 0;
-+    uinfo->value.integer.max = 1;
-+    return 0;
-+}
-+
-+static int rockchip_i2s_tdm_dither_get(struct snd_kcontrol *kcontrol,
-+                                      struct snd_ctl_elem_value *ucontrol)
-+{
-+    struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
-+    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
-+    
-+    if (i2s_tdm->audio_proc)
-+        ucontrol->value.integer.value[0] = i2s_tdm->audio_proc->dither_enabled;
-+    else
-+        ucontrol->value.integer.value[0] = 0;
-+    
-+    return 0;
-+}
-+
-+static int rockchip_i2s_tdm_dither_put(struct snd_kcontrol *kcontrol,
-+                                      struct snd_ctl_elem_value *ucontrol)
-+{
-+    struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
-+    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
-+    bool dither_enable = !!ucontrol->value.integer.value[0];
-+    unsigned long flags;
-+    
-+    if (!i2s_tdm->audio_proc)
-+        return -ENODEV;
-+    
-+    spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    if (i2s_tdm->audio_proc->dither_enabled != dither_enable) {
-+        i2s_tdm->audio_proc->dither_enabled = dither_enable;
-+        /* Update PRNG state */
-+        if (dither_enable) {
-+            get_random_bytes(i2s_tdm->audio_proc->dither_state, 
-+                           sizeof(i2s_tdm->audio_proc->dither_state));
-+        }
-+        spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+        
-+        dev_info(i2s_tdm->dev, "Audiophile: Dithering %s\n", 
-+                 dither_enable ? "enabled" : "disabled");
-+        return 1;
-+    }
-+    
-+    spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+    return 0;
-+}
-+
-+
-+/* Processing statistics control */
-+static int rockchip_i2s_tdm_stats_info(struct snd_kcontrol *kcontrol,
-+                                      struct snd_ctl_elem_info *uinfo)
-+{
-+    uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER64;
-+    uinfo->count = 3; // samples_processed, peak_level, clipping_detected
-+    return 0;
-+}
-+
-+static int rockchip_i2s_tdm_stats_get(struct snd_kcontrol *kcontrol,
-+                                     struct snd_ctl_elem_value *ucontrol)
-+{
-+    struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
-+    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
-+    unsigned long flags;
-+    
-+    if (!i2s_tdm->audio_proc) {
-+        memset(ucontrol->value.integer64.value, 0, sizeof(long long) * 3);
-+        return 0;
-+    }
-+    
-+    spin_lock_irqsave(&i2s_tdm->audio_proc_lock, flags);
-+    ucontrol->value.integer64.value[0] = i2s_tdm->audio_proc->samples_processed;
-+    ucontrol->value.integer64.value[1] = i2s_tdm->audio_proc->peak_level;
-+    ucontrol->value.integer64.value[2] = i2s_tdm->audio_proc->clipping_detected ? 1 : 0;
-+    spin_unlock_irqrestore(&i2s_tdm->audio_proc_lock, flags);
-+    
-+    return 0;
-+}
 +
 +/* Main ALSA controls */
 +static struct snd_kcontrol_new rockchip_i2s_tdm_volume_control = {
@@ -4727,23 +3874,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    .put = rockchip_i2s_tdm_mute_put,
 +};
 +
-+/* Additional audiophile controls */
-+static struct snd_kcontrol_new rockchip_i2s_tdm_audiophile_controls[] = {
-+    {
-+        .iface = SNDRV_CTL_ELEM_IFACE_MIXER,
-+        .name = "Audiophile Dithering",
-+        .info = rockchip_i2s_tdm_dither_info,
-+        .get = rockchip_i2s_tdm_dither_get,
-+        .put = rockchip_i2s_tdm_dither_put,
-+    },
-+    {
-+        .iface = SNDRV_CTL_ELEM_IFACE_MIXER,  
-+        .name = "Audiophile Statistics",
-+        .access = SNDRV_CTL_ELEM_ACCESS_READ,
-+        .info = rockchip_i2s_tdm_stats_info,
-+        .get = rockchip_i2s_tdm_stats_get,
-+    },
-+};
 +
 +/* PCM copy callback for audio data processing */
 +static int rockchip_i2s_tdm_pcm_copy_user(struct snd_soc_component *component,
@@ -4753,9 +3883,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +{
 +    struct rk_i2s_tdm_dev *i2s_tdm;
 +    void *dma_area;
-+    int ret;
 +    static int copy_call_count = 0;
-+    static bool bypass_processing = false; /* For testing without processing */
 +    
 +    /* Get our driver through component */
 +    i2s_tdm = snd_soc_component_get_drvdata(component);
@@ -4792,12 +3920,12 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +             substream->runtime->format == SNDRV_PCM_FORMAT_DSD_U16_LE) && 
 +            bytes >= 4) {
 +            
-+            /* For DSD silence = alternating 0 and 1 (50% duty cycle) */
++            /* For DSD silence = 50% duty cycle meander within each byte */
 +            uint8_t *data = (uint8_t *)dma_area;
 +            uint32_t i;
 +            
 +            for (i = 0; i < bytes; i++) {
-+                data[i] = (i & 1) ? 0xFF : 0x00;  /* Alternating 00000000 and 11111111 */
++                data[i] = 0x55;  /* 01010101 - perfect 50% duty cycle meander for DSD silence */
 +            }
 +            
 +            dev_dbg(i2s_tdm->dev, "DSD Mute: replaced %lu bytes with silence signal\n", bytes);
@@ -4805,7 +3933,70 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +            /* During mute do not apply sample swap - send clean silence signal */
 +            goto skip_dsd_processing;
 +        }
-+        
++
++        /* PCM MUTE: Replace data with silence (0 volume) */
++        if (i2s_tdm->mute && !i2s_tdm->dsd_mode_active) {
++            memset(dma_area, 0, bytes);
++            dev_dbg(i2s_tdm->dev, "PCM Mute: replaced %lu bytes with silence\n", bytes);
++            goto skip_volume_processing;
++        }
++
++        /* Simple volume control with linear scaling */
++        if (i2s_tdm->volume < 100 && !i2s_tdm->dsd_mode_active) {
++            int volume_percent = i2s_tdm->volume;
++            int32_t volume_linear = (volume_percent * 65536) / 100; /* Simple linear scaling */
++            int format = substream->runtime->format;
++            int i;
++
++            /* Handle different bit depths with pseudo-logarithmic scaling */
++            if (format == SNDRV_PCM_FORMAT_S16_LE) {
++                /* 16-bit samples */
++                s16 *samples = (s16 *)dma_area;
++                int num_samples = bytes / 2;
++                
++                for (i = 0; i < num_samples; i++) {
++                    /* Apply pseudo-logarithmic volume using Q15.16 format */
++                    s64 scaled = (s64)samples[i] * volume_linear;
++                    samples[i] = (s16)(scaled >> 16);
++                }
++            } else if (format == SNDRV_PCM_FORMAT_S24_LE || format == SNDRV_PCM_FORMAT_S32_LE) {
++                /* 24-bit or 32-bit samples - use 64-bit math with pseudo-logarithmic scaling */
++                s32 *samples = (s32 *)dma_area;
++                int num_samples = bytes / 4;
++                
++                for (i = 0; i < num_samples; i++) {
++                    /* Apply pseudo-logarithmic volume using Q15.16 format */
++                    s64 scaled = (s64)samples[i] * volume_linear;
++                    samples[i] = (s32)(scaled >> 16);
++                }
++            } else if (format == SNDRV_PCM_FORMAT_S24_3LE) {
++                /* 24-bit packed samples (3 bytes per sample) */
++                u8 *data = (u8 *)dma_area;
++                int num_samples = bytes / 3;
++                
++                for (i = 0; i < num_samples; i++) {
++                    int sample_offset = i * 3;
++                    /* Convert 3-byte little-endian to s32 */
++                    s32 sample = (data[sample_offset] | 
++                                 (data[sample_offset + 1] << 8) | 
++                                 (data[sample_offset + 2] << 16));
++                    
++                    /* Sign extend from 24-bit */
++                    if (sample & 0x800000)
++                        sample |= 0xFF000000;
++                    
++                    /* Apply pseudo-logarithmic volume using Q15.16 format */
++                    s64 scaled = (s64)sample * volume_linear;
++                    sample = (s32)(scaled >> 16);
++                    
++                    /* Convert back to 3-byte little-endian */
++                    data[sample_offset] = sample & 0xFF;
++                    data[sample_offset + 1] = (sample >> 8) & 0xFF;
++                    data[sample_offset + 2] = (sample >> 16) & 0xFF;
++                }
++            }
++        }
++
 +        /* CRITICAL FIX FOR DSD: Swap upper and lower 16 bits */
 +        if (i2s_tdm->dsd_sample_swap && i2s_tdm->dsd_mode_active &&
 +            (substream->runtime->format == SNDRV_PCM_FORMAT_DSD_U32_LE || 
@@ -4821,32 +4012,17 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +                uint32_t sample = samples[i];
 +                samples[i] = ((sample & 0xFFFF0000) >> 16) | ((sample & 0x0000FFFF) << 16);
 +            }
-+            
-+            /* dev_dbg(i2s_tdm->dev, "DSD Purple Noise Fix: processed %u samples (%lu bytes)\n", 
-+                     total_samples, bytes); */
 +        }
 +        
 +    skip_dsd_processing:
++    skip_volume_processing:
 +        /* Debug message only for first calls */
 +        if (copy_call_count < 3) {
-+            dev_info(i2s_tdm->dev, "PCM copy: %lu bytes, processor: %s, bypass: %s (call %d)\n", 
-+                     bytes, 
-+                     i2s_tdm->audio_proc ? "READY" : "NOT_READY",
-+                     bypass_processing ? "YES" : "NO",
-+                     copy_call_count++);
++            dev_info(i2s_tdm->dev, "PCM copy: %lu bytes, simple volume control (call %d)\n", 
++                     bytes, copy_call_count++);
 +        } else if (copy_call_count == 3) {
 +            dev_info(i2s_tdm->dev, "PCM copy working, suppressing further debug messages\n");
 +            copy_call_count++;
-+        }
-+        
-+        /* Apply audiophile processing only if processor is initialized and bypass is disabled */
-+        if (i2s_tdm->audio_proc && !bypass_processing && 
-+            (i2s_tdm->volume != 100 || i2s_tdm->mute)) {
-+            ret = rockchip_audiophile_process_buffer(i2s_tdm, dma_area, bytes);
-+            if (ret < 0) {
-+                dev_warn_ratelimited(i2s_tdm->dev, "Audio processing failed: %d\n", ret);
-+                /* Do not return error, continue without processing */
-+            }
 +        }
 +        
 +        dev_dbg(i2s_tdm->dev, "Processed %lu bytes for playback\n", bytes);
@@ -4887,18 +4063,18 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    .rate_max = 22579200,  /* DSD512 support (22.5792 MHz) */
 +    .channels_min = 2,
 +    .channels_max = 16,
-+    .buffer_bytes_max = 512 * 1024,
-+    .period_bytes_min = 64,
-+    .period_bytes_max = 64 * 1024,
-+    .periods_min = 2,
++    .buffer_bytes_max = 1024 * 1024,  /* 1MB maximum for ultimate stability */
++    .period_bytes_min = 8192,         
++    .period_bytes_max = 64 * 1024,    /* 64KB maximum for deep buffering */
++    .periods_min = 16,                
 +    .periods_max = 512,
-+    .fifo_size = 16,
++    .fifo_size = 512,  /* Increased from 256 to 512 for maximum buffering on single-core ARM */
 +};
 +
 +static const struct snd_dmaengine_pcm_config rockchip_i2s_tdm_dmaengine_pcm_config = {
 +    .pcm_hardware = &rockchip_i2s_tdm_pcm_hardware,
 +    .prepare_slave_config = snd_dmaengine_pcm_prepare_slave_config,
-+    .prealloc_buffer_size = 512 * 1024,
++    .prealloc_buffer_size = 1024 * 1024,  /* 1MB preallocation for ultimate stability */
 +};
 +
 +/* Component probe function to set driver data */
@@ -4931,71 +4107,53 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    return snd_pcm_lib_ioctl(substream, cmd, arg);
 +}
 +
++
 +/* Component with copy callbacks support */
 +static const struct snd_soc_component_driver rockchip_i2s_tdm_component_with_copy = {
 +    .name = DRV_NAME,
 +    .probe = rockchip_i2s_tdm_component_probe,
 +    .controls = rockchip_i2s_tdm_snd_controls,
 +    .num_controls = ARRAY_SIZE(rockchip_i2s_tdm_snd_controls),
-+    .copy_user = rockchip_i2s_tdm_pcm_copy_user,
++    .copy_user = rockchip_i2s_tdm_pcm_copy_user, /* DSD processing + simple volume */
 +    .ioctl = rockchip_i2s_tdm_pcm_ioctl,
-+};
-+
-+/* Updated probe function with audiophile functions initialization */
+ };
+ 
  static int rockchip_i2s_tdm_dai_probe(struct snd_soc_dai *dai)
  {
 -	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
 +    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
 +    int ret;
- 
--	dai->capture_dma_data = &i2s_tdm->capture_dma_data;
--	dai->playback_dma_data = &i2s_tdm->playback_dma_data;
++
 +    dai->capture_dma_data = &i2s_tdm->capture_dma_data;
 +    dai->playback_dma_data = &i2s_tdm->playback_dma_data;
  
+-	dai->capture_dma_data = &i2s_tdm->capture_dma_data;
+-	dai->playback_dma_data = &i2s_tdm->playback_dma_data;
++    dev_info(i2s_tdm->dev, "Audiophile processing DISABLED - using standard ALSA\n");
+ 
 -	if (i2s_tdm->mclk_calibrate)
 -		snd_soc_add_dai_controls(dai, &rockchip_i2s_tdm_compensation_control, 1);
-+    /* Initialize audiophile processing */
-+    ret = rockchip_audiophile_init(i2s_tdm);
-+    if (ret) {
-+        dev_err(i2s_tdm->dev, "Failed to initialize audiophile processor: %d\n", ret);
-+        return ret;
-+    }
-+    
-+    /* Initialize volume */
-+    rockchip_audiophile_update_volume(i2s_tdm);
-+    dev_info(i2s_tdm->dev, "Audiophile processing enabled with copy callbacks\n");
-+
 +    if (i2s_tdm->mclk_calibrate) {
 +        ret = snd_soc_add_dai_controls(dai, &rockchip_i2s_tdm_compensation_control, 1);
 +        if (ret)
 +            dev_err(i2s_tdm->dev, "Failed to add compensation control: %d\n", ret);
 +    }
 +
-+    /* Main controls */
 +    ret = snd_soc_add_dai_controls(dai, &rockchip_i2s_tdm_volume_control, 1);
 +    if (ret)
 +        dev_err(i2s_tdm->dev, "Failed to add volume control: %d\n", ret);
 +    else
-+        dev_info(i2s_tdm->dev, "Audiophile volume control added successfully\n");
++        dev_info(i2s_tdm->dev, "Basic volume control added (no processing)\n");
 +
 +    ret = snd_soc_add_dai_controls(dai, &rockchip_i2s_tdm_mute_control, 1);
 +    if (ret)
 +        dev_err(i2s_tdm->dev, "Failed to add mute control: %d\n", ret);
 +    else {
-+        dev_info(i2s_tdm->dev, "Audiophile mute control added successfully\n");
-+        /* Save pointers for sysfs synchronization */
++        dev_info(i2s_tdm->dev, "Basic mute control added (no processing)\n");
++        /* Save pointers for automute system */
 +        i2s_tdm->mute_kcontrol = snd_soc_card_get_kcontrol(dai->component->card, rockchip_i2s_tdm_mute_control.name);
 +        i2s_tdm->dai = dai;
 +    }
-+
-+    /* Audiophile controls */
-+    ret = snd_soc_add_dai_controls(dai, rockchip_i2s_tdm_audiophile_controls,
-+                                  ARRAY_SIZE(rockchip_i2s_tdm_audiophile_controls));
-+    if (ret)
-+        dev_err(i2s_tdm->dev, "Failed to add audiophile controls: %d\n", ret);
-+    else
-+        dev_info(i2s_tdm->dev, "Audiophile controls added successfully\n");
  
 -	return 0;
 +    return 0;
@@ -5046,21 +4204,21 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
  {
 -	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
 +    struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
-+
-+    if (i2s_tdm->substreams[substream->stream])
-+    return -EBUSY;
  
 -	if (i2s_tdm->substreams[substream->stream])
 -		return -EBUSY;
-+    i2s_tdm->substreams[substream->stream] = substream;
++    if (i2s_tdm->substreams[substream->stream])
++    return -EBUSY;
  
 -	i2s_tdm->substreams[substream->stream] = substream;
++    i2s_tdm->substreams[substream->stream] = substream;
+ 
+-	return 0;
 +    /* Export DSD rates for userspace applications like RoonReady */
 +    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 +        dev_info(i2s_tdm->dev, "DSD support available: 2.8M, 5.6M, 11.2M, 22.5M Hz\n");
 +    }
- 
--	return 0;
++
 +    return 0;
  }
  
@@ -5903,12 +5061,12 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    }
 +
 +    if (val & I2S_INTSR_RXOI_ACT) {
-+    dev_warn_ratelimited(i2s_tdm->dev, "RX FIFO Overrun\n");
-+    regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
-+       I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
-+    substream = i2s_tdm->substreams[SNDRV_PCM_STREAM_CAPTURE];
-+    if (substream)
-+        snd_pcm_stop_xrun(substream);
++        /* Silently clear RX FIFO Overrun for external clock mode
++         * RX is used only for clock sync at high sample rates (192kHz)
++         * Suppress logging to reduce CPU overhead */
++        regmap_update_bits(i2s_tdm->regmap, I2S_INTCR,
++           I2S_INTCR_RXOIC, I2S_INTCR_RXOIC);
++        /* Don't stop capture stream for external clock sync mode */
 +    }
  
 -	return IRQ_HANDLED;
@@ -6114,8 +5272,23 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -		i2s_tdm->tx_reset_id = of_i2s_resetid_get(node, "tx-m");
 -		i2s_tdm->rx_reset_id = of_i2s_resetid_get(node, "rx-m");
 -	}
--#endif
--
++    sync = of_device_is_compatible(node, "rockchip,px30-i2s-tdm") ||
++           of_device_is_compatible(node, "rockchip,rk1808-i2s-tdm") ||
++           of_device_is_compatible(node, "rockchip,rk3308-i2s-tdm");
++
++    if (i2s_tdm->clk_trcm && sync) {
++    struct device_node *cru_node;
++
++    cru_node = of_parse_phandle(node, "rockchip,cru", 0);
++    i2s_tdm->cru_base = of_iomap(cru_node, 0);
++    if (!i2s_tdm->cru_base)
++        return -ENOENT;
++
++    i2s_tdm->tx_reset_id = of_i2s_resetid_get(node, "tx-m");
++    i2s_tdm->rx_reset_id = of_i2s_resetid_get(node, "rx-m");
++    }
+ #endif
+ 
 -	i2s_tdm->tx_reset = devm_reset_control_get(&pdev->dev, "tx-m");
 -	if (IS_ERR(i2s_tdm->tx_reset)) {
 -		ret = PTR_ERR(i2s_tdm->tx_reset);
@@ -6145,8 +5318,37 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -	i2s_tdm->mclk_rx = devm_clk_get(&pdev->dev, "mclk_rx");
 -	if (IS_ERR(i2s_tdm->mclk_rx))
 -		return PTR_ERR(i2s_tdm->mclk_rx);
--
--//+++
++    i2s_tdm->tx_reset = devm_reset_control_get(&pdev->dev, "tx-m");
++    if (IS_ERR(i2s_tdm->tx_reset)) {
++    ret = PTR_ERR(i2s_tdm->tx_reset);
++    if (ret != -ENOENT)
++        return ret;
++    }
++
++    i2s_tdm->rx_reset = devm_reset_control_get(&pdev->dev, "rx-m");
++    if (IS_ERR(i2s_tdm->rx_reset)) {
++    ret = PTR_ERR(i2s_tdm->rx_reset);
++    if (ret != -ENOENT)
++        return ret;
++    }
++
++    i2s_tdm->hclk = devm_clk_get(&pdev->dev, "hclk");
++    if (IS_ERR(i2s_tdm->hclk))
++    return PTR_ERR(i2s_tdm->hclk);
++
++    ret = clk_prepare_enable(i2s_tdm->hclk);
++    if (ret)
++    return ret;
++
++    i2s_tdm->mclk_tx = devm_clk_get(&pdev->dev, "mclk_tx");
++    if (IS_ERR(i2s_tdm->mclk_tx))
++    return PTR_ERR(i2s_tdm->mclk_tx);
++
++    i2s_tdm->mclk_rx = devm_clk_get(&pdev->dev, "mclk_rx");
++    if (IS_ERR(i2s_tdm->mclk_rx))
++    return PTR_ERR(i2s_tdm->mclk_rx);
+ 
+ //+++
 -	//+++c
 -	i2s_tdm->hclk_root_f = 0;
 -	i2s_tdm->hclk_root_f =
@@ -6203,55 +5405,9 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -			}
 -		}
 -	}
-+    sync = of_device_is_compatible(node, "rockchip,px30-i2s-tdm") ||
-+           of_device_is_compatible(node, "rockchip,rk1808-i2s-tdm") ||
-+           of_device_is_compatible(node, "rockchip,rk3308-i2s-tdm");
-+
-+    if (i2s_tdm->clk_trcm && sync) {
-+    struct device_node *cru_node;
-+
-+    cru_node = of_parse_phandle(node, "rockchip,cru", 0);
-+    i2s_tdm->cru_base = of_iomap(cru_node, 0);
-+    if (!i2s_tdm->cru_base)
-+        return -ENOENT;
-+
-+    i2s_tdm->tx_reset_id = of_i2s_resetid_get(node, "tx-m");
-+    i2s_tdm->rx_reset_id = of_i2s_resetid_get(node, "rx-m");
-+    }
-+#endif
- 
+-
 -	i2s_tdm->dcount = 0;
-+    i2s_tdm->tx_reset = devm_reset_control_get(&pdev->dev, "tx-m");
-+    if (IS_ERR(i2s_tdm->tx_reset)) {
-+    ret = PTR_ERR(i2s_tdm->tx_reset);
-+    if (ret != -ENOENT)
-+        return ret;
-+    }
-+
-+    i2s_tdm->rx_reset = devm_reset_control_get(&pdev->dev, "rx-m");
-+    if (IS_ERR(i2s_tdm->rx_reset)) {
-+    ret = PTR_ERR(i2s_tdm->rx_reset);
-+    if (ret != -ENOENT)
-+        return ret;
-+    }
-+
-+    i2s_tdm->hclk = devm_clk_get(&pdev->dev, "hclk");
-+    if (IS_ERR(i2s_tdm->hclk))
-+    return PTR_ERR(i2s_tdm->hclk);
-+
-+    ret = clk_prepare_enable(i2s_tdm->hclk);
-+    if (ret)
-+    return ret;
-+
-+    i2s_tdm->mclk_tx = devm_clk_get(&pdev->dev, "mclk_tx");
-+    if (IS_ERR(i2s_tdm->mclk_tx))
-+    return PTR_ERR(i2s_tdm->mclk_tx);
-+
-+    i2s_tdm->mclk_rx = devm_clk_get(&pdev->dev, "mclk_rx");
-+    if (IS_ERR(i2s_tdm->mclk_rx))
-+    return PTR_ERR(i2s_tdm->mclk_rx);
- 
- //+++
+-
 +    i2s_tdm->mclk_external = 0;
 +    i2s_tdm->mclk_external =
 +    of_property_read_bool(node, "my,mclk_external");
@@ -6270,12 +5426,15 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +        }
 +    }
 +    }
-+//+++
+ //+++
  
 -	i2s_tdm->io_multiplex =
 -		of_property_read_bool(node, "rockchip,io-multiplex");
 +    i2s_tdm->io_multiplex =
 +    of_property_read_bool(node, "rockchip,io-multiplex");
++
++    i2s_tdm->mclk_calibrate =
++    of_property_read_bool(node, "rockchip,mclk-calibrate");
  
 -	i2s_tdm->mclk_calibrate = 0;
 -		//of_property_read_bool(node, "rockchip,mclk-calibrate");
@@ -6412,10 +5571,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -		dev_err(&pdev->dev, "Could not register PCM\n");
 -		return ret;
 -	}
-+    i2s_tdm->mclk_calibrate =
-+    of_property_read_bool(node, "rockchip,mclk-calibrate");
- 
--	return 0;
 +    if (i2s_tdm->mclk_calibrate) {
 +    i2s_tdm->mclk_tx_src = devm_clk_get(&pdev->dev, "mclk_tx_src");
 +    if (IS_ERR(i2s_tdm->mclk_tx_src))
@@ -6546,7 +5701,6 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +    if (i2s_tdm->soc_data && i2s_tdm->soc_data->init)
 +    i2s_tdm->soc_data->init(&pdev->dev, res->start);
 +
-+    /* Try to register component with audiophile processing support */
 +    ret = devm_snd_soc_register_component(&pdev->dev,
 +              &rockchip_i2s_tdm_component_with_copy,
 +              soc_dai, 1);
@@ -6631,7 +5785,8 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +        dev_err(&pdev->dev, "Failed to create mute sysfs attribute: %d\n", ret);
 +        /* Not critical, continue */
 +    }
-+
+ 
+-	return 0;
 +    return 0;
  
  err_suspend:
@@ -6717,19 +5872,19 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 -	int ret;
 +    struct rk_i2s_tdm_dev *i2s_tdm = dev_get_drvdata(dev);
 +    int ret;
-+
-+    ret = pm_runtime_get_sync(dev);
-+    if (ret < 0)
-+    return ret;
  
 -	ret = pm_runtime_get_sync(dev);
 -	if (ret < 0)
 -		return ret;
 -	ret = regcache_sync(i2s_tdm->regmap);
 -	pm_runtime_put(dev);
-+    ret = regcache_sync(i2s_tdm->regmap);
++    ret = pm_runtime_get_sync(dev);
++    if (ret < 0)
++    return ret;
  
 -	return ret;
++    ret = regcache_sync(i2s_tdm->regmap);
++
 +    pm_runtime_put(dev);
 +
 +    return ret;
@@ -6768,11 +5923,25 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 +
  module_platform_driver(rockchip_i2s_tdm_driver);
  
--MODULE_DESCRIPTION("ROCKCHIP I2S/TDM ASoC Interface");
-+MODULE_DESCRIPTION("ROCKCHIP I2S/TDM ASoC Interface with Fixed-Point Audiophile Enhancement");
+ MODULE_DESCRIPTION("ROCKCHIP I2S/TDM ASoC Interface");
  MODULE_AUTHOR("Sugar Zhang <sugar.zhang@rock-chips.com>");
  MODULE_LICENSE("GPL v2");
  MODULE_ALIAS("platform:" DRV_NAME);
 -MODULE_DEVICE_TABLE(of, rockchip_i2s_tdm_match);
 +MODULE_DEVICE_TABLE(of, rockchip_i2s_tdm_match);
 \ No newline at end of file
+diff -Naur original_dir/sound/usb/pcm.c modified_dir/sound/usb/pcm.c
+--- original_dir/sound/usb/pcm.c	2025-07-13 23:11:14.000000000 +0300
++++ modified_dir/sound/usb/pcm.c	2025-09-19 17:10:28.267588426 +0300
+@@ -1140,9 +1140,9 @@
+ 				SNDRV_PCM_INFO_BLOCK_TRANSFER |
+ 				SNDRV_PCM_INFO_PAUSE,
+ 	.buffer_bytes_max =	1024 * 1024,
+-	.period_bytes_min =	64,
++	.period_bytes_min =	8192,
+ 	.period_bytes_max =	512 * 1024,
+-	.periods_min =		2,
++	.periods_min =		8,
+ 	.periods_max =		1024,
+ };
+ 
