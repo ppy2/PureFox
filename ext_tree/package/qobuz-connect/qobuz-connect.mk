@@ -12,7 +12,7 @@ QOBUZ_CONNECT_DEPENDENCIES = alsa-lib avahi civetweb openssl
 
 define QOBUZ_CONNECT_BUILD_CMDS
 	# Create civetweb library manually since buildroot doesn't install it to staging
-	cd $(BUILD_DIR)/civetweb-1.16 && $(MAKE) lib
+	cd $(BUILD_DIR)/civetweb-1.16 && $(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" AR="$(TARGET_AR)" lib
 	$(INSTALL) -D -m 644 $(BUILD_DIR)/civetweb-1.16/libcivetweb.a $(STAGING_DIR)/usr/lib/
 	$(INSTALL) -D -m 644 $(BUILD_DIR)/civetweb-1.16/include/civetweb.h $(STAGING_DIR)/usr/include/
 	
