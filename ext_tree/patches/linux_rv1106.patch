@@ -5932,7 +5932,7 @@ diff -Naur original_dir/sound/soc/rockchip/rockchip_i2s_tdm.c modified_dir/sound
 \ No newline at end of file
 diff -Naur original_dir/sound/usb/pcm.c modified_dir/sound/usb/pcm.c
 --- original_dir/sound/usb/pcm.c	2025-07-13 23:11:14.000000000 +0300
-+++ modified_dir/sound/usb/pcm.c	2025-09-19 17:10:28.267588426 +0300
++++ modified_dir/sound/usb/pcm.c	2025-09-21 19:45:36.539129013 +0300
 @@ -1140,9 +1140,9 @@
  				SNDRV_PCM_INFO_BLOCK_TRANSFER |
  				SNDRV_PCM_INFO_PAUSE,

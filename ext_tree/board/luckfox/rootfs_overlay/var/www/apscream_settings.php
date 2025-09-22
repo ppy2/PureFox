@@ -141,7 +141,7 @@ header('Content-Type: text/html; charset=UTF-8');
             <option value="0">0 - Disabled</option>
             <option value="1">1 - Enabled</option>
           </select>
-          <div class="help-text">TCP mode status (read-only)</div>
+          <div class="help-text">TCP mode (temporary disabled)</div>
         </div>
 
         <div class="form-group">
