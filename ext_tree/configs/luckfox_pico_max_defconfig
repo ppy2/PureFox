@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -g542ba998-dirty Configuration
+# Buildroot -g5a702b7d-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -4527,7 +4527,7 @@ BR2_TARGET_UBOOT_CUSTOM_PATCH_DIR=""
 #
 
 #
-# external BR tree for Luckfox Pico Max (in /home/ultra/PureFox-beta/ext_tree)
+# external BR tree for Luckfox Pico Max (in /opt/PureFox/ext_tree)
 #
 
 #
@@ -4539,11 +4539,7 @@ BR2_PACKAGE_NAA=y
 BR2_PACKAGE_ROONREADY=y
 BR2_PACKAGE_LIBRESPOT=y
 BR2_PACKAGE_APSCREAM=y
-BR2_PACKAGE_SCREAM=y
 BR2_PACKAGE_TIDALCONNECT=y
-BR2_PACKAGE_QOBUZ_CONNECT=y
+# BR2_PACKAGE_QOBUZ_CONNECT is not set
 BR2_PACKAGE_SQUEEZELITER2=y
-BR2_PACKAGE_S2MONO=y
-# BR2_PACKAGE_QOBUZ_CPU_FIX is not set
-# BR2_PACKAGE_ALSA_WRAPPER is not set
 BR2_PACKAGE_STATUS_MONITOR=y

@@ -73,6 +73,13 @@ header('Content-Type: text/html; charset=UTF-8');
         box-sizing: border-box;
     }
     
+    .form-group select:disabled {
+        background: #1a1a1a;
+        color: #888;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    
     .help-text {
         font-size: 11px;
         color: #aaa;
@@ -130,11 +137,11 @@ header('Content-Type: text/html; charset=UTF-8');
 
         <div class="form-group">
           <label for="tcp-mode">TCP_MODE:</label>
-          <select id="tcp-mode" name="TCP_MODE">
+          <select id="tcp-mode" name="TCP_MODE" disabled>
             <option value="0">0 - Disabled</option>
             <option value="1">1 - Enabled</option>
           </select>
-          <div class="help-text">Enable/disable TCP mode</div>
+          <div class="help-text">TCP mode (temporary disabled)</div>
         </div>
 
         <div class="form-group">
