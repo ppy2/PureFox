@@ -499,7 +499,7 @@ $current_dsd_swap = $config['dsd_swap'];
             width: 40px;
             height: 40px;
             border: 4px solid #3d3d3d;
-            border-top: 4px solid #e0e0e0;
+            border-top: 4px solid #5D636B;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;

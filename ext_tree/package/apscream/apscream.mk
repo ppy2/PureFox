@@ -5,7 +5,7 @@
 ################################################################################
 
 APSCREAM_SITE = https://albumplayer.ru
-APSCREAM_SOURCE = asioscream4.zip
+APSCREAM_SOURCE = asioscream3.zip
 
 define APSCREAM_EXTRACT_CMDS
     $(UNZIP) -j $(APSCREAM_DL_DIR)/$(APSCREAM_SOURCE) \

@@ -1,0 +1,4 @@
+config BR2_PACKAGE_RASPOTIFY
+    bool "raspotify"
+    help
+      Raspotify – это клиент Spotify Connect, основанный на librespot.

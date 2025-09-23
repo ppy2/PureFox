@@ -1,0 +1,83 @@
+--- a/sample_console_app/media/sink/alsa/volume_manager.c
++++ b/sample_console_app/media/sink/alsa/volume_manager.c
+@@ -51,6 +51,67 @@ static long qbz_volume_to_alsa_volume(uint32_t volume, long min, long max);
+ static bool volume_manager_get_volume_and_mute_state(VolumeManager* self, uint32_t* volume, bool* mute);
+ static bool volume_manager_changed_handler(VolumeManager* self);
+ 
++/* Global static strings for volume element names */
++static const char* PCM_ELEMENT = "PCM";
++static const char* SPEAKER_ELEMENT = "Speaker";  
++static const char* MASTER_ELEMENT = "Master";
++static const char* HEADPHONE_ELEMENT = "Headphone";
++static const char* DIGITAL_ELEMENT = "Digital";
++
++/* Auto-detect volume control element */
++static const char* auto_detect_volume_element(const char* device_name) {
++	snd_mixer_t* mixer = NULL;
++	int rc;
++	
++	LOG_INFO("Auto-detecting volume element for device: %s", device_name);
++	
++	/* Try to open mixer */
++	rc = snd_mixer_open(&mixer, 0);
++	if (rc < 0) {
++		LOG_ERROR("Failed to open mixer: %s", snd_strerror(rc));
++		return MASTER_ELEMENT;  // fallback
++	}
++	
++	rc = snd_mixer_attach(mixer, device_name);
++	if (rc < 0) {
++		LOG_ERROR("Failed to attach mixer to device %s: %s", device_name, snd_strerror(rc));
++		snd_mixer_close(mixer);
++		return MASTER_ELEMENT;  // fallback
++	}
++	
++	rc = snd_mixer_selem_register(mixer, NULL, NULL);
++	if (rc < 0) {
++		LOG_ERROR("Failed to register mixer elements: %s", snd_strerror(rc));
++		snd_mixer_close(mixer);
++		return MASTER_ELEMENT;  // fallback
++	}
++	
++	rc = snd_mixer_load(mixer);
++	if (rc < 0) {
++		LOG_ERROR("Failed to load mixer: %s", snd_strerror(rc));
++		snd_mixer_close(mixer);
++		return MASTER_ELEMENT;  // fallback
++	}
++	
++	/* Search for suitable volume elements in order of preference */
++	const char* candidates[] = {PCM_ELEMENT, SPEAKER_ELEMENT, MASTER_ELEMENT, HEADPHONE_ELEMENT, DIGITAL_ELEMENT, NULL};
++	
++	for (int i = 0; candidates[i] != NULL; i++) {
++		snd_mixer_selem_id_t* sid;
++		snd_mixer_selem_id_alloca(&sid);
++		snd_mixer_selem_id_set_name(sid, candidates[i]);
++		snd_mixer_elem_t* elem = snd_mixer_find_selem(mixer, sid);
++		
++		if (elem && snd_mixer_selem_has_playback_volume(elem) && snd_mixer_selem_has_playback_switch(elem)) {
++			LOG_INFO("Auto-detected volume element: %s", candidates[i]);
++			snd_mixer_close(mixer);
++			return candidates[i];
++		}
++	}
++	
++	snd_mixer_close(mixer);
++	LOG_WARNING("No suitable volume element found, using Master");
++	return MASTER_ELEMENT;
++}
++
+ VolumeManager* volume_manager_new(
+ 	uv_loop_t* event_loop,
+ 	const char* device_name,
+@@ -67,6 +128,11 @@ VolumeManager* volume_manager_new(
+ 	VolumeManager* self = calloc(1, sizeof(VolumeManager));
+ 	assert(self);
+ 
++	/* Auto-detect volume element if not specified */
++	if (element_name == NULL) {
++		element_name = auto_detect_volume_element(device_name);
++	}
++
+ 	self->event_loop = event_loop;
+ 	self->delegate = delegate;

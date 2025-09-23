@@ -1,0 +1,11 @@
+--- a/sample_console_app/sample_app.c
++++ b/sample_console_app/sample_app.c
+@@ -195,7 +195,7 @@ int main(int argc, char** argv)
+ 	const char* serial_number = "Serial-1234";
+ 	const char* output_device = "plug:default";
+ 	const char* volume_device = "default";
+-	const char* volume_element = "Master";
++	const char* volume_element = NULL;  // Auto-detect
+ 
+ 	bool autodetect_max_supported_audio_quality = true;
+ 	QbzAudioQuality max_supported_audio_quality = QBZ_AUDIO_QUALITY_HI_RES_LEVEL_3;

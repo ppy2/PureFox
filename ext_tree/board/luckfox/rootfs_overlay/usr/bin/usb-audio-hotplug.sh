@@ -1,4 +1,4 @@
-#!/bin/sh
+#\!/bin/sh
 
 ACTION="$1"
 DEVICE="$2"
@@ -14,9 +14,12 @@ case "$ACTION" in
         # USB audio device connected
         echo "USB audio device connected: $DEVICE" | logger -t usb-audio
         sleep 1
-        # Restart audio services
+        # Restart only the currently active audio service
         for service in /etc/init.d/S95*; do
-            [ -x "$service" ] && "$service" restart &
+            if [ -x "$service" ]; then
+                echo "Restarting active audio service: $(basename $service)" | logger -t usb-audio
+                "$service" restart &
+            fi
         done
         ;;
     remove)

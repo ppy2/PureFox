@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <errno.h>
 #include <alsa/asoundlib.h>
 #include <dbus/dbus.h>
 
@@ -293,7 +294,10 @@ void check_usb_controls(int* volume_available, int* mute_available) {
 // Update JSON file
 void update_status_file() {
     FILE *fp = fopen(STATUS_FILE, "w");
-    if (!fp) return;
+    if (!fp) {
+        printf("ERROR: Cannot open %s for writing: %s\n", STATUS_FILE, strerror(errno));
+        return;
+    }
     
     fprintf(fp, "{\n");
     fprintf(fp, "  \"active_service\": \"%s\",\n", current_status.active_service);

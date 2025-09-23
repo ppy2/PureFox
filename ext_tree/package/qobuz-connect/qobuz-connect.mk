@@ -4,15 +4,16 @@
 #
 ################################################################################
 
-QOBUZ_CONNECT_VERSION = main
-QOBUZ_CONNECT_SITE = https://github.com/ppy2/qobuz-connect-purefox.git
-QOBUZ_CONNECT_SITE_METHOD = git
+QOBUZ_CONNECT_VERSION = 1.0.0
+QOBUZ_CONNECT_SITE_METHOD = local
+QOBUZ_CONNECT_SITE = /opt/qobuz-connect-sdk-purefox-armhf-v$(QOBUZ_CONNECT_VERSION)
 QOBUZ_CONNECT_LICENSE = Proprietary
 QOBUZ_CONNECT_DEPENDENCIES = alsa-lib avahi civetweb openssl
+# Fixes applied directly to source files in /opt/qobuz-connect-sdk-purefox-armhf-v1.0.0/
 
 define QOBUZ_CONNECT_BUILD_CMDS
 	# Create civetweb library manually since buildroot doesn't install it to staging
-	cd $(BUILD_DIR)/civetweb-1.16 && $(TARGET_MAKE_ENV) $(MAKE) CC="$(TARGET_CC)" AR="$(TARGET_AR)" lib
+	cd $(BUILD_DIR)/civetweb-1.16 && $(MAKE) lib
 	$(INSTALL) -D -m 644 $(BUILD_DIR)/civetweb-1.16/libcivetweb.a $(STAGING_DIR)/usr/lib/
 	$(INSTALL) -D -m 644 $(BUILD_DIR)/civetweb-1.16/include/civetweb.h $(STAGING_DIR)/usr/include/
 	
@@ -35,12 +36,12 @@ define QOBUZ_CONNECT_INSTALL_TARGET_CMDS
 	$(INSTALL) -d $(TARGET_DIR)/opt/qobuz-connect
 	$(INSTALL) -m 755 $(@D)/build/qobuz_connect_sample_app $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
 	$(INSTALL) -d $(TARGET_DIR)/usr/lib
-	$(INSTALL) -m 755 $(@D)/sdk/lib/libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/
+	$(INSTALL) -m 755 $(QOBUZ_CONNECT_SITE)/sdk/lib/libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/
 	ln -sf libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/libqobuz_connect.so
-	$(INSTALL) -m 755 $(@D)/third_party/libcjson/lib/libcjson.so.1.7.13 $(TARGET_DIR)/usr/lib/
+	$(INSTALL) -m 755 $(QOBUZ_CONNECT_SITE)/third_party/libcjson/lib/libcjson.so.1.7.13 $(TARGET_DIR)/usr/lib/
 	ln -sf libcjson.so.1.7.13 $(TARGET_DIR)/usr/lib/libcjson.so.1
 	ln -sf libcjson.so.1 $(TARGET_DIR)/usr/lib/libcjson.so
-	$(INSTALL) -m 755 $(@D)/third_party/libuv/lib/libuv.so.1.0.0 $(TARGET_DIR)/usr/lib/
+	$(INSTALL) -m 755 $(QOBUZ_CONNECT_SITE)/third_party/libuv/lib/libuv.so.1.0.0 $(TARGET_DIR)/usr/lib/
 	ln -sf libuv.so.1.0.0 $(TARGET_DIR)/usr/lib/libuv.so.1
 	ln -sf libuv.so.1 $(TARGET_DIR)/usr/lib/libuv.so
 endef

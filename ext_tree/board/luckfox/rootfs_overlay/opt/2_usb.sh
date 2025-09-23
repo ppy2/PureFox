@@ -12,3 +12,6 @@ else
     echo "Service S95* not found, skipping restart"
 fi
 
+/etc/init.d/S99statusmonitor restart &
+exit
+
