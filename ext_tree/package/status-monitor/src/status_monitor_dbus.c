@@ -162,7 +162,6 @@ int check_usb_dac() {
 // ALSA API for reading volume
 void get_volume_status_alsa(char* volume, int* muted) {
     snd_mixer_t *handle;
-    snd_mixer_selem_id_t *sid;
     snd_mixer_elem_t *elem;
     long min, max, val;
     int switch_val;
@@ -189,10 +188,8 @@ void get_volume_status_alsa(char* volume, int* muted) {
     for (elem = snd_mixer_first_elem(handle); elem; elem = snd_mixer_elem_next(elem)) {
         if (snd_mixer_selem_is_active(elem) && snd_mixer_selem_has_playback_volume(elem)) {
             const char *name = snd_mixer_selem_get_name(elem);
-            // Prefer PCM, Master, or any volume-named control
-            if (name && (strcmp(name, "PCM") == 0 || strcmp(name, "Master") == 0 || 
-                        strstr(name, "volume") != NULL || strstr(name, "Volume") != NULL ||
-                        strstr(name, "playback") != NULL || strstr(name, "Playback") != NULL)) {
+            // Check actual capabilities - any control with playback volume is valid
+            if (snd_mixer_selem_has_playback_volume(elem)) {
                 break;
             }
         }

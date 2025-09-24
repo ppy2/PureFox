@@ -24,22 +24,32 @@ function getWorkingVolumeControl() {
                 // Skip if already in high priority
                 if (in_array($control_name, $high_priority)) continue;
                 
-                // High priority: contains "volume" or ends with "playback volume"
-                if (strpos($name_lower, 'volume') !== false) {
-                    $high_priority[] = $control_name;
-                }
-                // Medium priority: main output controls
-                elseif (strpos($name_lower, 'playback') !== false ||
-                        strpos($name_lower, 'master') !== false ||
-                        strpos($name_lower, 'speaker') !== false ||
-                        strpos($name_lower, 'headphone') !== false) {
-                    $medium_priority[] = $control_name;
-                }
-                // Low priority: DAC-specific or other controls
-                elseif (strpos($name_lower, 'dac') !== false ||
-                        strpos($name_lower, 'output') !== false ||
-                        strpos($name_lower, 'digital') !== false) {
-                    $low_priority[] = $control_name;
+                // Check actual capabilities using amixer sget, not just name
+                exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control_name . '" 2>/dev/null', $control_output, $control_code);
+                if ($control_code === 0 && !empty($control_output)) {
+                    $control_text = implode(' ', $control_output);
+                    
+                    // High priority: has volume capabilities
+                    if (preg_match('/\[(\d+%|\d+dB)\]/', $control_text)) {
+                        $high_priority[] = $control_name;
+                    }
+                    // Also check by name patterns
+                    elseif (strpos($name_lower, 'volume') !== false) {
+                        $high_priority[] = $control_name;
+                    }
+                    // Medium priority: main output controls
+                    elseif (strpos($name_lower, 'playback') !== false ||
+                            strpos($name_lower, 'master') !== false ||
+                            strpos($name_lower, 'speaker') !== false ||
+                            strpos($name_lower, 'headphone') !== false) {
+                        $medium_priority[] = $control_name;
+                    }
+                    // Low priority: DAC-specific or other controls  
+                    elseif (strpos($name_lower, 'dac') !== false ||
+                            strpos($name_lower, 'output') !== false ||
+                            strpos($name_lower, 'digital') !== false) {
+                        $low_priority[] = $control_name;
+                    }
                 }
             }
         }
@@ -90,16 +100,14 @@ function getWorkingMuteControl() {
         foreach ($controls as $control_line) {
             if (preg_match("/Simple mixer control '([^']+)',/", $control_line, $control_matches)) {
                 $control_name = $control_matches[1];
-                // Look for mute/switch controls
+                // Optimized mute control search
                 $name_lower = strtolower($control_name);
-                if (strpos($name_lower, 'switch') !== false ||
-                    strpos($name_lower, 'mute') !== false ||
+                if ($name_lower === 'pcm' || $name_lower === 'master' || 
+                    $name_lower === 'speaker' || $name_lower === 'headphone' || 
+                    $name_lower === 'dac' || $name_lower === 'audio' ||
+                    strpos($name_lower, 'switch') !== false ||
                     strpos($name_lower, 'playback') !== false ||
                     strpos($name_lower, 'volume') !== false ||
-                    strpos($name_lower, 'master') !== false ||
-                    strpos($name_lower, 'speaker') !== false ||
-                    strpos($name_lower, 'headphone') !== false ||
-                    strpos($name_lower, 'dac') !== false ||
                     !in_array($control_name, $mute_controls)) {
                     $mute_controls[] = $control_name;
                 }
@@ -154,14 +162,13 @@ switch ($action) {
             foreach ($controls as $control_line) {
                 if (preg_match("/Simple mixer control '([^']+)',/", $control_line, $control_matches)) {
                     $control_name = $control_matches[1];
-                    // Case-insensitive search for volume-related keywords (NOT switch - that's mute)
+                    // Optimized volume control search
                     $name_lower = strtolower($control_name);
-                    if (strpos($name_lower, 'volume') !== false || 
+                    if ($name_lower === 'pcm' || $name_lower === 'master' || 
+                        $name_lower === 'speaker' || $name_lower === 'headphone' || 
+                        $name_lower === 'dac' || $name_lower === 'audio' ||
+                        strpos($name_lower, 'volume') !== false || 
                         strpos($name_lower, 'playback') !== false ||
-                        strpos($name_lower, 'master') !== false ||
-                        strpos($name_lower, 'speaker') !== false ||
-                        strpos($name_lower, 'headphone') !== false ||
-                        strpos($name_lower, 'dac') !== false ||
                         !in_array($control_name, $volume_controls)) {
                         $volume_controls[] = $control_name;
                     }
