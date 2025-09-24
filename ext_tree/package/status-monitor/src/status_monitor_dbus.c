@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -163,7 +162,6 @@ int check_usb_dac() {
 // ALSA API for reading volume
 void get_volume_status_alsa(char* volume, int* muted) {
     snd_mixer_t *handle;
-    snd_mixer_selem_id_t *sid;
     snd_mixer_elem_t *elem;
     long min, max, val;
     int switch_val;
@@ -190,13 +188,8 @@ void get_volume_status_alsa(char* volume, int* muted) {
     for (elem = snd_mixer_first_elem(handle); elem; elem = snd_mixer_elem_next(elem)) {
         if (snd_mixer_selem_is_active(elem) && snd_mixer_selem_has_playback_volume(elem)) {
             const char *name = snd_mixer_selem_get_name(elem);
-            // Prefer PCM, Master, or any audio control-named control (case-insensitive)
-            if (name && (strcasecmp(name, "PCM") == 0 || strcasecmp(name, "Master") == 0 || 
-                        strcasestr(name, "volume") != NULL || strcasestr(name, "playback") != NULL ||
-                        strcasestr(name, "switch") != NULL || strcasestr(name, "speaker") != NULL ||
-                        strcasestr(name, "headphone") != NULL || strcasestr(name, "dac") != NULL ||
-                        strcasestr(name, "digital") != NULL || strcasestr(name, "analog") != NULL ||
-                        strcasestr(name, "usb") != NULL || strcasestr(name, "audio") != NULL)) {
+            // Check actual capabilities - any control with playback volume is valid
+            if (snd_mixer_selem_has_playback_volume(elem)) {
                 break;
             }
         }
@@ -298,7 +291,10 @@ void check_usb_controls(int* volume_available, int* mute_available) {
 // Update JSON file
 void update_status_file() {
     FILE *fp = fopen(STATUS_FILE, "w");
-    if (!fp) return;
+    if (!fp) {
+        printf("ERROR: Cannot open %s for writing: %s\n", STATUS_FILE, strerror(errno));
+        return;
+    }
     
     fprintf(fp, "{\n");
     fprintf(fp, "  \"active_service\": \"%s\",\n", current_status.active_service);
