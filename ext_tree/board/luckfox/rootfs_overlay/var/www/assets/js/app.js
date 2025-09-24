@@ -1238,9 +1238,9 @@ $(document).ready(function () {
             // Reboot after applying settings
             return fetch('reboot.php', { method: 'POST' });
         }).then(() => {
-            setTimeout(checkConnection, 3000);
+            setTimeout(checkConnectionAfterReboot, 3000);
         }).catch(() => {
-            setTimeout(checkConnection, 3000);
+            setTimeout(checkConnectionAfterReboot, 3000);
         });
     }
 
