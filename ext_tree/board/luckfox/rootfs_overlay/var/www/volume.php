@@ -7,13 +7,28 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Function to get the first working volume control with priority ranking
+// Function to get the first working volume control with qobuz-connect priority ranking
 function getWorkingVolumeControl() {
-    $high_priority = ['PCM', 'Master'];
-    $medium_priority = [];
-    $low_priority = [];
+    // Use same priority list as qobuz-connect volume_manager.c
+    $standard_names = [
+        'PCM', 'Speaker', 'Master', 'Headphone', 'Digital', 
+        'Playback', 'DAC', 'Line Out', 'Analog', 'Output',
+        'Front', 'Main', 'Volume'
+    ];
+    $working_controls = [];
     
-    // Get available controls
+    // First try standard names in priority order (qobuz-connect approach)
+    foreach ($standard_names as $name) {
+        exec('/usr/bin/sudo /usr/bin/amixer sget "' . $name . '" 2>/dev/null', $test_output, $test_code);
+        if ($test_code === 0 && !empty($test_output)) {
+            $output_text = implode(' ', $test_output);
+            if (preg_match('/\[(\d+%|\d+dB)\]/', $output_text)) {
+                return $name; // Found working standard control
+            }
+        }
+    }
+    
+    // If no standard names found, scan all available controls
     exec('/usr/bin/sudo /usr/bin/amixer scontrols 2>/dev/null', $controls, $return_code);
     if ($return_code === 0 && !empty($controls)) {
         foreach ($controls as $control_line) {
@@ -21,113 +36,89 @@ function getWorkingVolumeControl() {
                 $control_name = $control_matches[1];
                 $name_lower = strtolower($control_name);
                 
-                // Skip if already in high priority
-                if (in_array($control_name, $high_priority)) continue;
+                // Skip capture/microphone controls (from qobuz-connect)
+                if (strpos($name_lower, 'capture') !== false || strpos($name_lower, 'mic') !== false) {
+                    continue;
+                }
                 
-                // Check actual capabilities using amixer sget, not just name
+                // Skip if already tested in standard names
+                if (in_array($control_name, $standard_names)) {
+                    continue;
+                }
+                
+                // Test if this control has volume capabilities
                 exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control_name . '" 2>/dev/null', $control_output, $control_code);
                 if ($control_code === 0 && !empty($control_output)) {
                     $control_text = implode(' ', $control_output);
                     
-                    // High priority: has volume capabilities
+                    // Check for volume capability
                     if (preg_match('/\[(\d+%|\d+dB)\]/', $control_text)) {
-                        $high_priority[] = $control_name;
-                    }
-                    // Also check by name patterns
-                    elseif (strpos($name_lower, 'volume') !== false) {
-                        $high_priority[] = $control_name;
-                    }
-                    // Medium priority: main output controls
-                    elseif (strpos($name_lower, 'playback') !== false ||
-                            strpos($name_lower, 'master') !== false ||
-                            strpos($name_lower, 'speaker') !== false ||
-                            strpos($name_lower, 'headphone') !== false) {
-                        $medium_priority[] = $control_name;
-                    }
-                    // Low priority: DAC-specific or other controls  
-                    elseif (strpos($name_lower, 'dac') !== false ||
-                            strpos($name_lower, 'output') !== false ||
-                            strpos($name_lower, 'digital') !== false) {
-                        $low_priority[] = $control_name;
+                        $working_controls[] = $control_name;
                     }
                 }
             }
         }
     }
     
-    // Test controls in priority order
-    $all_controls = array_merge($high_priority, $medium_priority, $low_priority);
-    
-    foreach ($all_controls as $control) {
-        exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control . '" 2>/dev/null', $test_output, $test_code);
-        if ($test_code === 0 && !empty($test_output)) {
-            $output_text = implode(' ', $test_output);
-            // Check if this control actually supports volume (has percentage or dB values)
-            if (preg_match('/\[(\d+%|\d+dB)\]/', $output_text)) {
-                // Additional check: make sure it's not just a fixed value (some controls show [0%] always)
-                if (preg_match('/\[(\d+)%\]/', $output_text, $matches) && intval($matches[1]) > 0) {
-                    return $control;
-                }
-                // Or if it has dB values, it's likely real
-                elseif (strpos($output_text, 'dB') !== false) {
-                    return $control;
-                }
-            }
-        }
+    // Return first working control found from scan
+    if (!empty($working_controls)) {
+        return $working_controls[0];
     }
     
-    // Final fallback: return first working control even with 0% 
-    foreach ($all_controls as $control) {
-        exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control . '" 2>/dev/null', $test_output, $test_code);
-        if ($test_code === 0 && !empty($test_output)) {
-            $output_text = implode(' ', $test_output);
-            if (preg_match('/\[(\d+%|\d+dB)\]/', $output_text)) {
-                return $control;
-            }
-        }
-    }
-    
-    return 'PCM'; // ultimate fallback
+    return 'PCM'; // Ultimate fallback
 }
 
-// Function to get the first working mute control
+// Function to get the first working mute control with qobuz-connect approach
 function getWorkingMuteControl() {
-    $mute_controls = ['PCM', 'Master'];
+    // Use same priority list as volume control
+    $standard_names = [
+        'PCM', 'Speaker', 'Master', 'Headphone', 'Digital', 
+        'Playback', 'DAC', 'Line Out', 'Analog', 'Output',
+        'Front', 'Main', 'Volume'
+    ];
     
-    // Get available controls
+    // First try standard names in priority order
+    foreach ($standard_names as $name) {
+        exec('/usr/bin/sudo /usr/bin/amixer sget "' . $name . '" 2>/dev/null', $test_output, $test_code);
+        if ($test_code === 0 && !empty($test_output)) {
+            $output_text = implode(' ', $test_output);
+            if (preg_match('/\[(on|off)\]/', $output_text)) {
+                return $name; // Found working standard mute control
+            }
+        }
+    }
+    
+    // If no standard names found, scan all available controls
     exec('/usr/bin/sudo /usr/bin/amixer scontrols 2>/dev/null', $controls, $return_code);
     if ($return_code === 0 && !empty($controls)) {
         foreach ($controls as $control_line) {
             if (preg_match("/Simple mixer control '([^']+)',/", $control_line, $control_matches)) {
                 $control_name = $control_matches[1];
-                // Optimized mute control search
                 $name_lower = strtolower($control_name);
-                if ($name_lower === 'pcm' || $name_lower === 'master' || 
-                    $name_lower === 'speaker' || $name_lower === 'headphone' || 
-                    $name_lower === 'dac' || $name_lower === 'audio' ||
-                    strpos($name_lower, 'switch') !== false ||
-                    strpos($name_lower, 'playback') !== false ||
-                    strpos($name_lower, 'volume') !== false ||
-                    !in_array($control_name, $mute_controls)) {
-                    $mute_controls[] = $control_name;
+                
+                // Skip capture/microphone controls
+                if (strpos($name_lower, 'capture') !== false || strpos($name_lower, 'mic') !== false) {
+                    continue;
+                }
+                
+                // Skip if already tested in standard names
+                if (in_array($control_name, $standard_names)) {
+                    continue;
+                }
+                
+                // Test if this control has mute capability
+                exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control_name . '" 2>/dev/null', $test_output, $test_code);
+                if ($test_code === 0 && !empty($test_output)) {
+                    $output_text = implode(' ', $test_output);
+                    if (preg_match('/\[(on|off)\]/', $output_text)) {
+                        return $control_name; // Found working mute control
+                    }
                 }
             }
         }
     }
     
-    // Test each control to find working one with mute capability
-    foreach ($mute_controls as $control) {
-        exec('/usr/bin/sudo /usr/bin/amixer sget "' . $control . '" 2>/dev/null', $test_output, $test_code);
-        if ($test_code === 0 && !empty($test_output)) {
-            $output_text = implode(' ', $test_output);
-            // Check if this control supports mute/unmute (has [on]/[off] states)
-            if (preg_match('/\[(on|off)\]/', $output_text)) {
-                return $control;
-            }
-        }
-    }
-    
-    return 'PCM'; // fallback
+    return 'PCM'; // Ultimate fallback
 }
 
 $action = $_POST['action'] ?? '';
@@ -155,21 +146,26 @@ switch ($action) {
         // Use full paths to sudo and amixer
         exec('/usr/bin/sudo /usr/bin/amixer scontrols 2>/dev/null', $controls, $return_code);
         if ($return_code === 0 && !empty($controls)) {
-            // Build list of volume controls to try
-            $volume_controls = ['PCM', 'Master'];
+            // Use same qobuz-connect approach for finding volume controls
+            $volume_controls = [
+                'PCM', 'Speaker', 'Master', 'Headphone', 'Digital', 
+                'Playback', 'DAC', 'Line Out', 'Analog', 'Output',
+                'Front', 'Main', 'Volume'
+            ];
             
-            // Parse available controls and add volume-related ones
+            // Add any other non-capture controls found
             foreach ($controls as $control_line) {
                 if (preg_match("/Simple mixer control '([^']+)',/", $control_line, $control_matches)) {
                     $control_name = $control_matches[1];
-                    // Optimized volume control search
                     $name_lower = strtolower($control_name);
-                    if ($name_lower === 'pcm' || $name_lower === 'master' || 
-                        $name_lower === 'speaker' || $name_lower === 'headphone' || 
-                        $name_lower === 'dac' || $name_lower === 'audio' ||
-                        strpos($name_lower, 'volume') !== false || 
-                        strpos($name_lower, 'playback') !== false ||
-                        !in_array($control_name, $volume_controls)) {
+                    
+                    // Skip capture/microphone controls
+                    if (strpos($name_lower, 'capture') !== false || strpos($name_lower, 'mic') !== false) {
+                        continue;
+                    }
+                    
+                    // Add if not already in list
+                    if (!in_array($control_name, $volume_controls)) {
                         $volume_controls[] = $control_name;
                     }
                 }
