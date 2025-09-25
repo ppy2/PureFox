@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <alsa/asoundlib.h>
 #include <dbus/dbus.h>
 
@@ -183,23 +184,48 @@ void get_volume_status_alsa(char* volume, int* muted) {
         return;
     }
     
-    // Search for any playback volume control, not just PCM/Master
+    // Use qobuz-connect style advanced volume detection
     elem = NULL;
-    for (elem = snd_mixer_first_elem(handle); elem; elem = snd_mixer_elem_next(elem)) {
-        if (snd_mixer_selem_is_active(elem) && snd_mixer_selem_has_playback_volume(elem)) {
-            const char *name = snd_mixer_selem_get_name(elem);
-            // Check actual capabilities - any control with playback volume is valid
-            if (snd_mixer_selem_has_playback_volume(elem)) {
-                break;
-            }
+    
+    // First try standard names in order of preference (from qobuz-connect)
+    const char* standard_names[] = {
+        "PCM", "Speaker", "Master", "Headphone", "Digital", 
+        "Playback", "DAC", "Line Out", "Analog", "Output",
+        "Front", "Main", "Volume", NULL
+    };
+    
+    for (int i = 0; standard_names[i] != NULL && !elem; i++) {
+        snd_mixer_selem_id_t* sid;
+        snd_mixer_selem_id_alloca(&sid);
+        snd_mixer_selem_id_set_name(sid, standard_names[i]);
+        snd_mixer_elem_t* test_elem = snd_mixer_find_selem(handle, sid);
+        
+        if (test_elem && snd_mixer_selem_has_playback_volume(test_elem)) {
+            elem = test_elem;
         }
     }
     
-    // If no preferred control found, use first available playback volume control
+    // If no standard names found, search for any element with proper playback capabilities
     if (!elem) {
         for (elem = snd_mixer_first_elem(handle); elem; elem = snd_mixer_elem_next(elem)) {
-            if (snd_mixer_selem_is_active(elem) && snd_mixer_selem_has_playback_volume(elem)) {
-                break;
+            if (snd_mixer_selem_is_active(elem)) {
+                const char *name = snd_mixer_selem_get_name(elem);
+                bool has_vol = snd_mixer_selem_has_playback_volume(elem);
+                
+                if (has_vol && name) {
+                    // Skip capture/microphone controls (from qobuz-connect)
+                    if (strstr(name, "Capture") || strstr(name, "Mic")) {
+                        continue;
+                    }
+                    
+                    // Verify it has proper playback channels
+                    bool has_valid_channels = snd_mixer_selem_has_playback_channel(elem, SND_MIXER_SCHN_FRONT_LEFT) ||
+                                            snd_mixer_selem_has_playback_channel(elem, SND_MIXER_SCHN_MONO);
+                    
+                    if (has_valid_channels) {
+                        break; // Take the first valid playback control we find
+                    }
+                }
             }
         }
     }
@@ -260,9 +286,16 @@ void check_usb_controls(int* volume_available, int* mute_available) {
         if (snd_mixer_attach(mixer, "hw:1") >= 0) {  // USB card is typically hw:1
             if (snd_mixer_selem_register(mixer, NULL, NULL) >= 0) {
                 if (snd_mixer_load(mixer) >= 0) {
-                    // Iterate through all mixer elements
+                    // Use qobuz-connect style detection for USB controls too
                     for (elem = snd_mixer_first_elem(mixer); elem; elem = snd_mixer_elem_next(elem)) {
                         if (snd_mixer_selem_is_active(elem)) {
+                            const char *name = snd_mixer_selem_get_name(elem);
+                            
+                            // Skip capture/microphone controls
+                            if (name && (strstr(name, "Capture") || strstr(name, "Mic"))) {
+                                continue;
+                            }
+                            
                             // Check for playback volume capability
                             if (!*volume_available && snd_mixer_selem_has_playback_volume(elem)) {
                                 // Verify it has proper playback channels
