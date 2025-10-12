@@ -10,10 +10,9 @@ mkenvimage -s 32768 -o $BINARIES_DIR/env.img $BINARIES_DIR/uboot.env
 
 ############### rootfs.img ###########################
 mkdir -p $BINARIES_DIR/rootfs && tar -xf $BINARIES_DIR/rootfs.tar -C $BINARIES_DIR/rootfs
-echo y | mkfs.ext4 -d $BINARIES_DIR/rootfs -r 1 -N 0 -m 0 -L "" -O ^64bit,^huge_file $BINARIES_DIR/rootfs.img "6144M"
-resize2fs -M $BINARIES_DIR/rootfs.img
+ROOTFS_SIZE=$(du -sm $BINARIES_DIR/rootfs | awk '{print int($1 * 1.1 + 10)}')
+echo y | mkfs.ext4 -d $BINARIES_DIR/rootfs -r 1 -N 0 -m 0 -L "" -O ^64bit,^huge_file $BINARIES_DIR/rootfs.img "${ROOTFS_SIZE}M"
 e2fsck -fy $BINARIES_DIR/rootfs.img
-tune2fs -m 0 $BINARIES_DIR/rootfs.img
 resize2fs -M $BINARIES_DIR/rootfs.img
 rm -fr $BINARIES_DIR/rootfs
 
