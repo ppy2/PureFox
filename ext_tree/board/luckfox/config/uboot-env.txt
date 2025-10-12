@@ -1,0 +1,4 @@
+blkdevparts=mmcblk0:32K(env),512K@32K(idblock),256K(uboot),32M(boot),512M(oem),256M(userdata),6G(rootfs)
+sys_bootargs= root=/dev/mmcblk0p7 rootfstype=ext4 rk_dma_heap_cma=24M usbcore.initial_descriptor_timeout=10000 usbcore.reset_timeout=10000 xhci_hcd.quirks=0x0040
+sd_parts=mmcblk0:16K@512(env),512K@32K(idblock),4M(uboot)
+bootcmd=mmc dev ${devnum}; fatload mmc ${devnum}:5 ${kernel_addr_r} zImage; fatload mmc ${devnum}:5 ${fdt_addr_r} rv1106_pll.dtb; bootz ${kernel_addr_r} - ${fdt_addr_r}

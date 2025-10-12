@@ -62,7 +62,7 @@
 
 /**********EMMC*************/
 &emmc {
-        status = "disable";
+        status = "okay";
 };
 
 /**********ETH**********/

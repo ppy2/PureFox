@@ -1,8 +1,28 @@
 #!/bin/sh
 
+# Find mixer control with playback volume and switch capabilities
+MIXER=$(amixer 2>/dev/null | awk '
+    /^Simple mixer control/ {
+        control = $0
+        gsub(/.*'\''/, "", control)
+        gsub(/'\''.*/, "", control)
+    }
+    /Capabilities:/ && /pvolume/ && /pswitch/ {
+        print control
+        exit
+    }
+')
+# Fallback to first available control if none found
+[ -z "$MIXER" ] && MIXER=$(amixer 2>/dev/null | awk -F "'" 'NR==1 {print $2; exit}')
+
+resize2fs /dev/mmcblk0p7
+resize2fs /dev/mmcblk0p6
+#resize2fs /dev/mmcblk0p5
+[ ! -d /boot ] && mkdir -p /boot
+mount -a
+
 echo 1 > /sys/devices/platform/ffae0000.i2s/mute
-MIXER=`amixer 2>/dev/null| awk -F "'" 'NR==1 {print $2; exit}'`
-/usr/bin/amixer set "$MIXER" mute
+[ -n "$MIXER" ] && /usr/bin/amixer set "$MIXER" mute 2>/dev/null
 
 	if [ -f /data/ethaddr.txt ]; then
 	    MAC=`cat /data/ethaddr.txt`
@@ -67,8 +87,6 @@ echo "/data/core-%p-%e" > /proc/sys/kernel/core_pattern
 # echo 0 > /sys/devices/platform/rkcif-mipi-lvds/is_use_dummybuf
 
 echo 1 > /proc/sys/vm/overcommit_memory
-
-sysctl -p
 
 post_chk &
 

@@ -27,6 +27,13 @@ start() {
         exit 1
     fi
     echo "OK"
+    
+    # Initialize I2S/MCLK by briefly opening audio device
+    printf "Initializing I2S/MCLK: "
+    timeout 1 aplay -D default -f S16_LE -r 44100 /dev/zero 2>/dev/null &
+    sleep 0.3
+    killall aplay 2>/dev/null
+    echo "OK"
 }
 
 stop() {
