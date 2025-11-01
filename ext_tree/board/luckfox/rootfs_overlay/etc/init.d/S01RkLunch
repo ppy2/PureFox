@@ -43,7 +43,6 @@ echo 1 > /sys/devices/platform/ffae0000.i2s/mute
 /sbin/ifconfig eth0 up && /sbin/udhcpc -i eth0
 
 grep MCLK=1024 /etc/i2s.conf && echo 1024 > /sys/devices/platform/ffae0000.i2s/mclk_multiplier
-echo 100 >  /sys/devices/platform/ffae0000.i2s/premute_delay_ms 
 echo 300 >  /sys/devices/platform/ffae0000.i2s/postmute_delay_ms 
 echo 1 > /sys/devices/platform/ffae0000.i2s/dsd_physical_swap
 echo 0 > /sys/devices/platform/ffae0000.i2s/pcm_channel_swap
@@ -87,6 +86,8 @@ echo "/data/core-%p-%e" > /proc/sys/kernel/core_pattern
 # echo 0 > /sys/devices/platform/rkcif-mipi-lvds/is_use_dummybuf
 
 echo 1 > /proc/sys/vm/overcommit_memory
+
+sysctl -p
 
 post_chk &
 
