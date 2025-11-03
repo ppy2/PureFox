@@ -37,7 +37,7 @@ fi
 killall -9 status_monitor
 /etc/init.d/S95* stop
 
-sshpass -p 'luckfox' rsync -acv --delete --one-file-system \
+sshpass -p 'luckfox' rsync -acv --delete-before --one-file-system \
 --exclude=.git \
 --exclude=/dev \
 --exclude=/proc \
