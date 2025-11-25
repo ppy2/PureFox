@@ -289,23 +289,16 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
 /* Calculate proper BCLK frequency for DSD formats */
 static unsigned int calculate_dsd_bclk(snd_pcm_format_t format, unsigned int sample_rate)
 {
-    /* CORRECT BCLK frequencies for DSD (determine by sample_rate):
-     * DSD64: BCLK = 2.8224 MHz 
-     * DSD128: BCLK = 5.6448 MHz  
-     * DSD256: BCLK = 11.2896 MHz
-     * DSD512: BCLK = 22.5792 MHz
+    /* For DSD: BCLK = sample_rate (native DSD rate)
+     * DSD64:  2822400 Hz
+     * DSD128: 5644800 Hz
+     * DSD256: 11289600 Hz
+     * DSD512: 22579200 Hz
      */
-    
-    /* Determine DSD type by sample_rate */
-    if (sample_rate <= 88200) {
-        return 2822400;  /* DSD64: 2.8224 MHz - CORRECT! */
-    } else if (sample_rate <= 176400) {
-        return 5644800;  /* DSD128: 5.6448 MHz */
-    } else if (sample_rate <= 352800) {
-        return 11289600; /* DSD256: 11.2896 MHz */
-    } else {
-        return 22579200; /* DSD512: 22.5792 MHz */
-    }
+
+    printk(KERN_INFO "rockchip-i2s-tdm: calculate_dsd_bclk: sample_rate=%u → BCLK=%u\n",
+           sample_rate, sample_rate);
+    return sample_rate;
 }
 
 static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
@@ -1644,7 +1637,14 @@ if( i2s_tdm->mclk_external ){
         }
 
         div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
-        div_lrck = bclk_rate / params_rate(params);
+
+        /* For DSD: div_lrck = bits per frame (32 for DSD_U32_LE) */
+        if (is_dsd(params_format(params))) {
+            div_lrck = 32;  /* 32 DSD bits per frame in DSD_U32_LE format */
+        } else {
+            div_lrck = bclk_rate / params_rate(params);
+        }
+
         dev_info(i2s_tdm->dev, "Clock dividers: mclk_rate=%u, bclk_rate=%u, div_bclk=%u, div_lrck=%u\n",
                  mclk_rate, bclk_rate, div_bclk, div_lrck);
     }
