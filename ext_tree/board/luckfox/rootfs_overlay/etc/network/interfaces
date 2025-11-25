@@ -4,7 +4,7 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet static
     address 10.10.10.10
-    netmask 255.255.254.0
+    netmask 255.255.255.0
     gateway 10.10.10.1
     wait-delay 15
     hostname $(hostname)
