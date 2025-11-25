@@ -29,7 +29,7 @@ start() {
 
     # Полностью удаляем старый gadget если существует
     if [ -d "purecore" ]; then
-        cd purecore
+        cd xingcore
         echo "" > UDC 2>/dev/null
         rm -f configs/c.1/uac2.usb0 2>/dev/null
         rm -f configs/c.2/vendor.0 2>/dev/null
@@ -39,11 +39,11 @@ start() {
         rmdir functions/vendor.0 2>/dev/null
         rmdir strings/0x409 2>/dev/null
         cd ..
-        rmdir purecore 2>/dev/null
+        rmdir xingcore 2>/dev/null
     fi
 
-    mkdir -p purecore
-    cd purecore
+    mkdir -p xingcore
+    cd xingcore
 
     # Device Descriptor (оригинальные PureCore ID)
     echo 0x152A > idVendor
@@ -58,7 +58,7 @@ start() {
 
     # Device Strings - минимальные как в оригинале
     mkdir -p strings/0x409
-    echo "PureCore" > strings/0x409/manufacturer
+    echo "XingCore" > strings/0x409/manufacturer
     echo "PureCore USB Hi-Resolution Audio" > strings/0x409/product
     # Serial number = 0x00 (пустой) как в оригинале
     echo "" > strings/0x409/serialnumber
@@ -88,7 +88,7 @@ start() {
     echo 50 > functions/uac2.usb0/fb_max         # Async overhead (минимально для стабильности)
 
     # Function name - показывается в Windows как имя устройства
-    echo "PureCore" > functions/uac2.usb0/function_name
+    echo "XingCore" > functions/uac2.usb0/function_name
 
     # Configuration 1 - UAC2 Audio (Self-powered)
     mkdir -p configs/c.1
