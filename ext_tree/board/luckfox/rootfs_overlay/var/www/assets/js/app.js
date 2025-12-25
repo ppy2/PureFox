@@ -21,12 +21,13 @@ $(document).ready(function () {
                 $(`button[data-service="${data.active_service}"]`).addClass('active');
             }
         }
-        
-        // Update ALSA state ONLY if not switching
-        if (data.alsa_state !== undefined && !isAlsaSwitching) {
+
+        // Update ALSA state ONLY if not switching AND USBtoI2S mode is not enabled
+        const usbToI2sEnabled = $('#usbto-i2s-btn').hasClass('active');
+        if (data.alsa_state !== undefined && !isAlsaSwitching && !usbToI2sEnabled) {
             updateAlsaUI(data.alsa_state);
         }
-        
+
         // Update volume only if user is not changing it at the moment
         if (!isVolumeChanging) {
             updateVolumeFromStatus(data);
@@ -579,12 +580,16 @@ $(document).ready(function () {
     function switchPlayerService(service) {
         // Блокируем обновления кнопок во время переключения
         isServiceSwitching = true;
-        
+
+        // Unlock ALSA toggle and deactivate USBtoI2S button when switching to any player
+        unlockAlsaToggle();
+        $('#usbto-i2s-btn').removeClass('active');
+
         // СРАЗУ делаем кнопку активной для отзывчивости UI
         $('.btn-custom').removeClass('active');
         $(`button[data-service="${service}"]`).addClass('active');
         console.log('Кнопка', service, 'активирована мгновенно, ожидаем запуск сервиса...');
-        
+
         // Переключение сервиса
         
         // Увеличенный таймаут для сервисов с двухэтапным запуском
@@ -1119,6 +1124,164 @@ $(document).ready(function () {
     
     // Запускаем polling через 2 секунды после загрузки
     setTimeout(startPolling, 2000);
+
+    // ===== USBtoI2S BUTTON FUNCTIONALITY =====
+    const USBTOI2S_LOCK_KEY = 'usbToI2sLocked';
+
+    // Function to lock ALSA toggle
+    function lockAlsaToggle() {
+        localStorage.setItem(USBTOI2S_LOCK_KEY, 'true');
+        const toggleInput = $('#alsa-toggle');
+        const toggleLabel = $('#alsa-toggle').next('.toggle-label');
+        toggleInput.prop('disabled', true);
+        toggleLabel.addClass('disabled');
+        toggleLabel.css({
+            'opacity': '0.4',
+            'pointer-events': 'none',
+            'cursor': 'not-allowed'
+        });
+    }
+
+    // Function to unlock ALSA toggle
+    function unlockAlsaToggle() {
+        localStorage.removeItem(USBTOI2S_LOCK_KEY);
+        const toggleInput = $('#alsa-toggle');
+        const toggleLabel = $('#alsa-toggle').next('.toggle-label');
+        toggleInput.prop('disabled', false);
+        toggleLabel.removeClass('disabled');
+        toggleLabel.css({
+            'opacity': '',
+            'pointer-events': '',
+            'cursor': ''
+        });
+    }
+
+    // Check USBtoI2S status and lock toggle if enabled
+    function checkUsbToI2sStatus() {
+        $.ajax({
+            url: 'usb_to_i2s.php',
+            method: 'POST',
+            data: { action: 'status' },
+            dataType: 'json',
+            timeout: 3000,
+            success: function(response) {
+                if (response.enabled) {
+                    // Mode is enabled on server - lock toggle and activate button
+                    lockAlsaToggle();
+                    $('#usbto-i2s-btn').addClass('active');
+                    // Also update ALSA UI to I2S
+                    updateAlsaUI('i2s');
+                } else {
+                    // Mode is disabled - unlock toggle and deactivate button
+                    unlockAlsaToggle();
+                    $('#usbto-i2s-btn').removeClass('active');
+                }
+            },
+            error: function() {
+                console.warn('Failed to check USBtoI2S status');
+                // Fallback to localStorage
+                if (localStorage.getItem(USBTOI2S_LOCK_KEY) === 'true') {
+                    lockAlsaToggle();
+                    $('#usbto-i2s-btn').addClass('active');
+                    updateAlsaUI('i2s');
+                } else {
+                    unlockAlsaToggle();
+                    $('#usbto-i2s-btn').removeClass('active');
+                }
+            }
+        });
+    }
+
+    // Check status on page load
+    checkUsbToI2sStatus();
+
+    // USBtoI2S button click handler - toggle mode
+    $('#usbto-i2s-btn').click(function() {
+        const isEnabled = $(this).hasClass('active');
+
+        if (isEnabled) {
+            // Disable mode
+            const confirmDisable = {
+                'ru': 'Отключить режим USBtoI2S?',
+                'en': 'Disable USBtoI2S mode?',
+                'de': 'USBtoI2S-Modus deaktivieren?',
+                'fr': 'Désactiver le mode USBtoI2S?',
+                'zh': '禁用USBtoI2S模式？'
+            };
+
+            customConfirm(confirmDisable[currentLang] || confirmDisable['en'], function(confirmed) {
+                if (confirmed) {
+                    isAlsaSwitching = true;
+                    showSpinner(translations[currentLang]['switching_output']);
+
+                    // Мгновенная деактивация кнопки
+                    $('#usbto-i2s-btn').removeClass('active');
+
+                    $.ajax({
+                        url: 'usb_to_i2s.php',
+                        method: 'POST',
+                        data: { action: 'disable' },
+                        timeout: 10000,
+                        success: function() {
+                            unlockAlsaToggle();
+                            setTimeout(() => {
+                                isAlsaSwitching = false;
+                                hideSpinner();
+                                forceStatusCheck();
+                            }, 2000);
+                        },
+                        error: function() {
+                            isAlsaSwitching = false;
+                            hideSpinner();
+                            $('#usbto-i2s-btn').addClass('active');
+                            customAlert(translations[currentLang]['alsa_error']);
+                        }
+                    });
+                }
+            });
+        } else {
+            // Enable mode
+            const confirmEnable = {
+                'ru': 'Включить режим USBtoI2S?\nВыход переключится на I2S, USB в режим входа.',
+                'en': 'Enable USBtoI2S mode?\nOutput will switch to I2S, USB to input mode.',
+                'de': 'USBtoI2S-Modus aktivieren?\nAusgabe wechselt zu I2S, USB zu Eingangsmodus.',
+                'fr': 'Activer le mode USBtoI2S?\nLa sortie passera en I2S, USB en mode entrée.',
+                'zh': '启用USBtoI2S模式？\n输出将切换到I2S，USB切换到输入模式。'
+            };
+
+            customConfirm(confirmEnable[currentLang] || confirmEnable['en'], function(confirmed) {
+                if (confirmed) {
+                    isAlsaSwitching = true;
+                    showSpinner(translations[currentLang]['switching_output']);
+
+                    // Мгновенная активация кнопки
+                    $('#usbto-i2s-btn').addClass('active');
+                    $('.btn-custom').removeClass('active');
+
+                    $.ajax({
+                        url: 'usb_to_i2s.php',
+                        method: 'POST',
+                        data: { action: 'enable' },
+                        timeout: 10000,
+                        success: function() {
+                            lockAlsaToggle();
+                            setTimeout(() => {
+                                isAlsaSwitching = false;
+                                hideSpinner();
+                                checkUsbToI2sStatus();
+                            }, 1000);
+                        },
+                        error: function() {
+                            isAlsaSwitching = false;
+                            hideSpinner();
+                            $('#usbto-i2s-btn').removeClass('active');
+                            customAlert(translations[currentLang]['alsa_error']);
+                        }
+                    });
+                }
+            });
+        }
+    });
 
     // I2S Modal functions
     window.openI2SModal = function() {

@@ -271,10 +271,8 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
         dev_info(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: DSD-on GPIO deactivated (PCM mode)\n");
     }
 
-    /* Apply routing for the new mode - only if DSD is being enabled */
-    if (enable_dsd) {
-        rockchip_i2s_tdm_apply_dsd_physical_swap(i2s_tdm);
-    }
+    /* Apply routing for the new mode (DSD or PCM) */
+    rockchip_i2s_tdm_apply_dsd_physical_swap(i2s_tdm);
 
     /* Wait for DAC to settle, then let normal trigger unmute handle it */
     if (i2s_tdm->mute_gpio) {
@@ -289,23 +287,14 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
 /* Calculate proper BCLK frequency for DSD formats */
 static unsigned int calculate_dsd_bclk(snd_pcm_format_t format, unsigned int sample_rate)
 {
-    /* CORRECT BCLK frequencies for DSD (determine by sample_rate):
-     * DSD64: BCLK = 2.8224 MHz 
-     * DSD128: BCLK = 5.6448 MHz  
-     * DSD256: BCLK = 11.2896 MHz
-     * DSD512: BCLK = 22.5792 MHz
+    /* For DSD: BCLK = sample_rate (native DSD rate)
+     * uac2_router will pass native DSD rates directly:
+     * DSD64:  2822400 Hz
+     * DSD128: 5644800 Hz
+     * DSD256: 11289600 Hz
+     * DSD512: 22579200 Hz
      */
-    
-    /* Determine DSD type by sample_rate */
-    if (sample_rate <= 88200) {
-        return 2822400;  /* DSD64: 2.8224 MHz - CORRECT! */
-    } else if (sample_rate <= 176400) {
-        return 5644800;  /* DSD128: 5.6448 MHz */
-    } else if (sample_rate <= 352800) {
-        return 11289600; /* DSD256: 11.2896 MHz */
-    } else {
-        return 22579200; /* DSD512: 22.5792 MHz */
-    }
+    return sample_rate;
 }
 
 static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
@@ -1589,9 +1578,35 @@ static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
     
 
     if (i2s_tdm->is_master_mode) {
-        if (i2s_tdm->mclk_calibrate)
+        if (i2s_tdm->mclk_calibrate) {
             rockchip_i2s_tdm_calibrate_mclk(i2s_tdm, substream,
                             params_rate(params));
+
+            /* CRITICAL: Apply MCLK rate based on multiplier and audio family */
+            unsigned int target_mclk;
+            if (params_rate(params) % 44100 == 0) {  // 44.1kHz family
+                if (i2s_tdm->mclk_multiplier == 1024) {
+                    target_mclk = 45158400;  // 45.158MHz (1024x)
+                } else {
+                    target_mclk = 22579200;  // 22.579MHz (512x)
+                }
+            } else {                           // 48kHz family
+                if (i2s_tdm->mclk_multiplier == 1024) {
+                    target_mclk = 49152000;  // 49.152MHz (1024x)
+                } else {
+                    target_mclk = 24576000;  // 24.576MHz (512x)
+                }
+            }
+            dev_info(i2s_tdm->dev, "Applying MCLK rate %u Hz (multiplier %ux, sample rate %u Hz, %s family)\n",
+                     target_mclk, i2s_tdm->mclk_multiplier, params_rate(params),
+                     (params_rate(params) % 44100 == 0) ? "44.1k" : "48k");
+
+            ret = clk_set_rate(i2s_tdm->mclk_tx, target_mclk);
+            if (ret == 0) {
+                unsigned long actual_rate = clk_get_rate(i2s_tdm->mclk_tx);
+                dev_info(i2s_tdm->dev, "MCLK rate set to %lu Hz (target %u Hz)\n", actual_rate, target_mclk);
+            }
+        }
 if( i2s_tdm->mclk_external ){
             mclk = i2s_tdm->mclk_tx;
             if( i2s_tdm->mclk_ext_mux ) {
@@ -1644,7 +1659,14 @@ if( i2s_tdm->mclk_external ){
         }
 
         div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
-        div_lrck = bclk_rate / params_rate(params);
+
+        /* For DSD: div_lrck = 32 (bits per frame in DSD_U32_LE format) */
+        if (is_dsd(params_format(params))) {
+            div_lrck = 32;
+        } else {
+            div_lrck = bclk_rate / params_rate(params);
+        }
+
         dev_info(i2s_tdm->dev, "Clock dividers: mclk_rate=%u, bclk_rate=%u, div_bclk=%u, div_lrck=%u\n",
                  mclk_rate, bclk_rate, div_bclk, div_lrck);
     }
@@ -2167,18 +2189,49 @@ static ssize_t mclk_multiplier_store(struct device *dev,
 {
     struct rk_i2s_tdm_dev *i2s_tdm = dev_get_drvdata(dev);
     int multiplier;
-    
+
     if (sscanf(buf, "%d", &multiplier) != 1)
         return -EINVAL;
-    
+
     if (multiplier != 512 && multiplier != 1024) {
         dev_err(dev, "Invalid MCLK multiplier: %d. Must be 512 or 1024.\n", multiplier);
         return -EINVAL;
     }
-    
+
     i2s_tdm->mclk_multiplier = multiplier;
     dev_info(dev, "MCLK multiplier set to %dx\n", multiplier);
-    
+
+    /* Apply multiplier change to existing MCLK frequency settings */
+    /* Update internal frequency values for next stream start */
+    unsigned int current_freq = i2s_tdm->mclk_tx_freq;
+    unsigned int target_freq;
+
+    /* Calculate target MCLK frequency based on current setting and new multiplier */
+    if (current_freq == 45158400 || current_freq == 22579200) {
+        /* Currently 44.1kHz family - apply new multiplier */
+        target_freq = (multiplier == 1024) ? 45158400 : 22579200;
+    } else if (current_freq == 49152000 || current_freq == 24576000) {
+        /* Currently 48kHz family - apply new multiplier */
+        target_freq = (multiplier == 1024) ? 49152000 : 24576000;
+    } else {
+        /* Default to 48kHz family if no previous setting */
+        target_freq = (multiplier == 1024) ? 49152000 : 24576000;
+    }
+
+    /* Update internal frequency values */
+    i2s_tdm->mclk_tx_freq = target_freq;
+    i2s_tdm->mclk_rx_freq = target_freq;
+
+    /* Force set MCLK rate even when mclk_calibrate is active - multiplier should work! */
+    int ret = clk_set_rate(i2s_tdm->mclk_tx, target_freq);
+    if (ret == 0) {
+        dev_info(dev, "MCLK rate changed to %lu Hz (multiplier %dx, forced despite mclk_calibrate)\n",
+                clk_get_rate(i2s_tdm->mclk_tx), multiplier);
+    } else {
+        dev_info(dev, "MCLK rate set failed (ret=%d), keeping internal freq %d Hz (multiplier %dx)\n",
+                ret, target_freq, multiplier);
+    }
+
     return count;
 }
 

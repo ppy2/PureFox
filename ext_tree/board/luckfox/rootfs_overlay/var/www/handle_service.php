@@ -13,7 +13,7 @@ function logMessage($message) {
 
 function executeCommand($command) {
     logMessage("Executing: $command");
-    $output = shell_exec("/usr/bin/sudo $command 2>&1");
+    $output = shell_exec("$command 2>&1");
     logMessage("Output: " . trim((string)$output));
     return trim((string)$output);
 }
@@ -85,14 +85,22 @@ try {
     }
 
     // Stop all current players
-    executeCommand("/etc/init.d/S95* stop");
+    $stop_output = shell_exec('sh -c "/etc/init.d/S95* stop" 2>&1');
+    logMessage("Stop output: " . trim($stop_output ?: "none"));
 
-    // Remove all S95* from /etc/init.d/
-    executeCommand("/bin/rm -f /etc/init.d/S95*");
+    // If switching to any player, disable USBtoI2S mode (switch USB to host)
+    if (file_exists('/etc/usb_to_i2s.state')) {
+        logMessage("Disabling USBtoI2S mode before player switch");
+        executeCommand("/opt/usb_unlock.sh");
+    }
+
+    // Remove all S95* and S98uac2 symlinks
+    shell_exec('rm -f /etc/init.d/S95* /etc/init.d/S98uac2 2>&1');
 
     // Create symlink
     $target_link = "/etc/init.d/{$players[$player_to_start]['script']}";
-    executeCommand("/bin/ln -s '$script_path' '$target_link'");
+    $ln_output = shell_exec("ln -sf '$script_path' '$target_link' 2>&1");
+    logMessage("Symlink output: " . trim($ln_output ?: "none"));
     
     // Start player
     logMessage("Starting player: $player_to_start");

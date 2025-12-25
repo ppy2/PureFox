@@ -370,6 +370,14 @@ h1 {
   background-color: #5D636B;
 }
 
+.btn-custom.info.active {
+  background-color: #5D636B;
+}
+
+.btn-custom.usb2i2s.active {
+  background-color: #5D636B;
+}
+
 .btn-custom:focus {
   outline: none;
   border-color: #5D636B;
@@ -391,10 +399,20 @@ h1 {
   border-color: #E67400;
 }
 
+.btn-custom.info:focus {
+  border-color: #17A2B8;
+}
+
+.btn-custom.usb2i2s:focus {
+  border-color: #9B59B6;
+}
+
 .btn-custom.primary  { border-left: 5px solid #4A6BCC; }
 .btn-custom.success  { border-left: 5px solid #28A0A0; }
 .btn-custom.warning  { border-left: 5px solid #B8963D; }
 .btn-custom.danger   { border-left: 5px solid #E67400; }
+.btn-custom.info     { border-left: 5px solid #17A2B8; }
+.btn-custom.usb2i2s  { border-left: 5px solid #9B59B6; }
 
 .group .row .btn-custom {
   justify-content: center;
@@ -935,6 +953,18 @@ h1 {
   color: #fff;
   right: 31px;
   transform: translateX(50%) translateY(-50%);
+}
+
+.toggle-label.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.toggle-input.disabled + .toggle-label {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 @media (max-width: 360px) {

@@ -10,7 +10,10 @@
     <script>
         // Clear hidden buttons from localStorage
         localStorage.removeItem('hiddenButtons');
-        
+
+        // Clear USBtoI2S lock state
+        localStorage.removeItem('usbToI2sLocked');
+
         // Redirect to main page
         window.location.href = '/';
     </script>

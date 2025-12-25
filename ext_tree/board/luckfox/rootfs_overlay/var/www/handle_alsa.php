@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Execute script
     $output = [];
     $returnVar = 0;
-    exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
-    
+    exec(escapeshellcmd($script) . ' 2>&1', $output, $returnVar);
+
     // Don't fail if script exits with error (service may not exist)
     if ($returnVar !== 0) {
         error_log("Script $script exited with code $returnVar: " . implode("\n", $output));
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Additional service restart (if exists)
-    $serviceOutput = shell_exec('/usr/bin/sudo /bin/sh -c "/etc/init.d/S95* restart" 2>/dev/null');
+    $serviceOutput = shell_exec('/bin/sh -c "/etc/init.d/S95* restart" 2>/dev/null');
     
     // Clear cache after switching
     if (file_exists($cache_file)) {

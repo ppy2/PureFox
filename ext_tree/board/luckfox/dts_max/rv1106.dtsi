@@ -1464,7 +1464,7 @@ mmc0 {
                         interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
                         resets = <&cru SRST_A_USBOTG>;
                         reset-names = "usb3-otg";
-                        dr_mode = "host";
+                        dr_mode = "otg";
                         maximum-speed = "high-speed";
                         phys = <&u2phy_otg>;
                         phy-names = "usb2-phy";

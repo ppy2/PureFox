@@ -39,7 +39,8 @@
     </div>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
         <button class="btn-custom success" data-service="qobuz" data-process="qobuz">Qobuz Connect</button>
-	<button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>        
+	<button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
+	<button class="btn-custom usb2i2s" id="usbto-i2s-btn">USB to I2S</button>
 
         <!-- ALSA switch and volume control -->
         <div class="alsa-toggle">

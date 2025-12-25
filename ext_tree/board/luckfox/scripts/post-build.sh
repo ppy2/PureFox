@@ -47,10 +47,27 @@ find $TARGET_DIR -name "*-gdb.py" -delete
 # Strip external toolchain libraries (buildroot's target-finalize runs BEFORE post-build)
 # When packages are reinstalled, libraries are copied unstripped, so we strip them here
 STRIP_BIN="$HOST_DIR/opt/ext-toolchain/bin/arm-none-linux-gnueabihf-strip"
+if [ -f "$TARGET_DIR/usr/lib/libstdc++.so.6.0.33" ] && file "$TARGET_DIR/usr/lib/libstdc++.so.6.0.33" | grep -q "not stripped"; then
+    echo "Stripping external toolchain libraries in /usr/lib..."
+    find $TARGET_DIR/usr/lib -name "*.so*" -type f -exec $STRIP_BIN {} \; 2>/dev/null || true
+fi
 if [ -f "$TARGET_DIR/lib/libstdc++.so.6.0.33" ] && file "$TARGET_DIR/lib/libstdc++.so.6.0.33" | grep -q "not stripped"; then
-    echo "Stripping external toolchain libraries..."
+    echo "Stripping external toolchain libraries in /lib..."
     find $TARGET_DIR/lib -name "*.so*" -type f -exec $STRIP_BIN {} \; 2>/dev/null || true
 fi
+
+# Remove duplicate libraries from /lib (keep only in /usr/lib)
+# External toolchain duplicates libraries in /lib and /usr/lib
+echo "Removing duplicate libraries from /lib..."
+rm -f $TARGET_DIR/lib/libstdc++.so.6*
+rm -f $TARGET_DIR/lib/libstdc++.so
+rm -f $TARGET_DIR/lib/libgcc_s.so.1
+rm -f $TARGET_DIR/lib/libatomic.so.1*
+rm -f $TARGET_DIR/lib/libatomic.so
+rm -f $TARGET_DIR/lib/libgfortran.so.5*
+rm -f $TARGET_DIR/lib/libgfortran.so
+rm -f $TARGET_DIR/lib/libgomp.so.1*
+rm -f $TARGET_DIR/lib/libgomp.so
 
 # Compress large binaries with UPX (MAX only - save rootfs space)
 #if command -v upx >/dev/null 2>&1; then
@@ -68,6 +85,8 @@ if [ -d "$TARGET_DIR/usr/lib/tidal" ] && [ "$(ls -A $TARGET_DIR/usr/lib/tidal/*.
     echo "Removing original Tidal directory from rootfs..."
     rm -rf $TARGET_DIR/usr/lib/tidal/*
 fi
+
+
 
 
 

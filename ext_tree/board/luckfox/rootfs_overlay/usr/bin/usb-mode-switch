@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# Switch USB DRD mode between host and peripheral (gadget) using different module sets
+#
+
+UDC_SYSFS="/sys/kernel/config/usb_gadget"
+OTG_MODE_PATH="/sys/devices/platform/ff3e0000.usb2-phy/otg_mode"
+MODULES_DIR="/lib/modules"
+
+switch_to_gadget() {
+    echo "Switching USB to gadget mode..."
+    
+    # Unload host modules if loaded
+    rmmod dwc3 2>/dev/null || true
+    rmmod dwc3_of_simple 2>/dev/null || true
+    sleep 0.2
+    
+    # Load gadget modules
+    insmod $MODULES_DIR/dwc3_gadget.ko 2>/dev/null || true
+    insmod $MODULES_DIR/dwc3_of_simple_gadget.ko 2>/dev/null || true
+    sleep 0.5
+    
+    # Enable gadget via configfs if not already running
+    if [ -x /etc/rc.pure/S98uac2 ]; then
+        /etc/rc.pure/S98uac2 restart
+    else
+        echo "Error: S98uac2 script not found"
+        return 1
+    fi
+    
+    echo "USB switched to gadget mode"
+}
+
+switch_to_host() {
+    echo "Switching USB to host mode..."
+    
+    # Stop gadget
+    if [ -x /etc/rc.pure/S98uac2 ]; then
+        /etc/rc.pure/S98uac2 stop
+    fi
+    
+    # Unbind gadget from UDC
+    if [ -d "$UDC_SYSFS/purecore" ]; then
+        echo "" > "$UDC_SYSFS/purecore/UDC" 2>/dev/null || true
+    fi
+    
+    # Unload gadget modules
+    rmmod dwc3 2>/dev/null || true
+    rmmod dwc3_of_simple 2>/dev/null || true
+    sleep 0.2
+    
+    # Load host modules
+    insmod $MODULES_DIR/dwc3_host.ko 2>/dev/null || true
+    insmod $MODULES_DIR/dwc3_of_simple_host.ko 2>/dev/null || true
+    sleep 0.5
+    
+    echo "USB switched to host mode"
+}
+
+get_current_mode() {
+    if [ -f "$OTG_MODE_PATH" ]; then
+        cat "$OTG_MODE_PATH" 2>/dev/null || echo "unknown"
+    else
+        echo "unknown"
+    fi
+}
+
+case "$1" in
+    gadget)
+        switch_to_gadget
+        ;;
+    host)
+        switch_to_host
+        ;;
+    status)
+        get_current_mode
+        ;;
+    *)
+        echo "Usage: $0 {gadget|host|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
