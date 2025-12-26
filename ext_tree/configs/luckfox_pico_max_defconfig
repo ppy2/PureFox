@@ -1,11 +1,9 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -gaf91aa67-dirty Configuration
+# Buildroot -g36f29259-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
-BR2_EXTERNAL_ext_tree_PATH="/opt/PureFox/ext_tree"
-BR2_EXTERNAL_ext_tree_VERSION="-gaf91aa67-dirty"
 BR2_HOST_GCC_AT_LEAST_4_9=y
 BR2_HOST_GCC_AT_LEAST_5=y
 BR2_HOST_GCC_AT_LEAST_6=y
@@ -799,7 +797,7 @@ BR2_PACKAGE_PTM2HUMAN_ARCH_SUPPORTS=y
 # BR2_PACKAGE_SENTRY_NATIVE is not set
 # BR2_PACKAGE_SIGNAL_ESTIMATOR is not set
 # BR2_PACKAGE_SPIDEV_TEST is not set
-BR2_PACKAGE_STRACE=y
+# BR2_PACKAGE_STRACE is not set
 # BR2_PACKAGE_STRESS is not set
 # BR2_PACKAGE_STRESS_NG is not set
 
@@ -959,8 +957,8 @@ BR2_PACKAGE_MTD_UBIBLOCK=y
 # BR2_PACKAGE_NTFS_3G is not set
 # BR2_PACKAGE_SP_OOPS_EXTRACT is not set
 BR2_PACKAGE_SQUASHFS=y
-BR2_PACKAGE_SQUASHFS_GZIP=y
-BR2_PACKAGE_SQUASHFS_LZ4=y
+# BR2_PACKAGE_SQUASHFS_GZIP is not set
+# BR2_PACKAGE_SQUASHFS_LZ4 is not set
 # BR2_PACKAGE_SQUASHFS_LZMA is not set
 # BR2_PACKAGE_SQUASHFS_LZO is not set
 BR2_PACKAGE_SQUASHFS_XZ=y
@@ -4504,10 +4502,6 @@ BR2_TARGET_UBOOT_CUSTOM_PATCH_DIR=""
 
 #
 # External options
-#
-
-#
-# external BR tree for Luckfox Pico Max (in /opt/PureFox/ext_tree)
 #
 
 #

@@ -30,7 +30,7 @@ insmod $MODULES_DIR/dwc3_gadget.ko 2>/dev/null || true
 sleep 0.5
 
 /etc/init.d/S98uac2 restart
-/etc/init.d/S98uac2_router start
+/etc/init.d/S99uac2_router start
 
 # 3. Restart services
 /etc/init.d/S01statusmonitor restart

@@ -20,16 +20,20 @@ echo 1 > /sys/devices/platform/ffae0000.i2s/mute
 
 	if [ -f /data/ethaddr.txt ]; then
 	    MAC=`cat /data/ethaddr.txt`
-	else    
+	else
+	    # Generate unique MAC from Flash ID (unique per NAND flash chip)
 	    OUI="BE10E0"
-	    SERIAL=$(grep -o 'Serial[[:space:]]*:[[:space:]]*[[:xdigit:]]*' /proc/cpuinfo | awk '{print $NF}')
-	    MAC_PART=$(echo "$SERIAL" | tail -c 7)
-	    MAC="${OUI}${MAC_PART}"
-	    MAC=$(echo "$MAC" | sed 's/\(..\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1:\2:\3:\4:\5:\6/')
-	    MAC=$(echo "$MAC" | tr '[:lower:]' '[:upper:]')
+	    if [ -e /dev/mtd0 ]; then
+	        # Read first 4 bytes of flash (Flash ID + device ID) - 8 hex chars
+	        FLASH_ID=$(hexdump -n 4 -e '"%02x' ' /dev/mtd0 2>/dev/null | head -1 | tr 'a-z' 'A-Z')
+	        # Use first 6 hex chars (3 bytes) for NIC
+	        NIC=$(echo "$FLASH_ID" | cut -c1-6)
+	    else
+	        # Fallback: use random bytes
+	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
+	    fi
+	    MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}"
 	    echo $MAC > /data/ethaddr.txt
-	    chattr +i /data/ethaddr.txt
-	    sync
 	fi
 
 /sbin/ifconfig eth0 down
