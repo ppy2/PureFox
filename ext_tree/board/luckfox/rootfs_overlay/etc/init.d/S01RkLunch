@@ -18,15 +18,95 @@ MIXER=$(amixer 2>/dev/null | awk '
 echo 1 > /sys/devices/platform/ffae0000.i2s/mute
 [ -n "$MIXER" ] && /usr/bin/amixer set "$MIXER" mute 2>/dev/null
 
-	if [ -f /data/ethaddr.txt ]; then
-	    MAC=`cat /data/ethaddr.txt`
+	# Try to read MAC from U-Boot env (persists through reflashing)
+	if command -v fw_printenv >/dev/null 2>&1; then
+	    UBOOT_MAC=$(fw_printenv ethaddr 2>/dev/null | grep -E '^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$')
+	    if [ -n "$UBOOT_MAC" ]; then
+	        MAC="$UBOOT_MAC"
+	    else
+	        # Generate new MAC and save to U-Boot env (persists through reflashing)
+	        OUI="BE10E0"
+	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        
+	        # Save to U-Boot env
+	        fw_setenv ethaddr "$MAC" 2>/dev/null
+	        
+	        # Backup to /data
+	        echo $MAC > /data/ethaddr.txt
+	    fi
 	else
-	    # Generate random MAC once and save it permanently
-	    # /data/ethaddr.txt survives reflashing (in UBI rootfs)
-	    OUI="BE10E0"
-	    NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
-	    MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
-	    echo $MAC > /data/ethaddr.txt
+	    # Fallback: use /data file
+	    if [ -f /data/ethaddr.txt ]; then
+	        MAC=`cat /data/ethaddr.txt`
+	    else
+	        OUI="BE10E0"
+	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        echo $MAC > /data/ethaddr.txt
+ 	    fi
+ 	else
+	    # Fallback: use /data file
+	    if [ -f /data/ethaddr.txt ]; then
+	        MAC=`cat /data/ethaddr.txt`
+	    else
+	        OUI="BE10E0"
+	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        echo $MAC > /data/ethaddr.txt
+	    fi
+	fi
+	    # Fallback: use /data file
+	# Try to read MAC from U-Boot env or /data
+	if command -v fw_printenv >/dev/null 2>&1; then
+	    UBOOT_MAC=$(fw_printenv ethaddr 2>/dev/null | grep -E '^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$')
+	    if [ -n "$UBOOT_MAC" ]; then
+	        MAC="$UBOOT_MAC"
+	        # Backup to /data
+	        echo $MAC > /data/ethaddr.txt
+	    elif [ -f /data/ethaddr.txt ]; then
+	        MAC=`cat /data/ethaddr.txt`
+	        # Save to U-Boot env
+	        fw_setenv ethaddr "$MAC" 2>/dev/null
+	    else
+	        # Generate MAC from CPU Serial and save to both
+	        OUI="BE10E0"
+	        # Serial format: dec0a266340399cf = 18 chars including 'dec' prefix
+	        # Serial part (16 hex chars): 0a266340399cf (remove 'dec' prefix)
+	        SERIAL_PART=$(cat /proc/cpuinfo | awk '/Serial/ {print $NF}' | cut -c4-19)
+	        # Use last 6 bytes (12 hex chars) + 2 padding bytes
+	        NIC=$(echo "${SERIAL_PART}00" | cut -c1-12)
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        
+	        # Save to both U-Boot env and /data
+	        fw_setenv ethaddr "$MAC" 2>/dev/null
+	        echo $MAC > /data/ethaddr.txt
+	    fi
+	else
+	    # Fallback: use /data file only
+	    if [ -f /data/ethaddr.txt ]; then
+	        MAC=`cat /data/ethaddr.txt`
+	    else
+	        OUI="BE10E0"
+	        # Generate MAC from CPU Serial (fallback)
+	        SERIAL_PART=$(cat /proc/cpuinfo | awk '/Serial/ {print $NF}' | cut -c4-19)
+	        NIC=$(echo "${SERIAL_PART}00" | cut -c1-12)
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        echo $MAC > /data/ethaddr.txt
+	    fi
+	fi
+	else
+	    # Fallback: use /data file only
+	    if [ -f /data/ethaddr.txt ]; then
+	        MAC=`cat /data/ethaddr.txt`
+	    else
+	        # Generate random MAC
+	        OUI="BE10E0"
+	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
+	        MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
+	        echo $MAC > /data/ethaddr.txt
+	    fi
+	fi
 	fi
 	    MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}"
 	    echo $MAC > /data/ethaddr.txt
