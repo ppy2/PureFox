@@ -24,17 +24,13 @@ echo 1 > /sys/devices/platform/ffae0000.i2s/mute
 	    # Generate unique MAC from Flash ID (unique per NAND flash chip)
 	    OUI="BE10E0"
 	    if [ -e /dev/mtd0 ]; then
-	        # Read first 6 bytes of flash for NIC (3 bytes) + random 2 bytes
-	        FLASH_BYTES=$(hexdump -n 6 -e '6/1 "%02x"' /dev/mtd0 2>/dev/null | head -1 | tr -d ' ')
-	        # Use first 6 hex chars (3 bytes) from flash
-	        NIC_FLASH=$(echo "$FLASH_BYTES" | cut -c1-6)
-	        # Generate 2 random bytes (4 hex chars)
-	        NIC_RANDOM=$(od -An -N4 -tx1 /dev/urandom | head -1 | tr -d ' ')
-	        NIC="${NIC_FLASH}${NIC_RANDOM}"
+	        # Read first 6 bytes from flash for NIC (6 bytes total = 12 hex chars)
+	        NIC=$(hexdump -n 6 -e '6/1 "%02x"' /dev/mtd0 2>/dev/null | head -1 | tr -d ' ')
 	    else
 	        # Fallback: use random bytes
 	        NIC=$(od -An -N6 -tx1 /dev/urandom | head -1 | tr -d ' ')
 	    fi
+	    # Format: BE10E0:XX:XX:XX:XX:XX (12 hex chars from flash)
 	    MAC="${OUI}:${NIC:0:2}:${NIC:2:2}:${NIC:4:2}:${NIC:6:2}:${NIC:8:2}"
 	    echo $MAC > /data/ethaddr.txt
 	fi
