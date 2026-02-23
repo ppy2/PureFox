@@ -86,7 +86,8 @@ $(document).ready(function () {
             'apply_reboot': 'Применить и перезагрузить',
             'pcm_swap_title': 'PCM Swap',
             'dsd_swap_title': 'DSD Swap',
-            'freq_swap_title': '44/48 Swap'
+            'freq_swap_title': '44/48 Swap',
+            'leftjust_title': 'LeftJust'
         },
         'en': {
             'alsa_output': 'ALSA Output:',
@@ -131,7 +132,8 @@ $(document).ready(function () {
             'apply_reboot': 'Apply & Reboot',
             'pcm_swap_title': 'PCM Swap',
             'dsd_swap_title': 'DSD Swap',
-            'freq_swap_title': '44/48 Swap'
+            'freq_swap_title': '44/48 Swap',
+            'leftjust_title': 'LeftJust'
         },
         'de': {
             'alsa_output': 'ALSA Ausgang:',
@@ -176,7 +178,8 @@ $(document).ready(function () {
             'apply_reboot': 'Anwenden & Neustart',
             'pcm_swap_title': 'PCM Swap',
             'dsd_swap_title': 'DSD Swap',
-            'freq_swap_title': '44/48 Swap'
+            'freq_swap_title': '44/48 Swap',
+            'leftjust_title': 'LeftJust'
         },
         'fr': {
             'alsa_output': 'Sortie ALSA:',
@@ -221,7 +224,8 @@ $(document).ready(function () {
             'apply_reboot': 'Appliquer et redémarrer',
             'pcm_swap_title': 'PCM Swap',
             'dsd_swap_title': 'DSD Swap',
-            'freq_swap_title': '44/48 Swap'
+            'freq_swap_title': '44/48 Swap',
+            'leftjust_title': 'LeftJust'
         },
         'zh': {
             'alsa_output': 'ALSA 输出:',
@@ -266,7 +270,8 @@ $(document).ready(function () {
             'apply_reboot': '应用并重启',
             'pcm_swap_title': 'PCM Swap',
             'dsd_swap_title': 'DSD Swap',
-            'freq_swap_title': '44/48 Swap'
+            'freq_swap_title': '44/48 Swap',
+            'leftjust_title': 'LeftJust'
         }
     };
 
@@ -282,8 +287,6 @@ $(document).ready(function () {
 
     // Language application (PRESERVED!)
     window.currentLang = window.detectLanguage();
-    // Update I2S settings link - now unified multilingual
-    $('#i2s-settings-link').attr('href', 'i2s.php');
 
     window.applyTranslations = function() {
         $('[data-lang]').each(function() {
@@ -1108,7 +1111,7 @@ $(document).ready(function () {
         
         // Регулярный polling каждые 3 секунды
         statusInterval = setInterval(function() {
-            if (!isServiceSwitching && !isVolumeChanging) {
+            if (!isServiceSwitching && !isVolumeChanging && !isAlsaSwitching) {
                 $.ajax({
                     url: 'status_fast.php',
                     method: 'GET',
@@ -1221,19 +1224,18 @@ $(document).ready(function () {
                         url: 'usb_to_i2s.php',
                         method: 'POST',
                         data: { action: 'disable' },
-                        timeout: 10000,
+                        timeout: 15000,
                         success: function() {
                             unlockAlsaToggle();
-                            setTimeout(() => {
-                                isAlsaSwitching = false;
-                                hideSpinner();
-                                forceStatusCheck();
-                            }, 2000);
+                            isAlsaSwitching = false;
+                            hideSpinner();
+                            forceStatusCheck();
                         },
-                        error: function() {
+                        error: function(xhr, status, error) {
                             isAlsaSwitching = false;
                             hideSpinner();
                             $('#usbto-i2s-btn').addClass('active');
+                            console.error('USBtoI2S disable error:', status, error, 'Response:', xhr.responseText);
                             customAlert(translations[currentLang]['alsa_error']);
                         }
                     });
@@ -1262,19 +1264,18 @@ $(document).ready(function () {
                         url: 'usb_to_i2s.php',
                         method: 'POST',
                         data: { action: 'enable' },
-                        timeout: 10000,
+                        timeout: 15000,
                         success: function() {
                             lockAlsaToggle();
-                            setTimeout(() => {
-                                isAlsaSwitching = false;
-                                hideSpinner();
-                                checkUsbToI2sStatus();
-                            }, 1000);
+                            isAlsaSwitching = false;
+                            hideSpinner();
+                            checkUsbToI2sStatus();
                         },
-                        error: function() {
+                        error: function(xhr, status, error) {
                             isAlsaSwitching = false;
                             hideSpinner();
                             $('#usbto-i2s-btn').removeClass('active');
+                            console.error('USBtoI2S enable error:', status, error, 'Response:', xhr.responseText);
                             customAlert(translations[currentLang]['alsa_error']);
                         }
                     });
@@ -1287,7 +1288,7 @@ $(document).ready(function () {
     window.openI2SModal = function() {
         // Load current I2S settings
         $.ajax({
-            url: 'i2s.php?action=getStatus',
+            url: 'handle_i2s.php?action=getStatus',
             method: 'GET',
             dataType: 'json',
             success: function(data) {
@@ -1324,6 +1325,13 @@ $(document).ready(function () {
                     $('#modal-freq-swap').prop('checked', true);
                 } else {
                     $('#modal-freq-normal').prop('checked', true);
+                }
+                
+                // Set leftjust toggle
+                if (data.leftjust === '1') {
+                    $('#modal-leftjust-on').prop('checked', true);
+                } else {
+                    $('#modal-leftjust-off').prop('checked', true);
                 }
                 
                 // Set submode buttons active state
@@ -1401,7 +1409,7 @@ $(document).ready(function () {
         closeI2SModal();
         
         // Apply settings
-        fetch('i2s.php', {
+        fetch('handle_i2s.php', {
             method: 'POST',
             body: formData
         }).then(() => {
@@ -1435,7 +1443,7 @@ $(document).ready(function () {
         formData.append('submode', $(this).attr('value'));
         
         // Apply submode setting immediately
-        fetch('i2s.php', {
+        fetch('handle_i2s.php', {
             method: 'POST',
             body: formData
         }).then(() => {
@@ -1460,10 +1468,12 @@ $(document).ready(function () {
                 formData.append('dsd_swap', this.value);
             } else if (this.name === 'freq_swap') {
                 formData.append('freq_swap', this.value);
+            } else if (this.name === 'leftjust') {
+                formData.append('leftjust', this.value);
             }
             
             // Apply setting immediately
-            fetch('i2s.php', {
+            fetch('handle_i2s.php', {
                 method: 'POST',
                 body: formData
             }).then(() => {

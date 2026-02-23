@@ -11,6 +11,10 @@
 / {
 	model = "Luckfox Pico Max";
 	compatible = "rockchip,rv1106";
+	
+	nvmem-cells = <&otp_id>;
+	nvmem-cell-names = "serial-number";
+	serial-number;
 
 };
 

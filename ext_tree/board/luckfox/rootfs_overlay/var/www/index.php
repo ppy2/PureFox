@@ -128,7 +128,7 @@
             <div class="header">
                 <h1 data-lang="i2s_title">I2S Settings</h1>
             </div>
-            <form id="i2s-form" method="post" action="i2s.php">
+             <form id="i2s-form" method="post" action="handle_i2s.php">
                 <div class="i2s-group">
                     <div class="i2s-group-header">
                         <h3 data-lang="mode_title">Режим</h3>
@@ -207,6 +207,20 @@
                                 <div class="toggle-slider-compact"></div>
                                 <span class="toggle-option-compact left" onclick="document.getElementById('modal-freq-normal').click()">OFF</span>
                                 <span class="toggle-option-compact right" onclick="document.getElementById('modal-freq-swap').click()">ON</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="i2s-group" style="display:none;">
+                    <div class="i2s-group-header">
+                        <h3 data-lang="leftjust_title">LeftJust</h3>
+                        <div class="toggle-switch-compact">
+                            <input type="radio" name="leftjust" value="0" id="modal-leftjust-off" class="toggle-input-compact">
+                            <input type="radio" name="leftjust" value="1" id="modal-leftjust-on" class="toggle-input-compact">
+                            <label class="toggle-label-compact">
+                                <div class="toggle-slider-compact"></div>
+                                <span class="toggle-option-compact left" onclick="document.getElementById('modal-leftjust-off').click()">OFF</span>
+                                <span class="toggle-option-compact right" onclick="document.getElementById('modal-leftjust-on').click()">ON</span>
                             </label>
                         </div>
                     </div>

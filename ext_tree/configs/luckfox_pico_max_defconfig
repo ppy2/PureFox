@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot -g36f29259-dirty Configuration
+# Buildroot -g65736135-dirty Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_EXTERNAL_NAMES="ext_tree"
@@ -4518,3 +4518,4 @@ BR2_PACKAGE_STATUS_MONITOR=y
 BR2_PACKAGE_QOBUZ_CONNECT=y
 BR2_PACKAGE_TIDAL_CONNECT=y
 BR2_PACKAGE_UAC2_ROUTER=y
+BR2_PACKAGE_BUFFER_DAEMON=y

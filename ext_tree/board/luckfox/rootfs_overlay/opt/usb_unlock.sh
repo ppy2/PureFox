@@ -7,7 +7,7 @@ UDC_SYSFS="/sys/kernel/config/usb_gadget"
 # Clear mode file
 rm -f "$MODE_FILE"
 
-# 1. Stop UAC2 gadget
+# 1. Stop UAC2 gadget SYNCHRONOUSLY (critical services)
 /etc/init.d/S99uac2_router stop
 /etc/init.d/S98uac2 stop
 rm -f /etc/init.d/S98uac2
@@ -22,12 +22,12 @@ fi
 rmmod dwc3 2>/dev/null || true
 sleep 0.2
 
-# Load dwc3_host.ko from custom location
-modprobe dwc3
+# Load dwc3_host.ko
+modprobe dwc3 2>/dev/null || true
 sleep 0.5
 
-# 4. Restart status monitor to detect USB DACs
-/etc/init.d/S01statusmonitor restart
+# 4. Restart status monitor in BACKGROUND (can wait for services to stabilize)
+/etc/init.d/S01statusmonitor restart >/dev/null 2>&1 &
 sync
 
 echo "USBtoI2S mode disabled, USB switched to host mode"

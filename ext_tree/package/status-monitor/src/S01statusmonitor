@@ -27,6 +27,7 @@ stop() {
     printf "Stopping $DAEMON: "
     start-stop-daemon -K -q -p $PIDFILE
     rm -f $PIDFILE
+    sleep 0.5
     echo "OK"
 }
 

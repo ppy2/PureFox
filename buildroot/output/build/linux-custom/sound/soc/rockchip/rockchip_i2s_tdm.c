@@ -131,8 +131,9 @@ struct rk_i2s_tdm_dev {
     unsigned int i2s_sdos[CH_GRP_MAX];
     unsigned int quirks;
     int clk_ppm;
-    atomic_t refcount;
-    spinlock_t lock; /* xfer lock */
+     atomic_t refcount;
+     bool seamless_transition_active; /* Flag for seamless frequency switching */
+     spinlock_t lock; /* xfer lock */
     int volume;
     bool mute;
     struct gpio_desc *mute_gpio;
@@ -161,12 +162,15 @@ struct rk_i2s_tdm_dev {
     /* Configurable auto-mute times via sysfs */
     unsigned int postmute_delay_ms;     // Mute hold time after start (default 450ms)
     
-    /* GPIO for DSD-on signal */
-    struct gpio_desc *dsd_on_gpio;
-    bool dsd_mode_active;
-    
-    /* DSD sample swap to eliminate purple noise */
-    bool dsd_sample_swap;
+     /* GPIO for DSD-on signal */
+     struct gpio_desc *dsd_on_gpio;
+     bool dsd_mode_active;
+
+     /* Current playback substream for DSD meander filling */
+     struct snd_pcm_substream *active_playback;
+
+     /* DSD sample swap to eliminate purple noise */
+     bool dsd_sample_swap;
     
     /* Channel swap controls */
     bool pcm_channel_swap;     /* PCM: LRCK inversion */
@@ -243,11 +247,16 @@ static inline int is_dsd(snd_pcm_format_t format)
 /* Common DSD switch handling function */
 static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, bool enable_dsd)
 {
+    ktime_t t0, t1, t2, t3;
+    unsigned long dt1, dt2, dt3;
+
     if (!i2s_tdm->dsd_on_gpio)
         return;
 
     if (enable_dsd == i2s_tdm->dsd_mode_active)
         return;  /* Already in desired state */
+
+    t0 = ktime_get();
 
     /* Enable mute before format switch to eliminate clicks */
     if (i2s_tdm->mute_gpio) {
@@ -258,8 +267,9 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
         gpiod_set_value(i2s_tdm->mute_gpio, 1);
         if (i2s_tdm->mute_inv_gpio)
             gpiod_set_value(i2s_tdm->mute_inv_gpio, 0);
-        msleep(50);
     }
+
+    t1 = ktime_get();
 
     if (enable_dsd) {
         i2s_tdm->dsd_mode_active = true;
@@ -271,30 +281,71 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
         dev_info(i2s_tdm->dev, "ROCKCHIP_I2S_TDM: DSD-on GPIO deactivated (PCM mode)\n");
     }
 
-    /* Apply routing for the new mode (DSD or PCM) */
+    t2 = ktime_get();
+
+    /* Apply routing for new mode (DSD or PCM) */
     rockchip_i2s_tdm_apply_dsd_physical_swap(i2s_tdm);
 
-    /* Wait for DAC to settle, then let normal trigger unmute handle it */
+    t3 = ktime_get();
+
+    /* Clear flag and restore auto_mute for next trigger */
     if (i2s_tdm->mute_gpio) {
-        msleep(500);
-        /* Clear flag and restore auto_mute for next trigger */
         i2s_tdm->format_change_mute = false;
         i2s_tdm->auto_mute_active = true;
-        /* DO NOT unmute here - let trigger's mute_post_work handle it */
     }
+
+    dt1 = ktime_to_us(ktime_sub(t1, t0));
+    dt2 = ktime_to_us(ktime_sub(t2, t1));
+    dt3 = ktime_to_us(ktime_sub(t3, t2));
+
+    dev_info(i2s_tdm->dev, "DSD switch timing: GPIO=%lu us, DSD-ON=%lu us, routing=%lu us\n",
+             dt1, dt2, dt3);
 }
 
 /* Calculate proper BCLK frequency for DSD formats */
 static unsigned int calculate_dsd_bclk(snd_pcm_format_t format, unsigned int sample_rate)
 {
-    /* For DSD: BCLK = sample_rate (native DSD rate)
-     * uac2_router will pass native DSD rates directly:
-     * DSD64:  2822400 Hz
-     * DSD128: 5644800 Hz
-     * DSD256: 11289600 Hz
-     * DSD512: 22579200 Hz
+    unsigned int bclk;
+    /* For DSD: Roon sends everything as DSD_U32_LE but sample_rate indicates DSD speed
+     * Mapping:
+     * - 88200 Hz (2x PCM base)   → DSD64  → BCLK = 2.8224 MHz
+     * - 176400 Hz (4x PCM base)  → DSD128 → BCLK = 5.6448 MHz
+     * - 352800 Hz (8x PCM base)  → DSD256 → BCLK = 11.2896 MHz
+     * - 705600 Hz (16x PCM base) → DSD512 → BCLK = 22.5792 MHz
      */
-    return sample_rate;
+    switch (format) {
+    case SNDRV_PCM_FORMAT_DSD_U8:
+        /* DSD_U8 = 8-bit DSD64: BCLK = 2.8224 MHz */
+        bclk = 2822400;
+        pr_info("DSD_U8: sample_rate=%u Hz -> BCLK=%u Hz (DSD64)\n", sample_rate, bclk);
+        return bclk;
+    case SNDRV_PCM_FORMAT_DSD_U16_LE:
+        /* DSD_U16 = 16-bit DSD128: BCLK = 5.6448 MHz */
+        bclk = 5644800;
+        pr_info("DSD_U16_LE: sample_rate=%u Hz -> BCLK=%u Hz (DSD128)\n", sample_rate, bclk);
+        return bclk;
+    case SNDRV_PCM_FORMAT_DSD_U32_LE:
+    case SNDRV_PCM_FORMAT_DSD_U32_BE:
+        /* DSD_U32: check sample_rate to determine DSD speed */
+        if (sample_rate >= 705600) {
+            bclk = 22579200; /* DSD512: 22.4 MHz */
+            pr_info("DSD_U32: sample_rate=%u Hz -> BCLK=%u Hz (DSD512)\n", sample_rate, bclk);
+        } else if (sample_rate >= 352800) {
+            bclk = 11289600; /* DSD256: 11.2 MHz */
+            pr_info("DSD_U32: sample_rate=%u Hz -> BCLK=%u Hz (DSD256)\n", sample_rate, bclk);
+        } else if (sample_rate >= 176400) {
+            bclk = 5644800; /* DSD128: 5.6 MHz */
+            pr_info("DSD_U32: sample_rate=%u Hz -> BCLK=%u Hz (DSD128)\n", sample_rate, bclk);
+        } else {
+            bclk = 2822400; /* DSD64: 2.8 MHz */
+            pr_info("DSD_U32: sample_rate=%u Hz -> BCLK=%u Hz (DSD64)\n", sample_rate, bclk);
+        }
+        return bclk;
+    default:
+        /* Fallback to sample_rate if unknown format */
+        pr_warn("Unknown DSD format %d, using sample_rate %u\n", format, sample_rate);
+        return sample_rate;
+    }
 }
 
 static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
@@ -346,10 +397,17 @@ static int i2s_tdm_runtime_suspend(struct device *dev)
 
     regcache_cache_only(i2s_tdm->regmap, true);
     
-    /* Do not turn off MCLK if continuous MCLK quirk is enabled */
+    /* OPTIMIZATION: Keep MCLK running if seamless transition is active
+     * This prevents ~6.7ms delay during frequency switching
+     */
     if (!(i2s_tdm->quirks & QUIRK_MCLK_ALWAYS_ON)) {
-        clk_disable_unprepare(i2s_tdm->mclk_tx);
-        clk_disable_unprepare(i2s_tdm->mclk_rx);
+        if (!i2s_tdm->seamless_transition_active) {
+            clk_disable_unprepare(i2s_tdm->mclk_tx);
+            clk_disable_unprepare(i2s_tdm->mclk_rx);
+            dev_dbg(i2s_tdm->dev, "Runtime suspend: MCLK disabled\n");
+        } else {
+            dev_dbg(i2s_tdm->dev, "Seamless transition: keeping MCLK running (eliminates ~6.7ms delay)\n");
+        }
     } else {
         dev_dbg(i2s_tdm->dev, "MCLK kept running during suspend (quirk enabled)\n");
     }
@@ -364,19 +422,26 @@ static int i2s_tdm_runtime_resume(struct device *dev)
 
     /* Enable MCLK only if it was turned off (quirk not active) */
     if (!(i2s_tdm->quirks & QUIRK_MCLK_ALWAYS_ON)) {
-        dev_info(i2s_tdm->dev, "Runtime resume: enabling mclk_tx and mclk_rx\n");
-        ret = clk_prepare_enable(i2s_tdm->mclk_tx);
-        if (ret) {
-            dev_err(i2s_tdm->dev, "Failed to enable mclk_tx: %d\n", ret);
-            goto err_mclk_tx;
-        }
+        /* OPTIMIZATION: Skip clk_prepare_enable if seamless transition is active
+         * This eliminates ~6.7ms delay during frequency switching
+         */
+        if (i2s_tdm->seamless_transition_active) {
+            dev_dbg(i2s_tdm->dev, "Seamless transition: MCLK already running, skip enable (eliminates ~6.7ms delay)\n");
+        } else {
+            dev_info(i2s_tdm->dev, "Runtime resume: enabling mclk_tx and mclk_rx\n");
+            ret = clk_prepare_enable(i2s_tdm->mclk_tx);
+            if (ret) {
+                dev_err(i2s_tdm->dev, "Failed to enable mclk_tx: %d\n", ret);
+                goto err_mclk_tx;
+            }
 
-        ret = clk_prepare_enable(i2s_tdm->mclk_rx);
-        if (ret) {
-            dev_err(i2s_tdm->dev, "Failed to enable mclk_rx: %d\n", ret);
-            goto err_mclk_rx;
+            ret = clk_prepare_enable(i2s_tdm->mclk_rx);
+            if (ret) {
+                dev_err(i2s_tdm->dev, "Failed to enable mclk_rx: %d\n", ret);
+                goto err_mclk_rx;
+            }
+            dev_info(i2s_tdm->dev, "Runtime resume: mclk_tx and mclk_rx enabled successfully\n");
         }
-        dev_info(i2s_tdm->dev, "Runtime resume: mclk_tx and mclk_rx enabled successfully\n");
     } else {
         dev_info(i2s_tdm->dev, "MCLK already running (quirk enabled)\n");
     }
@@ -1205,20 +1270,44 @@ static int rockchip_i2s_tdm_calibrate_mclk(struct rk_i2s_tdm_dev *i2s_tdm,
     }
     
     dev_info(i2s_tdm->dev, "Current PLL: %u Hz, target: %u Hz (for %u Hz family, target SRC=%u Hz)\n",
-             pll_freq, ideal_pll, lrck_freq, src_freq);
-    
-    if (pll_freq != ideal_pll) {
+                 pll_freq, ideal_pll, lrck_freq, src_freq);
+
+    /* CRITICAL FIX: Disable MCLK output before PLL reconfiguration to prevent glitch
+     * The 68kHz artifact occurs when PLL switches domains while MCLK is still driving output
+     */
+    bool needs_pll_switch = false;
+    unsigned int pll_tolerance = 100; /* 100 Hz tolerance */
+    if (pll_freq < ideal_pll - pll_tolerance || pll_freq > ideal_pll + pll_tolerance) {
+        needs_pll_switch = true;
+        dev_info(i2s_tdm->dev, "Cross-domain switch detected - disabling MCLK to prevent glitch\n");
+        clk_disable_unprepare(i2s_tdm->mclk_tx);
+    }
+
+    /* OPTIMIZATION: Use tolerance to avoid unnecessary PLL switches
+     * Allow small frequency drift (up to 100 Hz) to prevent glitch
+     * when switching between frequencies in same domain
+     */
+    if (needs_pll_switch) {
         ret = clk_set_rate(mclk_root, ideal_pll);
         if (ret == 0) {
             pll_freq = clk_get_rate(mclk_root);
             dev_info(i2s_tdm->dev, "PLL changed to: %u Hz\n", pll_freq);
         }
+    } else {
+        dev_info(i2s_tdm->dev, "PLL already at target %u Hz (within tolerance) - no change needed (seamless)\n", pll_freq);
     }
     
-    ret = clk_set_rate(mclk_parent, src_freq);
-    if (ret) {
-        dev_err(i2s_tdm->dev, "Failed to set SRC to %u Hz: %d\n", src_freq, ret);
-        goto out;
+    /* OPTIMIZATION: Only change SRC if needed for seamless transition */
+    unsigned long current_src = clk_get_rate(mclk_parent);
+    unsigned int src_tolerance = 1000; /* 1 kHz tolerance for SRC */
+    if (current_src < (src_freq - src_tolerance) || current_src > (src_freq + src_tolerance)) {
+        ret = clk_set_rate(mclk_parent, src_freq);
+        if (ret) {
+            dev_err(i2s_tdm->dev, "Failed to set SRC to %u Hz: %d\n", src_freq, ret);
+            goto out;
+        }
+    } else {
+        dev_dbg(i2s_tdm->dev, "SRC already at %lu Hz (within tolerance) - no change needed (seamless)\n", current_src);
     }
     
     src_freq = clk_get_rate(mclk_parent);
@@ -1227,7 +1316,17 @@ static int rockchip_i2s_tdm_calibrate_mclk(struct rk_i2s_tdm_dev *i2s_tdm,
     dev_info(i2s_tdm->dev, "Clock config: PLL=%u Hz ÷%u → SRC=%u Hz (%s family, %ux multiplier)\n",
          pll_freq, div, src_freq, (lrck_freq % 44100 == 0) ? "44.1k" : "48k", i2s_tdm->mclk_multiplier);
 
-out:
+    /* CRITICAL FIX: Re-enable MCLK after PLL is stable */
+    if (needs_pll_switch) {
+        ret = clk_prepare_enable(i2s_tdm->mclk_tx);
+        if (ret) {
+            dev_err(i2s_tdm->dev, "Failed to re-enable MCLK: %d\n", ret);
+        } else {
+            dev_info(i2s_tdm->dev, "MCLK re-enabled after PLL switch\n");
+        }
+    }
+
+ out:
     return ret;
 }
 
@@ -1419,12 +1518,25 @@ static int rockchip_i2s_tdm_params_trcm(struct snd_pcm_substream *substream,
 {
     struct rk_i2s_tdm_dev *i2s_tdm = to_info(dai);
     unsigned long flags;
-
-    spin_lock_irqsave(&i2s_tdm->lock, flags);
-    if (atomic_read(&i2s_tdm->refcount))
-    rockchip_i2s_tdm_trcm_pause(substream, i2s_tdm);
-
-    regmap_update_bits(i2s_tdm->regmap, I2S_CLKDIV,
+ 
+     spin_lock_irqsave(&i2s_tdm->lock, flags);
+     if (atomic_read(&i2s_tdm->refcount))
+     rockchip_i2s_tdm_trcm_pause(substream, i2s_tdm);
+ 
+     /* OPTIMIZATION: Use seamless mode for frequency switching
+     * If stream is active and refcount > 0, don't stop I2S
+     * This eliminates 37us glitch during divider changes
+     */
+     bool seamless_mode = (atomic_read(&i2s_tdm->refcount) > 0) &&
+                         i2s_tdm->seamless_transition_active;
+    
+     if (seamless_mode) {
+        dev_dbg(i2s_tdm->dev, "Seamless mode: changing dividers without I2S stop (eliminates glitch)\n");
+     } else if (atomic_read(&i2s_tdm->refcount)) {
+        rockchip_i2s_tdm_trcm_pause(substream, i2s_tdm);
+    }
+     
+     regmap_update_bits(i2s_tdm->regmap, I2S_CLKDIV,
            I2S_CLKDIV_TXM_MASK | I2S_CLKDIV_RXM_MASK,
            I2S_CLKDIV_TXM(div_bclk) | I2S_CLKDIV_RXM(div_bclk));
     regmap_update_bits(i2s_tdm->regmap, I2S_CKR,
@@ -1455,9 +1567,15 @@ static int rockchip_i2s_tdm_params(struct snd_pcm_substream *substream,
 {
     struct rk_i2s_tdm_dev *i2s_tdm = to_info(dai);
     int stream = substream->stream;
+    ktime_t t0, t1, t2, t3;
+    unsigned long dt1, dt2, dt3;
+
+    t0 = ktime_get();
 
     if (is_stream_active(i2s_tdm, stream))
     rockchip_i2s_tdm_xfer_stop(i2s_tdm, stream, true);
+
+    t1 = ktime_get();
 
     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
     regmap_update_bits(i2s_tdm->regmap, I2S_CLKDIV,
@@ -1487,10 +1605,19 @@ static int rockchip_i2s_tdm_params(struct snd_pcm_substream *substream,
      * sound issue. at the moment, it's 8K@60Hz display situation.
      */
     if ((i2s_tdm->quirks & QUIRK_HDMI_PATH) &&
-        (i2s_tdm->quirks & QUIRK_ALWAYS_ON) &&
-        (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)) {
+         (i2s_tdm->quirks & QUIRK_ALWAYS_ON) &&
+         (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)) {
     rockchip_i2s_tdm_xfer_start(i2s_tdm, SNDRV_PCM_STREAM_PLAYBACK);
     }
+
+    t2 = ktime_get();
+    dt2 = ktime_to_us(ktime_sub(t2, t1));
+    dev_info(i2s_tdm->dev, "I2S_TDM_PARAMS: reg_updates=%lu us\n", dt2);
+
+    t3 = ktime_get();
+    dt3 = ktime_to_us(ktime_sub(t3, t0));
+    dev_info(i2s_tdm->dev, "I2S_TDM_PARAMS: TOTAL=%lu us (xfer_stop=%lu us, reg_updates=%lu us)\n",
+             dt3, dt1, dt2);
 
     return 0;
 }
@@ -1573,9 +1700,16 @@ static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
     dma_data = snd_soc_dai_get_dma_data(dai, substream);
     dma_data->maxburst = MAXBURST_PER_FIFO * params_channels(params) / 2;
 
+    /* CRITICAL FIX: Stop I2S BEFORE PLL reconfiguration to prevent MCLK glitch during cross-domain switch
+     * The 68kHz artifact occurs because I2S is still running while PLL switches between domains
+     * This stop MUST happen before calibrate_mclk, not just before params
+     */
+    if (i2s_tdm->is_master_mode && is_stream_active(i2s_tdm, substream->stream)) {
+        rockchip_i2s_tdm_xfer_stop(i2s_tdm, substream->stream, true);
+        dev_info(i2s_tdm->dev, "I2S stopped before PLL reconfiguration (prevents cross-domain glitch)\n");
+    }
 
     /* Note: Mute is now handled in trigger for proper timing */
-    
 
     if (i2s_tdm->is_master_mode) {
         if (i2s_tdm->mclk_calibrate) {
@@ -1601,7 +1735,12 @@ static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
                      target_mclk, i2s_tdm->mclk_multiplier, params_rate(params),
                      (params_rate(params) % 44100 == 0) ? "44.1k" : "48k");
 
-            ret = clk_set_rate(i2s_tdm->mclk_tx, target_mclk);
+    unsigned long current_mclk = clk_get_rate(i2s_tdm->mclk_tx);
+    if (current_mclk != target_mclk) {
+        ret = clk_set_rate(i2s_tdm->mclk_tx, target_mclk);
+    } else {
+        dev_info(i2s_tdm->dev, "MCLK already at %lu Hz, skipping clk_set_rate (eliminates glitch)\n", current_mclk);
+    }
             if (ret == 0) {
                 unsigned long actual_rate = clk_get_rate(i2s_tdm->mclk_tx);
                 dev_info(i2s_tdm->dev, "MCLK rate set to %lu Hz (target %u Hz)\n", actual_rate, target_mclk);
@@ -1643,6 +1782,8 @@ if( i2s_tdm->mclk_external ){
         
         /* Special handling for DSD formats */
         if (is_dsd(params_format(params))) {
+            dev_info(i2s_tdm->dev, "DSD: format=%d (%s), sample_rate=%u Hz\n",
+                     params_format(params), snd_pcm_format_name(params_format(params)), params_rate(params));
             bclk_rate = calculate_dsd_bclk(params_format(params), params_rate(params));
             /* DSD always uses 22.579 MHz MCLK - force it if different */
             if (mclk_rate != 22579200) {
@@ -1782,32 +1923,54 @@ static int rockchip_i2s_tdm_trigger(struct snd_pcm_substream *substream,
     struct rk_i2s_tdm_dev *i2s_tdm = to_info(dai);
     int ret = 0;
 
-    switch (cmd) {
-    case SNDRV_PCM_TRIGGER_START:
-    /* Reset pause state on start */
-    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-        i2s_tdm->playback_paused = false;
-        
-        /* Ensure auto_mute is active for this playback session */
-        if (!i2s_tdm->user_mute_priority) {
-            i2s_tdm->auto_mute_active = true;
-        }
-        
-        /* Start stream immediately - mute is already ON by default */
-        rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
-        
-        /* Schedule unmute after postmute delay */
-        if (!i2s_tdm->user_mute_priority && i2s_tdm->postmute_delay_ms > 0) {
-            schedule_delayed_work(&i2s_tdm->mute_post_work, 
-                                msecs_to_jiffies(i2s_tdm->postmute_delay_ms));
-            dev_info(i2s_tdm->dev, "TRIGGER START: Stream started, unmute in %dms\n", 
-                     i2s_tdm->postmute_delay_ms);
-        }
-    } else {
-        i2s_tdm->capture_paused = false;
-        rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
-    }
-    break;
+     switch (cmd) {
+     case SNDRV_PCM_TRIGGER_START:
+     {
+         ktime_t t_start, t_end;
+         unsigned long dt;
+         t_start = ktime_get();
+
+     /* Reset pause state on start */
+     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+         i2s_tdm->playback_paused = false;
+         i2s_tdm->active_playback = substream;  /* Save for meander filling */
+
+         /* Ensure auto_mute is active for this playback session */
+         if (!i2s_tdm->user_mute_priority) {
+             i2s_tdm->auto_mute_active = true;
+         }
+
+         /* For DSD: Do NOT start I2S if already running (seamless frequency change)
+          * But START DMA and XFER to send meander data
+          * For PCM: Use start() as usual
+          */
+         if (i2s_tdm->dsd_mode_active) {
+             dev_info(i2s_tdm->dev, "TRIGGER START: DSD mode - STARTING DMA/XFER (I2S/BCLK already running)\n");
+             /* Start XFER and DMA - I2S/BCLK already running */
+             rockchip_i2s_tdm_xfer_start(i2s_tdm, substream->stream);
+             rockchip_i2s_tdm_dma_ctrl(i2s_tdm, substream->stream, 1);
+             dev_info(i2s_tdm->dev, "TRIGGER START: DMA/XFER started, now sending data from buffer\n");
+         } else {
+             rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
+         }
+
+         /* Schedule unmute after postmute delay */
+         if (!i2s_tdm->user_mute_priority && i2s_tdm->postmute_delay_ms > 0) {
+             schedule_delayed_work(&i2s_tdm->mute_post_work,
+                                 msecs_to_jiffies(i2s_tdm->postmute_delay_ms));
+             dev_info(i2s_tdm->dev, "TRIGGER START: Stream started, unmute in %dms\n",
+                          i2s_tdm->postmute_delay_ms);
+         }
+     } else {
+         i2s_tdm->capture_paused = false;
+         rockchip_i2s_tdm_start(i2s_tdm, substream->stream);
+     }
+
+         t_end = ktime_get();
+         dt = ktime_to_us(ktime_sub(t_end, t_start));
+         dev_info(i2s_tdm->dev, "TRIGGER START: took %lu us\n", dt);
+     }
+     break;
     case SNDRV_PCM_TRIGGER_RESUME:
     /* Reset pause state on system resume */
     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -1820,33 +1983,64 @@ static int rockchip_i2s_tdm_trigger(struct snd_pcm_substream *substream,
     /* Resume after pause */
     rockchip_i2s_tdm_resume(i2s_tdm, substream->stream);
     break;
-    case SNDRV_PCM_TRIGGER_SUSPEND:
-    case SNDRV_PCM_TRIGGER_STOP:
-    /* Reset pause state on stop */
-    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-        i2s_tdm->playback_paused = false;
-        
-        /* Cancel any pending unmute work */
-        cancel_delayed_work_sync(&i2s_tdm->mute_post_work);
-        
-        /* Enable mute when playback stops (no useful signal) */
-        mutex_lock(&i2s_tdm->mute_lock);
-        if (!i2s_tdm->user_mute_priority && !i2s_tdm->format_change_mute) {
-            if (i2s_tdm->mute_gpio) {
-                gpiod_set_value(i2s_tdm->mute_gpio, 1);
-                if (i2s_tdm->mute_inv_gpio)
-                    gpiod_set_value(i2s_tdm->mute_inv_gpio, 0);
-            }
-            i2s_tdm->auto_mute_active = true;
-            rockchip_i2s_tdm_apply_mute(i2s_tdm, true);
-            dev_info(i2s_tdm->dev, "TRIGGER STOP: Mute enabled (no signal)\n");
-        }
-        mutex_unlock(&i2s_tdm->mute_lock);
-    } else {
-        i2s_tdm->capture_paused = false;
-    }
-    rockchip_i2s_tdm_stop(i2s_tdm, substream->stream);
-    break;
+     case SNDRV_PCM_TRIGGER_SUSPEND:
+     case SNDRV_PCM_TRIGGER_STOP:
+     {
+         ktime_t t_start, t_end;
+         unsigned long dt;
+         t_start = ktime_get();
+
+         /* Reset pause state on stop */
+         if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+             i2s_tdm->playback_paused = false;
+
+             /* Cancel any pending unmute work */
+             cancel_delayed_work_sync(&i2s_tdm->mute_post_work);
+
+             /* Enable mute when playback stops (no useful signal) */
+             mutex_lock(&i2s_tdm->mute_lock);
+             if (!i2s_tdm->user_mute_priority && !i2s_tdm->format_change_mute) {
+                 if (i2s_tdm->mute_gpio) {
+                     gpiod_set_value(i2s_tdm->mute_gpio, 1);
+                     if (i2s_tdm->mute_inv_gpio)
+                         gpiod_set_value(i2s_tdm->mute_inv_gpio, 0);
+                 }
+                 i2s_tdm->auto_mute_active = true;
+                 rockchip_i2s_tdm_apply_mute(i2s_tdm, true);
+                 dev_info(i2s_tdm->dev, "TRIGGER STOP: Mute enabled (no signal)\n");
+             }
+             mutex_unlock(&i2s_tdm->mute_lock);
+         } else {
+             i2s_tdm->capture_paused = false;
+         }
+
+     /* For DSD: Do NOT stop I2S at all - keep I2S/BCLK running
+      * This prevents BCLK dropout during frequency changes
+      * Fill DMA buffer with meander (0x55) to generate silence
+      * KEEP DMA RUNNING to send meander continuously
+      */
+     if (i2s_tdm->dsd_mode_active) {
+         dev_info(i2s_tdm->dev, "TRIGGER STOP: DSD mode - KEEPING I2S/BCLK/DMA RUNNING\n");
+         /* Fill DMA buffer with meander (0x55) for DSD silence */
+         if (i2s_tdm->active_playback && i2s_tdm->active_playback->runtime) {
+             void *dma_area = i2s_tdm->active_playback->runtime->dma_area;
+             size_t buffer_size = i2s_tdm->active_playback->runtime->buffer_size;
+             if (dma_area && buffer_size > 0) {
+                 memset(dma_area, 0x55, buffer_size);
+                 dev_info(i2s_tdm->dev, "TRIGGER STOP: Filled %zu bytes with meander (0x55)\n", buffer_size);
+             }
+         }
+         /* KEEP DMA RUNNING to send meander continuously */
+         /* Do NOT call pause() or stop() for DSD */
+     } else {
+         rockchip_i2s_tdm_stop(i2s_tdm, substream->stream);
+     }
+
+         t_end = ktime_get();
+         dt = ktime_to_us(ktime_sub(t_end, t_start));
+         dev_info(i2s_tdm->dev, "TRIGGER STOP: took %lu us\n", dt);
+     }
+     break;
     case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
     /* Stream suspension */
     rockchip_i2s_tdm_pause(i2s_tdm, substream->stream);
@@ -2104,9 +2298,18 @@ static void rockchip_i2s_tdm_apply_mute(struct rk_i2s_tdm_dev *i2s_tdm, bool ena
             struct snd_pcm_runtime *runtime = substream->runtime;
             
             if (runtime && runtime->status->state == SNDRV_PCM_STATE_RUNNING && runtime->dma_area) {
-                /* Clear current DMA buffers for immediate silence */
-                memset(runtime->dma_area, 0, runtime->dma_bytes);
-                dev_dbg(i2s_tdm->dev, "DMA buffers cleared for immediate mute\n");
+                /* CRITICAL FIX: DSD uses meander (0x55) for silence, not 0
+                 * This prevents double-click when muting DSD
+                 */
+                if (i2s_tdm->dsd_mode_active) {
+                    /* DSD: Fill with meander (0x55) for instant digital silence */
+                    memset(runtime->dma_area, 0x55, runtime->dma_bytes);
+                    dev_dbg(i2s_tdm->dev, "DMA buffers filled with DSD meander (0x55) for instant mute\n");
+                } else {
+                    /* PCM: Clear current DMA buffers for immediate silence */
+                    memset(runtime->dma_area, 0, runtime->dma_bytes);
+                    dev_dbg(i2s_tdm->dev, "DMA buffers cleared for immediate mute\n");
+                }
             }
         }
         

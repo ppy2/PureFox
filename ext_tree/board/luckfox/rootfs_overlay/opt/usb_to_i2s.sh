@@ -7,15 +7,15 @@ MODULES_DIR="/lib/modules"
 # Stop all running players and remove symlinks
 sh -c '/etc/init.d/S95* stop' 2>/dev/null || true
 rm -f /etc/init.d/S95*
-ln -s  /etc/rc.pure/S98uac2 /etc/init.d/S98uac2
-ln -s  /etc/rc.pure/S95uac2_router /etc/init.d/S99uac2_router
+ln -sf  /etc/rc.pure/S98uac2 /etc/init.d/S98uac2
+ln -sf  /etc/rc.pure/S95uac2_router /etc/init.d/S99uac2_router
 
 # Set mode file
 echo "enabled" > "$MODE_FILE"
 
 # 1. Switch ALSA to I2S
 rm -f /etc/asound.conf
-ln -s /etc/asound.std /etc/asound.conf
+ln -sf /etc/asound.std /etc/asound.conf
 sed -i 's/^SUBMODE=.*$/SUBMODE=std/' /etc/i2s.conf
 echo I2S > /etc/output
 
@@ -27,13 +27,14 @@ sleep 0.2
 
 # Load dwc3_gadget.ko from custom location
 insmod $MODULES_DIR/dwc3_gadget.ko 2>/dev/null || true
-sleep 0.5
+sleep 1.0
 
+# Start UAC2 gadget and router SYNCHRONOUSLY (critical services)
 /etc/init.d/S98uac2 restart
 /etc/init.d/S99uac2_router start
 
-# 3. Restart services
-/etc/init.d/S01statusmonitor restart
+# 3. Restart status monitor in BACKGROUND (can wait for services to stabilize)
+/etc/init.d/S01statusmonitor restart >/dev/null 2>&1 &
 sync
 
 echo "USBtoI2S mode enabled"
