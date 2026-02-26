@@ -26,11 +26,17 @@
 #define I2S_FORMAT_DSD SND_PCM_FORMAT_DSD_U32_LE  /* DSD: 32-bit DSD */
 #define I2S_CHANNELS 2                     /* Back to stereo until multi-channel I2S is fully implemented */
 
-/* DSD sample rates (native DSD64/128/256/512) */
-#define DSD64_RATE   2822400
-#define DSD128_RATE  5644800
+/* DSD sample rates — native DSD bit rates, 44.1kHz family */
+#define DSD64_RATE    2822400
+#define DSD128_RATE   5644800
 #define DSD256_RATE  11289600
 #define DSD512_RATE  22579200
+
+/* DSD sample rates — native DSD bit rates, 48kHz family */
+#define DSD64_RATE_48    3072000
+#define DSD128_RATE_48   6144000
+#define DSD256_RATE_48  12288000
+#define DSD512_RATE_48  24576000
 
 /* Buffer size for netlink uevent */
 #define UEVENT_BUFFER_SIZE 4096
@@ -82,19 +88,30 @@ static void sighandler(int sig) {
     running = 0;
 }
 
-/* Determine if frequency is DSD */
+/* Determine if frequency is a native DSD bit rate (44.1kHz or 48kHz family) */
 static int is_dsd_rate(unsigned int rate) {
-    return (rate == DSD64_RATE || rate == DSD128_RATE ||
-            rate == DSD256_RATE || rate == DSD512_RATE);
+    return (rate == DSD64_RATE    || rate == DSD128_RATE    ||
+            rate == DSD256_RATE   || rate == DSD512_RATE    ||
+            rate == DSD64_RATE_48 || rate == DSD128_RATE_48 ||
+            rate == DSD256_RATE_48 || rate == DSD512_RATE_48);
+}
+
+/* Base rate of DSD64 for the frequency family of a given DSD rate */
+static unsigned int dsd_base_rate(unsigned int rate) {
+    return (rate % 44100 == 0) ? DSD64_RATE : DSD64_RATE_48;
 }
 
 /* Get DSD format name by frequency */
 static const char* get_dsd_name(unsigned int rate) {
     switch (rate) {
-        case DSD64_RATE:  return "DSD64";
-        case DSD128_RATE: return "DSD128";
-        case DSD256_RATE: return "DSD256";
-        case DSD512_RATE: return "DSD512";
+        case DSD64_RATE:     return "DSD64/44.1";
+        case DSD128_RATE:    return "DSD128/44.1";
+        case DSD256_RATE:    return "DSD256/44.1";
+        case DSD512_RATE:    return "DSD512/44.1";
+        case DSD64_RATE_48:  return "DSD64/48";
+        case DSD128_RATE_48: return "DSD128/48";
+        case DSD256_RATE_48: return "DSD256/48";
+        case DSD512_RATE_48: return "DSD512/48";
         default: return "Unknown";
     }
 }
@@ -408,15 +425,13 @@ static int setup_pcm(snd_pcm_t **pcm, const char *device, snd_pcm_stream_t strea
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
     int err;
-    /* Adaptive period size: larger for high frequencies (DSD) */
+    /* Adaptive period size: larger for high frequencies (DSD) ~0.7ms per period.
+     * Uses the base rate of each DSD family as the multiplier reference:
+     *   44.1k: DSD64=2048 DSD128=4096 DSD256=8192 DSD512=16384 frames
+     *   48k:   DSD64=2048 DSD128=4096 DSD256=8192 DSD512=16384 frames */
     snd_pcm_uframes_t period_size = PERIOD_FRAMES;
-    if (rate >= DSD64_RATE) {
-        /* DSD rates: increase period to avoid too short intervals
-         * DSD64:  2.8MHz → 2048 frames = 0.7ms
-         * DSD128: 5.6MHz → 4096 frames = 0.7ms
-         * DSD256: 11.2MHz → 8192 frames = 0.7ms
-         * DSD512: 22.5MHz → 16384 frames = 0.7ms */
-        period_size = (rate / DSD64_RATE) * 2048;
+    if (is_dsd_rate(rate)) {
+        period_size = (rate / dsd_base_rate(rate)) * 2048;
     }
     snd_pcm_uframes_t buffer_size = period_size * 4;  /* Fixed buffer size for stability */
 

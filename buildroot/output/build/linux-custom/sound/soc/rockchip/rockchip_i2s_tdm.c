@@ -285,28 +285,46 @@ static void rockchip_i2s_tdm_handle_dsd_switch(struct rk_i2s_tdm_dev *i2s_tdm, b
 }
 
 /* Calculate proper BCLK frequency for DSD formats.
- * Roon (and uac2_router) passes PCM-equivalent sample_rate, not native DSD bit rate:
- *   DSD64:  sample_rate=88200  -> BCLK=2822400 Hz  (88200  * 32)
- *   DSD128: sample_rate=176400 -> BCLK=5644800 Hz  (176400 * 32)
- *   DSD256: sample_rate=352800 -> BCLK=11289600 Hz (352800 * 32)
- *   DSD512: sample_rate=705600 -> BCLK=22579200 Hz (705600 * 32)
- * BCLK = sample_rate * bits_per_word (word size from DSD format type).
+ *
+ * Two rate conventions depending on caller:
+ *
+ * A) uac2_router passes the native DSD bit rate (>= 1 MHz) directly:
+ *      44.1k: DSD64=2822400  DSD128=5644800  DSD256=11289600 DSD512=22579200 Hz
+ *      48k:   DSD64=3072000  DSD128=6144000  DSD256=12288000 DSD512=24576000 Hz
+ *    -> BCLK = sample_rate (already correct)
+ *
+ * B) Roon / ALSA native DSD path passes PCM frame rate (< 1 MHz):
+ *      DSD_U32_LE 44.1k: 88200 * 32 = 2822400 Hz
+ *      DSD_U32_LE 48k:   96000 * 32 = 3072000 Hz
+ *    -> BCLK = sample_rate * bits_per_word
  */
 static unsigned int calculate_dsd_bclk(snd_pcm_format_t format, unsigned int sample_rate)
 {
+    unsigned int bits_per_word;
+
     switch (format) {
     case SNDRV_PCM_FORMAT_DSD_U8:
-        return sample_rate * 8;
+        bits_per_word = 8;
+        break;
     case SNDRV_PCM_FORMAT_DSD_U16_LE:
     case SNDRV_PCM_FORMAT_DSD_U16_BE:
-        return sample_rate * 16;
+        bits_per_word = 16;
+        break;
     case SNDRV_PCM_FORMAT_DSD_U32_LE:
     case SNDRV_PCM_FORMAT_DSD_U32_BE:
-        return sample_rate * 32;
+        bits_per_word = 32;
+        break;
     default:
-        dev_warn_once(NULL, "Unknown DSD format %d, BCLK may be wrong\n", format);
+        dev_warn_once(NULL, "Unknown DSD format %d, using sample_rate as BCLK\n", format);
         return sample_rate;
     }
+
+    /* Convention A: native DSD bit rate >= 1 MHz (uac2_router path) — use as-is */
+    if (sample_rate >= 1000000)
+        return sample_rate;
+
+    /* Convention B: PCM frame rate < 1 MHz (Roon / ALSA native DSD) */
+    return sample_rate * bits_per_word;
 }
 
 static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
