@@ -1656,15 +1656,28 @@ if( i2s_tdm->mclk_external ){
         /* Special handling for DSD formats */
         if (is_dsd(params_format(params))) {
             bclk_rate = calculate_dsd_bclk(params_format(params), params_rate(params));
-            /* DSD always uses 22.579 MHz MCLK - force it if different */
-            if (mclk_rate != 22579200) {
-                dev_info(i2s_tdm->dev, "DSD: MCLK rate %u Hz, expected 22579200 Hz\n", mclk_rate);
-            }
-            dev_info(i2s_tdm->dev, "DSD mode: BCLK=%u Hz, MCLK=%u Hz\n", bclk_rate, mclk_rate);
+
+            /* Expected MCLK depends on frequency family:
+             *   44.1kHz grid: 22,579,200 Hz (512x DSD512/44.1)
+             *   48kHz grid:   24,576,000 Hz (512x DSD512/48)
+             * With mclk_multiplier=1024 values double accordingly.
+             */
+            unsigned int expected_mclk;
+            if (params_rate(params) % 44100 == 0)
+                expected_mclk = (i2s_tdm->mclk_multiplier == 1024) ? 45158400 : 22579200;
+            else
+                expected_mclk = (i2s_tdm->mclk_multiplier == 1024) ? 49152000 : 24576000;
+
+            if (mclk_rate != expected_mclk)
+                dev_info(i2s_tdm->dev, "DSD: MCLK=%u Hz, expected %u Hz\n",
+                         mclk_rate, expected_mclk);
+
+            dev_info(i2s_tdm->dev, "DSD mode: format=%d, sample_rate=%u Hz, BCLK=%u Hz, MCLK=%u Hz\n",
+                     params_format(params), params_rate(params), bclk_rate, mclk_rate);
         } else {
             bclk_rate = i2s_tdm->bclk_fs * params_rate(params);
         }
-        
+
         if (!bclk_rate) {
             ret = -EINVAL;
             goto err;
@@ -1672,9 +1685,26 @@ if( i2s_tdm->mclk_external ){
 
         div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
 
-        /* For DSD: div_lrck = 32 (bits per frame in DSD_U32_LE format) */
+        /* For DSD: div_lrck = bits_per_word (derived from format).
+         * LRCK = BCLK / div_lrck = sample_rate, so div_lrck = BCLK / sample_rate
+         * = (sample_rate * bits_per_word) / sample_rate = bits_per_word.
+         * Handles all grids (44.1kHz and 48kHz) correctly.
+         */
         if (is_dsd(params_format(params))) {
-            div_lrck = 32;
+            switch (params_format(params)) {
+            case SNDRV_PCM_FORMAT_DSD_U8:
+                div_lrck = 8;
+                break;
+            case SNDRV_PCM_FORMAT_DSD_U16_LE:
+            case SNDRV_PCM_FORMAT_DSD_U16_BE:
+                div_lrck = 16;
+                break;
+            case SNDRV_PCM_FORMAT_DSD_U32_LE:
+            case SNDRV_PCM_FORMAT_DSD_U32_BE:
+            default:
+                div_lrck = 32;
+                break;
+            }
         } else {
             div_lrck = bclk_rate / params_rate(params);
         }
