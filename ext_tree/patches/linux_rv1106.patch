@@ -1522,16 +1522,47 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip
 +}
 +
 +/* Calculate proper BCLK frequency for DSD formats */
++/* Calculate proper BCLK frequency for DSD formats.
++ *
++ * Two rate conventions depending on caller:
++ *
++ * A) uac2_router passes the native DSD bit rate (>= 1 MHz) directly:
++ *      44.1k: DSD64=2822400  DSD128=5644800  DSD256=11289600 DSD512=22579200 Hz
++ *      48k:   DSD64=3072000  DSD128=6144000  DSD256=12288000 DSD512=24576000 Hz
++ *    -> BCLK = sample_rate (already correct)
++ *
++ * B) Roon / ALSA native DSD path passes PCM frame rate (< 1 MHz):
++ *      DSD_U32_LE 44.1k: 88200 * 32 = 2822400 Hz
++ *      DSD_U32_LE 48k:   96000 * 32 = 3072000 Hz
++ *    -> BCLK = sample_rate * bits_per_word
++ */
 +static unsigned int calculate_dsd_bclk(snd_pcm_format_t format, unsigned int sample_rate)
 +{
-+    /* For DSD: BCLK = sample_rate (native DSD rate)
-+     * uac2_router will pass native DSD rates directly:
-+     * DSD64:  2822400 Hz
-+     * DSD128: 5644800 Hz
-+     * DSD256: 11289600 Hz
-+     * DSD512: 22579200 Hz
-+     */
-+    return sample_rate;
++    unsigned int bits_per_word;
++
++    switch (format) {
++    case SNDRV_PCM_FORMAT_DSD_U8:
++        bits_per_word = 8;
++        break;
++    case SNDRV_PCM_FORMAT_DSD_U16_LE:
++    case SNDRV_PCM_FORMAT_DSD_U16_BE:
++        bits_per_word = 16;
++        break;
++    case SNDRV_PCM_FORMAT_DSD_U32_LE:
++    case SNDRV_PCM_FORMAT_DSD_U32_BE:
++        bits_per_word = 32;
++        break;
++    default:
++        dev_warn_once(NULL, "Unknown DSD format %d, using sample_rate as BCLK\n", format);
++        return sample_rate;
++    }
++
++    /* Convention A: native DSD bit rate >= 1 MHz (uac2_router path) -- use as-is */
++    if (sample_rate >= 1000000)
++        return sample_rate;
++
++    /* Convention B: PCM frame rate < 1 MHz (Roon / ALSA native DSD) */
++    return sample_rate * bits_per_word;
 +}
 +
 +static void rockchip_i2s_tdm_mute_post_work(struct work_struct *work);
@@ -4621,15 +4652,25 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip
 +        /* Special handling for DSD formats */
 +        if (is_dsd(params_format(params))) {
 +            bclk_rate = calculate_dsd_bclk(params_format(params), params_rate(params));
-+            /* DSD always uses 22.579 MHz MCLK - force it if different */
-+            if (mclk_rate != 22579200) {
-+                dev_info(i2s_tdm->dev, "DSD: MCLK rate %u Hz, expected 22579200 Hz\n", mclk_rate);
-+            }
-+            dev_info(i2s_tdm->dev, "DSD mode: BCLK=%u Hz, MCLK=%u Hz\n", bclk_rate, mclk_rate);
++
++            /* Expected MCLK depends on frequency family:
++             *   44.1kHz grid: 22,579,200 Hz (512x) / 45,158,400 Hz (1024x)
++             *   48kHz grid:   24,576,000 Hz (512x) / 49,152,000 Hz (1024x)
++             */
++            unsigned int expected_mclk;
++            if (params_rate(params) % 44100 == 0)
++                expected_mclk = (i2s_tdm->mclk_multiplier == 1024) ? 45158400 : 22579200;
++            else
++                expected_mclk = (i2s_tdm->mclk_multiplier == 1024) ? 49152000 : 24576000;
++            if (mclk_rate != expected_mclk)
++                dev_info(i2s_tdm->dev, "DSD: MCLK=%u Hz, expected %u Hz\n",
++                         mclk_rate, expected_mclk);
++            dev_info(i2s_tdm->dev, "DSD mode: format=%d, sample_rate=%u Hz, BCLK=%u Hz, MCLK=%u Hz\n",
++                     params_format(params), params_rate(params), bclk_rate, mclk_rate);
 +        } else {
 +            bclk_rate = i2s_tdm->bclk_fs * params_rate(params);
 +        }
-+        
++
 +        if (!bclk_rate) {
 +            ret = -EINVAL;
 +            goto err;
@@ -4637,9 +4678,25 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip
 +
 +        div_bclk = DIV_ROUND_CLOSEST(mclk_rate, bclk_rate);
 +
-+        /* For DSD: div_lrck = 32 (bits per frame in DSD_U32_LE format) */
++        /* For DSD: div_lrck = bits_per_word derived from format.
++         * LRCK = BCLK / div_lrck = sample_rate, so div_lrck = bits_per_word.
++         * Works for both 44.1kHz and 48kHz DSD grids.
++         */
 +        if (is_dsd(params_format(params))) {
-+            div_lrck = 32;
++            switch (params_format(params)) {
++            case SNDRV_PCM_FORMAT_DSD_U8:
++                div_lrck = 8;
++                break;
++            case SNDRV_PCM_FORMAT_DSD_U16_LE:
++            case SNDRV_PCM_FORMAT_DSD_U16_BE:
++                div_lrck = 16;
++                break;
++            case SNDRV_PCM_FORMAT_DSD_U32_LE:
++            case SNDRV_PCM_FORMAT_DSD_U32_BE:
++            default:
++                div_lrck = 32;
++                break;
++            }
 +        } else {
 +            div_lrck = bclk_rate / params_rate(params);
 +        }
