@@ -21,10 +21,10 @@
 #define SYSFS_FORMAT_FILE "format"
 #define SYSFS_CHANNELS_FILE "channels"
 
-/* Fixed format for I2S (upgraded to 8-channel 7.1 surround) */
-#define I2S_FORMAT_PCM SND_PCM_FORMAT_S32_LE  /* PCM: 32-bit */
+/* Fixed format for I2S */
+#define I2S_FORMAT_PCM SND_PCM_FORMAT_S32_LE      /* PCM: 32-bit */
 #define I2S_FORMAT_DSD SND_PCM_FORMAT_DSD_U32_LE  /* DSD: 32-bit DSD */
-#define I2S_CHANNELS 2                     /* Back to stereo until multi-channel I2S is fully implemented */
+static int I2S_CHANNELS = 2;  /* Overridden at startup from UAC2 sysfs (c_chmask channel count) */
 
 /* DSD sample rates — native DSD bit rates, 44.1kHz family */
 #define DSD64_RATE    2822400
@@ -500,7 +500,7 @@ static int configure_audio(unsigned int rate, int card, char **buffer, size_t *b
     if (is_dsd) {
         printf("\n[CONFIG] ═══ DSD MODE: %s (%u Hz) ═══\n", get_dsd_name(rate), rate);
     } else {
-        printf("\n[CONFIG] Setting up PCM audio: %u Hz, 32-bit, Stereo\n", rate);
+        printf("\n[CONFIG] Setting up PCM audio: %u Hz, 32-bit, %d ch\n", rate, I2S_CHANNELS);
     }
 
     /* Initialize elastic buffer system */
@@ -615,9 +615,13 @@ int main(void) {
         return 1;
     }
 
+    /* Apply actual channel count from UAC2 gadget configuration */
+    if (channels > 0)
+        I2S_CHANNELS = channels;
+
     printf("UAC2 Configuration (static):\n");
     printf("  Format:   %d bytes (%d-bit)\n", format_bytes, format_bytes * 8);
-    printf("  Channels: %d\n\n", channels);
+    printf("  Channels: %d\n\n", I2S_CHANNELS);
 
     if (format_bytes != 4) {
         printf("WARNING: UAC2 format is not 32-bit. Recommended:\n");

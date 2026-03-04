@@ -1,0 +1,6 @@
+config BR2_PACKAGE_DLNA_BRIDGE
+	bool "dlna_bridge"
+	select BR2_PACKAGE_ALSA_LIB
+	help
+	  ALSA loopback -> HTTP WAV stream -> DLNA push daemon.
+	  Captures audio from snd-aloop and streams it to DLNA renderers.

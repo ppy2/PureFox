@@ -1,0 +1,35 @@
+#!/bin/sh
+
+DAEMON=/opt/dlna_bridge
+PIDFILE=/var/run/dlna_bridge.pid
+
+start() {
+    start-stop-daemon -S -q -b -m -p $PIDFILE --exec $DAEMON
+}
+
+stop() {
+    start-stop-daemon -K -q -p $PIDFILE
+    rm -f $PIDFILE
+}
+
+case "$1" in
+    start)
+        echo "Starting dlna_bridge..."
+        start
+        ;;
+    stop)
+        echo "Stopping dlna_bridge..."
+        stop
+        ;;
+    restart)
+        stop
+        sleep 1
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

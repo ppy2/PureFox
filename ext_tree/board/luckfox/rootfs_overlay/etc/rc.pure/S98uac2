@@ -70,8 +70,8 @@ start() {
 
     # CRITICAL FIX: Stock f_uac2.c has REVERSED naming!
     # p_chmask controls EPIN (capture/mic), c_chmask controls EPOUT (playback/speaker)
-    echo 0 > functions/uac2.usb0/p_chmask  # Disable p (actually capture/mic)
-    echo 3 > functions/uac2.usb0/c_chmask  # Enable c (actually playback/speaker)
+    echo 0   > functions/uac2.usb0/p_chmask   # Disable p (actually capture/mic)
+    echo 255 > functions/uac2.usb0/c_chmask   # 8 channels: 0xFF = TDM8 on I2S output
     # PCM rates up to 768kHz + native DSD64-512 (for Linux Alt Setting 2)
     echo "44100,48000,88200,96000,176400,192000,352800,384000,705600,768000,2822400,5644800,11289600,22579200" > functions/uac2.usb0/c_srate
     echo 4 > functions/uac2.usb0/c_ssize
@@ -117,7 +117,7 @@ start() {
     # Enable gadget
     ls /sys/class/udc > UDC
 
-    echo "PureCore UAC2 gadget with 2 configurations started"
+    echo "PureCore UAC2 gadget started (8ch TDM, PCM up to 768kHz + DSD512)"
 }
 
 case "$1" in

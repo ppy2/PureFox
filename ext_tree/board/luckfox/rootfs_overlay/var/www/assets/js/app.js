@@ -11,6 +11,7 @@ $(document).ready(function () {
     let isVolumeChanging = false; // Flag to block volume updates during user changes
     let isAlsaSwitching = false; // Flag to block ALSA updates during switching
     let statusInterval = null;
+    let isDlnaBridgeActive = false; // true when DLNA bridge is enabled
     
     // Universal interface update function
     function updateInterfaceFromStatus(data) {
@@ -449,17 +450,16 @@ $(document).ready(function () {
         });
     }
 
-    // НОВАЯ функция для обновления ALSA UI
+    // Output selector UI update (usb / i2s / bridge)
     function updateAlsaUI(alsaState) {
         const toggleInput = $('#alsa-toggle');
         const i2sSettingsLink = $('#i2s-settings-link');
-        
+
         $('.alsa-toggle').removeClass('active-i2s');
-        
+
         switch (alsaState) {
             case 'usb':
                 toggleInput.prop('checked', false);
-                // Отключаем настройки I2S при USB - мгновенно!
                 i2sSettingsLink.addClass('no-transition').css({
                     'opacity': '0.3',
                     'pointer-events': 'none',
@@ -468,9 +468,9 @@ $(document).ready(function () {
                 setTimeout(() => i2sSettingsLink.removeClass('no-transition'), 10);
                 break;
             case 'i2s':
+            case 'bridge':
                 toggleInput.prop('checked', true);
                 $('.alsa-toggle').addClass('active-i2s');
-                // Включаем настройки I2S при I2S - мгновенно!
                 i2sSettingsLink.addClass('no-transition').css({
                     'opacity': '1',
                     'pointer-events': 'auto',
@@ -496,33 +496,68 @@ $(document).ready(function () {
         checkActiveService();
     }
 
-    // Обработка переключения ALSA toggle
+    // ALSA toggle: USB ↔ I2S
     $('#alsa-toggle').change(function(e) {
         e.preventDefault();
         const checkbox = $(this);
         const isChecked = checkbox.is(':checked');
         const cardType = isChecked ? 'i2s' : 'usb';
-        
-        // СРАЗУ обновляем UI иконки настроек при клике на toggle!
+
         updateAlsaUI(cardType);
-        
-        // Блокируем ALSA обновления во время переключения
         isAlsaSwitching = true;
-        
-        forceStatusCheck(); // Принудительная проверка при клике
+        forceStatusCheck();
 
         if (cardType === 'usb') {
-            checkUsbDac(
-                function() { switchAlsa(cardType); },
-                function() { 
-                    // При ошибке возвращаем toggle в исходное состояние
-                    checkbox.prop('checked', !isChecked);
-                    updateAlsaUI(!isChecked ? 'i2s' : 'usb'); // Откатываем UI иконки
-                    isAlsaSwitching = false; // Разблокируем обновления
+            const doSwitch = function() {
+                if (isDlnaBridgeActive) {
+                    $.ajax({ url: 'handle_dlna.php', method: 'POST', data: { action: 'disable' },
+                        success: function() { isDlnaBridgeActive = false; localStorage.removeItem('dlna_bridge_active'); $('#dlna-bridge-btn').removeClass('active'); switchAlsa('usb'); },
+                        error: function() { isAlsaSwitching = false; forceStatusCheck(); }
+                    });
+                } else {
+                    switchAlsa(cardType);
                 }
-            );
+            };
+            checkUsbDac(doSwitch, function() {
+                checkbox.prop('checked', !isChecked);
+                updateAlsaUI(!isChecked ? 'i2s' : 'usb');
+                isAlsaSwitching = false;
+            });
         } else {
             switchAlsa(cardType);
+        }
+    });
+
+    // DLNA Bridge button — toggle on/off
+    $('#dlna-bridge-btn').click(function() {
+        if (isDlnaBridgeActive) {
+            isDlnaBridgeActive = false;
+            localStorage.removeItem('dlna_bridge_active');
+            $(this).removeClass('active');
+            $.ajax({
+                url: 'handle_dlna.php', method: 'POST', data: { action: 'disable' },
+                success: function() { forceStatusCheck(); },
+                error: function() {
+                    isDlnaBridgeActive = true;
+                    localStorage.setItem('dlna_bridge_active', 'true');
+                    $('#dlna-bridge-btn').addClass('active');
+                }
+            });
+        } else {
+            isDlnaBridgeActive = true;
+            localStorage.setItem('dlna_bridge_active', 'true');
+            $(this).addClass('active');
+            $.ajax({
+                url: 'handle_dlna.php', method: 'POST', data: { action: 'enable' },
+                timeout: 15000,
+                success: function() { forceStatusCheck(); },
+                error: function() {
+                    isDlnaBridgeActive = false;
+                    localStorage.removeItem('dlna_bridge_active');
+                    $('#dlna-bridge-btn').removeClass('active');
+                    customAlert('DLNA bridge enable failed');
+                }
+            });
         }
     });
 
@@ -1131,7 +1166,7 @@ $(document).ready(function () {
     // ===== USBtoI2S BUTTON FUNCTIONALITY =====
     const USBTOI2S_LOCK_KEY = 'usbToI2sLocked';
 
-    // Function to lock ALSA toggle
+    // Function to lock ALSA toggle (USB to I2S mode)
     function lockAlsaToggle() {
         localStorage.setItem(USBTOI2S_LOCK_KEY, 'true');
         const toggleInput = $('#alsa-toggle');
@@ -1514,8 +1549,12 @@ $(document).ready(function () {
         if (hidden) {
             try {
                 const hiddenArray = JSON.parse(hidden);
-                hiddenArray.forEach(service => {
-                    $(`button[data-service="${service}"]`).hide();
+                hiddenArray.forEach(id => {
+                    if (id.startsWith('#')) {
+                        $(id).hide();
+                    } else {
+                        $(`button[data-service="${id}"]`).hide();
+                    }
                 });
             } catch (e) {
                 console.error('Failed to parse hidden buttons:', e);
@@ -1531,11 +1570,14 @@ $(document).ready(function () {
                 hiddenButtons.push($(this).data('service'));
             }
         });
+        ['#usbto-i2s-btn', '#dlna-bridge-btn'].forEach(id => {
+            if ($(id).is(':hidden')) hiddenButtons.push(id);
+        });
         localStorage.setItem(HIDDEN_BUTTONS_KEY, JSON.stringify(hiddenButtons));
     }
 
     // Handle swipe gestures on player buttons (touch and mouse)
-    $('button[data-service]').each(function() {
+    $('button[data-service], #usbto-i2s-btn, #dlna-bridge-btn').each(function() {
         const $button = $(this);
         let isDragging = false;
         
@@ -1659,6 +1701,170 @@ $(document).ready(function () {
     // Load hidden buttons on page load
     loadHiddenButtons();
     checkAndExpandButtons();
+
+    // ===== DLNA BRIDGE FUNCTIONALITY =====
+
+    let dlnaRenderers = [];         // discovered renderer list
+    let dlnaSelected  = null;       // currently selected renderer object
+
+    function initDlnaBridge() {
+        // Restore button state immediately from localStorage to prevent flash on refresh
+        if (localStorage.getItem('dlna_bridge_active') === 'true') {
+            isDlnaBridgeActive = true;
+            $('#dlna-bridge-btn').addClass('active');
+        }
+        $.ajax({
+            url: 'handle_dlna.php?action=status',
+            method: 'GET',
+            timeout: 5000,
+            dataType: 'json',
+            success: function(data) {
+                if (data.bridge_state === 'enabled') {
+                    isDlnaBridgeActive = true;
+                    localStorage.setItem('dlna_bridge_active', 'true');
+                    $('#dlna-bridge-btn').addClass('active');
+                } else {
+                    isDlnaBridgeActive = false;
+                    localStorage.removeItem('dlna_bridge_active');
+                    $('#dlna-bridge-btn').removeClass('active');
+                }
+                updateDlnaStreamInfo(data.stream);
+                if (data.renderer_ip) {
+                    dlnaSelected = {
+                        ip:          data.renderer_ip,
+                        port:        data.renderer_port,
+                        control_url: ''
+                    };
+                    $('#dlna-manual-ip').val(data.renderer_ip);
+                    $('#dlna-manual-port').val(data.renderer_port);
+                }
+            },
+            error: function() {
+                console.warn('DLNA bridge status unavailable');
+                // Keep localStorage state — bridge may still be running
+            }
+        });
+    }
+
+    function updateDlnaStreamInfo(stream) {
+        if (!stream || !stream.active) {
+            $('#dlna-stream-info').text('Stream: inactive');
+            return;
+        }
+        $('#dlna-stream-info').text(
+            'Stream: ' + stream.rate + ' Hz / ' + stream.bits + '-bit / ' +
+            stream.channels + 'ch  —  clients: ' + stream.clients
+        );
+    }
+
+    // Settings modal — open (called from inline onclick in HTML)
+    window.openDlnaModal = function() {
+        $('#dlna-modal').addClass('show');
+        $.ajax({
+            url: 'handle_dlna.php?action=status',
+            method: 'GET',
+            timeout: 3000,
+            dataType: 'json',
+            success: function(data) {
+                updateDlnaStreamInfo(data.stream);
+                if (data.renderer_ip) {
+                    $('#dlna-manual-ip').val(data.renderer_ip);
+                    $('#dlna-manual-port').val(data.renderer_port);
+                }
+            }
+        });
+    };
+
+    // Close modal
+    $('#dlna-modal-close').click(function() {
+        $('#dlna-modal').removeClass('show');
+    });
+    $('#dlna-modal').click(function(e) {
+        if (e.target === this) $('#dlna-modal').removeClass('show');
+    });
+    $('#dlna-modal .modal-content').click(function(e) { e.stopPropagation(); });
+
+    // Discover button
+    $('#dlna-discover-btn').click(function() {
+        $('#dlna-renderer-list').html('<em>Discovering...</em>');
+        $.ajax({
+            url: 'handle_dlna.php?action=discover',
+            method: 'GET',
+            timeout: 8000,
+            dataType: 'json',
+            success: function(renderers) {
+                dlnaRenderers = renderers;
+                if (!renderers || renderers.length === 0) {
+                    $('#dlna-renderer-list').html('<em>No renderers found</em>');
+                    return;
+                }
+                var html = '<strong>Found renderers:</strong><ul style="list-style:none;padding:0;margin:4px 0">';
+                renderers.forEach(function(r, i) {
+                    html += '<li style="cursor:pointer;padding:4px 6px;border-radius:4px" ' +
+                            'class="dlna-renderer-item" data-idx="' + i + '">' +
+                            r.name + ' (' + r.ip + ':' + r.port + ')</li>';
+                });
+                html += '</ul>';
+                $('#dlna-renderer-list').html(html);
+
+                // Click to select
+                $('.dlna-renderer-item').click(function() {
+                    var idx = parseInt($(this).data('idx'));
+                    dlnaSelected = dlnaRenderers[idx];
+                    $('#dlna-manual-ip').val(dlnaSelected.ip);
+                    $('#dlna-manual-port').val(dlnaSelected.port);
+                    $('#dlna-manual-url').val(dlnaSelected.control_url);
+                    $('.dlna-renderer-item').css('background', '');
+                    $(this).css('background', '#2a4a2a');
+                });
+            },
+            error: function() {
+                $('#dlna-renderer-list').html('<em>Discovery failed</em>');
+            }
+        });
+    });
+
+    // Push button
+    $('#dlna-push-btn').click(function() {
+        var ip   = $('#dlna-manual-ip').val().trim();
+        var port = parseInt($('#dlna-manual-port').val().trim()) || 0;
+        var url  = $('#dlna-manual-url').val().trim();
+
+        if (!ip || !port) {
+            customAlert('Please enter renderer IP and port (or use Discover)');
+            return;
+        }
+
+        // Save renderer config then push
+        $.ajax({
+            url: 'handle_dlna.php',
+            method: 'POST',
+            data: { action: 'setrenderer', renderer_ip: ip, renderer_port: port, control_url: url },
+            timeout: 5000,
+            dataType: 'json',
+            success: function() {
+                $.ajax({
+                    url: 'handle_dlna.php',
+                    method: 'POST',
+                    data: { action: 'push' },
+                    timeout: 5000,
+                    dataType: 'json',
+                    success: function(resp) {
+                        if (resp.success) {
+                            customAlert('Stream pushed to renderer');
+                        } else {
+                            customAlert('Push failed: ' + (resp.error || 'unknown'));
+                        }
+                    },
+                    error: function() { customAlert('Push request failed'); }
+                });
+            },
+            error: function() { customAlert('Failed to save renderer settings'); }
+        });
+    });
+
+    // Init on page load
+    initDlnaBridge();
 
 });
 /* Cache bust version: 1753367744 */

@@ -41,8 +41,14 @@
         <button class="btn-custom success" data-service="qobuz" data-process="qobuz">Qobuz Connect</button>
 	<button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
 	<button class="btn-custom usb2i2s" id="usbto-i2s-btn">USB to I2S</button>
+	<button class="btn-custom usb2i2s" id="dlna-bridge-btn">
+	    DLNA Bridge
+	    <a href="#" class="settings-link" id="dlna-settings-btn" onclick="event.preventDefault(); event.stopPropagation(); openDlnaModal(); return false;">
+	        <img src="assets/img/settings.svg" class="settings-icon" alt="Settings">
+	    </a>
+	</button>
 
-        <!-- ALSA switch and volume control -->
+        <!-- ALSA toggle: USB | I2S -->
         <div class="alsa-toggle">
             <div class="alsa-left">
                 <div class="toggle-switch">
@@ -80,6 +86,25 @@
                 <button type="button" class="btn-custom system-btn" id="shutdown-link">
                     <img src="assets/img/shutdown.svg" class="settings-icon shutdown-icon" alt="Shutdown">
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DLNA settings modal -->
+    <div id="dlna-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>DLNA Bridge</h2>
+            <div id="dlna-stream-info" style="font-size:0.85em;margin-bottom:8px;color:#aaa;"></div>
+            <div id="dlna-renderer-list" style="margin-bottom:10px;"></div>
+            <div style="margin-bottom:8px;">
+                <input id="dlna-manual-ip"   placeholder="Renderer IP"   style="width:48%;margin-right:2%">
+                <input id="dlna-manual-port"  placeholder="Port (e.g.52235)" style="width:48%" type="number">
+            </div>
+            <input id="dlna-manual-url" placeholder="/AVTransport/control" style="width:100%;margin-bottom:8px">
+            <div style="display:flex;gap:8px;">
+                <button id="dlna-discover-btn" class="btn-custom small">Discover</button>
+                <button id="dlna-push-btn"     class="btn-custom small">Push</button>
+                <button id="dlna-modal-close"  class="btn-custom small">Close</button>
             </div>
         </div>
     </div>

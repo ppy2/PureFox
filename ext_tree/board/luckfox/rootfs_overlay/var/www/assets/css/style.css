@@ -846,6 +846,7 @@ h1 {
 }
 
 
+
 .alsa-toggle label {
   margin-right: 10px;
   font-size: 16px;
@@ -1454,5 +1455,75 @@ h1 {
 
 .toggle-input-compact:checked + .toggle-label-compact .toggle-slider-compact {
     left: 50px;
+}
+
+/* ─── DLNA Bridge ─────────────────────────────────────────────────── */
+/* Output selector: USB | I2S | DLNA OUT */
+.output-selector {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #555;
+}
+
+.output-btn {
+    flex: 1;
+    background: #2C2C2C;
+    border: none;
+    border-right: 1px solid #555;
+    color: #999;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.output-btn:last-child {
+    border-right: none;
+}
+
+.output-btn:hover {
+    background: #3a3a3a;
+    color: #fff;
+}
+
+.output-btn.active {
+    background: #4A6BCC;
+    color: #fff;
+}
+
+.output-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-small-icon {
+    background: #2C2C2C;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px 10px;
+    transition: background 0.2s;
+}
+
+.btn-small-icon:hover {
+    background: #3a3a3a;
+    color: #fff;
+}
+
+#dlna-modal input {
+    background: #2C2C2C;
+    border: 1px solid #555;
+    border-radius: 5px;
+    color: #ddd;
+    padding: 6px 8px;
+    font-size: 0.85em;
+    box-sizing: border-box;
+    width: 100%;
 }
 
