@@ -1,0 +1,7 @@
+config BR2_PACKAGE_SND_SCREAMALSA
+	bool "snd-screamalsa"
+	depends on BR2_LINUX_KERNEL
+	help
+	  Virtual ALSA sound card kernel module that streams PCM/DSD
+	  audio over the network using the Scream protocol (UDP/TCP).
+	  Allows PureFox to stream audio to Windows via AsioScream ASIO.

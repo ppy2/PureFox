@@ -26,7 +26,7 @@ rsync -axclHSzv --delete --one-file-system \
 --exclude=/etc/init.d/S95* \
 --exclude=/usr/aplayer/*.dat \
 --exclude=/usr/aprenderer/*.dat \
-/  ppy@luckfox.puredsd.ru::luckfox_upload
+/  ppy@luckfox.puredsd.ru::purefox_v2
 
 rm -f /data/*.img
 

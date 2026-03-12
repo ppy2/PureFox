@@ -2,7 +2,7 @@
 
 SCRIPT_PATH="/opt/update.sh"
 SCRIPT_NEW="/tmp/update.sh.new"
-UPDATE_SERVER="luckfox@luckfox.puredsd.ru::luckfox/opt/update.sh"
+UPDATE_SERVER="luckfox@luckfox.puredsd.ru::luckfox2/opt/update.sh"
 
 # Check if script update is needed (only on first run, not on restart)
 if [ "$UPDATE_SELF_DONE" != "1" ]; then
@@ -51,7 +51,7 @@ sshpass -p 'luckfox' rsync -acv --delete-before --one-file-system \
 --filter='protect /etc/resolv.conf' \
 --filter='protect /etc/init.d/S95*' \
 --filter='protect /var/www/radio.json' \
-luckfox@luckfox.puredsd.ru::luckfox / || exit 1
+luckfox@luckfox.puredsd.ru::luckfox2 / || exit 1
 
 flash_erase /dev/mtd0 0 0 || exit 1
 mtd_debug write /dev/mtd0 0 262144 /data/env.img || exit 1

@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# S97screamalsa — load/unload ScreamALSA virtual sound card module
+#
+
+CONF=/etc/scream.conf
+MODCONF=/etc/modprobe.d/snd-screamalsa.conf
+
+load_conf() {
+    [ -f "$CONF" ] || return
+    IP=$(grep '^IP=' "$CONF" | cut -d= -f2 | tr -d '[:space:]')
+    PORT=$(grep '^PORT=' "$CONF" | cut -d= -f2 | tr -d '[:space:]')
+    PROTO=$(grep '^PROTOCOL=' "$CONF" | cut -d= -f2 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+    [ -n "$IP" ]    && sed -i "s/ip_addr_str=[^ ]*/ip_addr_str=$IP/"       "$MODCONF"
+    [ -n "$PORT" ]  && sed -i "s/port=[^ ]*/port=$PORT/"                   "$MODCONF"
+    [ -n "$PROTO" ] && sed -i "s/protocol_str=[^ ]*/protocol_str=$PROTO/"  "$MODCONF"
+}
+
+start() {
+    printf "Loading ScreamALSA: "
+    load_conf
+    modprobe snd-screamalsa 2>/dev/null || insmod /lib/modules/*/snd-screamalsa.ko 2>/dev/null
+    if lsmod | grep -q snd_screamalsa; then
+        echo "OK"
+    else
+        echo "FAIL"
+        return 1
+    fi
+}
+
+stop() {
+    printf "Unloading ScreamALSA: "
+    rmmod snd-screamalsa 2>/dev/null
+    echo "OK"
+}
+
+case "$1" in
+    start)   start ;;
+    stop)    stop ;;
+    restart) stop; sleep 1; start ;;
+    status)  lsmod | grep -q snd_screamalsa && echo "loaded" || echo "not loaded" ;;
+    *)       echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
+esac

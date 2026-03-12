@@ -41,13 +41,13 @@
         <button class="btn-custom success" data-service="qobuz" data-process="qobuz">Qobuz Connect</button>
 	<button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
 	<button class="btn-custom usb2i2s" id="usbto-i2s-btn">USB to I2S</button>
-	<button class="btn-custom usb2i2s" id="dlna-bridge-btn">
+<!--	<button class="btn-custom usb2i2s" id="dlna-bridge-btn">
 	    DLNA Bridge
 	    <a href="#" class="settings-link" id="dlna-settings-btn" onclick="event.preventDefault(); event.stopPropagation(); openDlnaModal(); return false;">
 	        <img src="assets/img/settings.svg" class="settings-icon" alt="Settings">
 	    </a>
 	</button>
-
+-->
         <!-- ALSA toggle: USB | I2S -->
         <div class="alsa-toggle">
             <div class="alsa-left">
