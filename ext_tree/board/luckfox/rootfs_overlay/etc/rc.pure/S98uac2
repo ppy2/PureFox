@@ -70,15 +70,16 @@ start() {
 
     # CRITICAL FIX: Stock f_uac2.c has REVERSED naming!
     # p_chmask controls EPIN (capture/mic), c_chmask controls EPOUT (playback/speaker)
-    echo 0   > functions/uac2.usb0/p_chmask   # Disable p (actually capture/mic)
-    echo 255 > functions/uac2.usb0/c_chmask   # 8 channels: 0xFF = TDM8 on I2S output
-    # PCM rates up to 768kHz + native DSD64-512 (for Linux Alt Setting 2)
-    echo "44100,48000,88200,96000,176400,192000,352800,384000,705600,768000,2822400,5644800,11289600,22579200" > functions/uac2.usb0/c_srate
+    echo 0 > functions/uac2.usb0/p_chmask  # Disable p (actually capture/mic)
+    echo 3 > functions/uac2.usb0/c_chmask  # Enable c (actually playback/speaker)
+    # PCM rates up to 768kHz + DSD LRCK rates (88200=DSD64, 176400=DSD128, 352800=DSD256, 705600=DSD512)
+    # NOTE: DSD bit rates (2822400 etc.) must NOT be listed — they inflate get_max_srate() and break
+    # the bInterval search loop, producing bInterval=0 (invalid) in the endpoint descriptor.
+    # u_audio.c converts LRCK→DSD bit rate internally when Alt Setting 2 is active (×32).
+    echo "44100,48000,88200,96000,176400,192000,352800,384000,705600,768000" > functions/uac2.usb0/c_srate
     echo 4 > functions/uac2.usb0/c_ssize
     echo 1 > functions/uac2.usb0/c_mute_present
     echo 1 > functions/uac2.usb0/c_volume_present
-    # c_hs_bint=0 allows kernel to auto-select optimal bInterval for DSD512
-    # Kernel will choose bInterval=8 for DSD512 to fit in USB 2.0 bandwidth
 
     # Fix p_volume parameters even though p_chmask=0 (kernel validates all params regardless)
     echo 0 > functions/uac2.usb0/p_volume_min
@@ -87,14 +88,14 @@ start() {
 
     # IMPORTANT: Set p_srate and p_ssize for capture (UAC2 input from host)
     # Even though p_chmask=0, these are required for proper UAC2 function
-    echo "44100,48000,88200,96000,176400,192000,352800,384000,705600,768000,2822400,5644800,11289600,22579200" > functions/uac2.usb0/p_srate
+    echo "44100,48000,88200,96000,176400,192000,352800,384000,705600,768000" > functions/uac2.usb0/p_srate
     echo 4 > functions/uac2.usb0/p_ssize
 
-    # CRITICALLY IMPORTANT: Parameters for supporting up to DSD512
-    echo 8 > functions/uac2.usb0/req_number    # USB request buffers (increased for DSD512)
-    # fb_max=24 (2.4% overhead) allows DSD512 to fit in USB 2.0 HS bandwidth
-    # 22579200Hz * 1.024 / 8000 * 2ch * 4bytes = 23138 bytes → needs bInterval=8
-    echo 24 > functions/uac2.usb0/fb_max       # Async overhead optimized for DSD512
+    # Parameters for DSD512 support
+    echo 8 > functions/uac2.usb0/req_number    # USB request buffers
+    # fb_max=24: 2.4% overhead for async feedback. At 768kHz max:
+    # 768000*1.024/4000 * 2ch * 4bytes = 1576 bytes/packet → bInterval=2 (valid HS endpoint)
+    echo 24 > functions/uac2.usb0/fb_max
 
     # Function name - shown in Windows as device name
     echo "PureCore" > functions/uac2.usb0/function_name
@@ -117,7 +118,7 @@ start() {
     # Enable gadget
     ls /sys/class/udc > UDC
 
-    echo "PureCore UAC2 gadget started (8ch TDM, PCM up to 768kHz + DSD512)"
+    echo "PureCore UAC2 gadget with 2 configurations started"
 }
 
 case "$1" in

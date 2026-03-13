@@ -9,7 +9,10 @@
 #include <linux/netlink.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdint.h>
 #include <poll.h>
+#include <sched.h>
+#include <sys/mman.h>
 
 #define UAC2_CARD "hw:1,0"
 #define I2S_CARD "hw:0,0"
@@ -21,10 +24,10 @@
 #define SYSFS_FORMAT_FILE "format"
 #define SYSFS_CHANNELS_FILE "channels"
 
-/* Fixed format for I2S */
-#define I2S_FORMAT_PCM SND_PCM_FORMAT_S32_LE      /* PCM: 32-bit */
+/* Fixed format for I2S (upgraded to 8-channel 7.1 surround) */
+#define I2S_FORMAT_PCM SND_PCM_FORMAT_S32_LE  /* PCM: 32-bit */
 #define I2S_FORMAT_DSD SND_PCM_FORMAT_DSD_U32_LE  /* DSD: 32-bit DSD */
-static int I2S_CHANNELS = 2;  /* Overridden at startup from UAC2 sysfs (c_chmask channel count) */
+#define I2S_CHANNELS 2                     /* Back to stereo until multi-channel I2S is fully implemented */
 
 /* DSD sample rates — native DSD bit rates, 44.1kHz family */
 #define DSD64_RATE    2822400
@@ -48,6 +51,15 @@ static char uac_card_path[256] = "";
 static char uac_card_name[64] = "";
 static int consecutive_errors = 0;
 static int i2s_started = 0;  /* Track if I2S playback has been started */
+static int dsd_dump_done = 0; /* DSD data dump flag */
+static int is_current_dsd = 0; /* Current mode is DSD */
+
+/* Byte-swap macro for DSD 32-bit words.
+ * USB RAW_DATA sends DSD bytes oldest-first: [B0(oldest) B1 B2 B3(newest)]
+ * ALSA DSD_U32_LE stores oldest at MSB (byte 3): [B0(newest) B1 B2 B3(oldest)]
+ * Without bswap, I2S VDW=16 + dsd_sample_swap sends bytes reversed → violet noise. */
+#define BSWAP32(x) (((x) >> 24) | (((x) >> 8) & 0xFF00) | \
+                    (((x) << 8) & 0xFF0000) | ((x) << 24))
 #define MAX_CONSECUTIVE_ERRORS 50  /* After 50 consecutive errors (~0.5 sec) - reopen PCM */
 
 /* Volume synchronization */
@@ -433,7 +445,11 @@ static int setup_pcm(snd_pcm_t **pcm, const char *device, snd_pcm_stream_t strea
     if (is_dsd_rate(rate)) {
         period_size = (rate / dsd_base_rate(rate)) * 2048;
     }
-    snd_pcm_uframes_t buffer_size = period_size * 4;  /* Fixed buffer size for stability */
+    /* Large buffer = more scheduling headroom.  DSD is bit-sensitive:
+     * even a single overrun corrupts the stream.  16 periods ≈ 23ms at
+     * 352 kHz LRCK — enough to survive worst-case Linux scheduler delays.
+     * snd_pcm_hw_params_set_buffer_size_near() will clamp to hw max. */
+    snd_pcm_uframes_t buffer_size = period_size * 16;
 
     if ((err = snd_pcm_open(pcm, device, stream, 0)) < 0) {
         fprintf(stderr, "Cannot open %s: %s\n", device, snd_strerror(err));
@@ -499,8 +515,13 @@ static int configure_audio(unsigned int rate, int card, char **buffer, size_t *b
 
     if (is_dsd) {
         printf("\n[CONFIG] ═══ DSD MODE: %s (%u Hz) ═══\n", get_dsd_name(rate), rate);
+        is_current_dsd = 1;
+        dsd_dump_done = 0;
+        /* dsd_sample_swap=0 is set globally in usb_to_i2s.sh —
+         * USB RAW_DATA DSD already arrives in DAC-native bit order. */
     } else {
-        printf("\n[CONFIG] Setting up PCM audio: %u Hz, 32-bit, %d ch\n", rate, I2S_CHANNELS);
+        printf("\n[CONFIG] Setting up PCM audio: %u Hz, 32-bit, Stereo\n", rate);
+        is_current_dsd = 0;
     }
 
     /* Initialize elastic buffer system */
@@ -512,18 +533,23 @@ static int configure_audio(unsigned int rate, int card, char **buffer, size_t *b
     close_pcms();
 
     /* UAC2 capture - ALWAYS use PCM S32_LE format
-     * UAC2 gadget RAW_DATA (Alt Setting 2) transmits DSD as raw 32-bit data,
-     * which ALSA sees as PCM format. We convert to DSD for I2S if needed. */
+     * UAC2 gadget RAW_DATA (Alt Setting 2) transmits DSD as raw 32-bit data at the
+     * LRCK rate (bit_rate/32). ALSA sees it as PCM. We route to I2S as DSD.
+     *
+     * Both UAC2 and I2S operate at the LRCK rate (rate/32 for DSD).
+     * Data flow is 1:1 in frames — UAC2 produces DSD bits packed as S32_LE,
+     * I2S consumes the same bits as DSD_U32_LE. */
     char uac_device[32];
     sprintf(uac_device, "hw:%d,0", card);
+    unsigned int lrck_rate = is_dsd ? rate / 32 : rate;  /* LRCK rate for both devices */
     if (setup_pcm(&pcm_capture, uac_device, SND_PCM_STREAM_CAPTURE,
-                  rate, I2S_FORMAT_PCM, I2S_CHANNELS) < 0) {
+                  lrck_rate, I2S_FORMAT_PCM, I2S_CHANNELS) < 0) {
         return -1;
     }
 
-    /* I2S playback - PCM or DSD format depending on frequency */
+    /* I2S playback - both PCM and DSD use LRCK rate; format differs */
     if (setup_pcm(&pcm_playback, I2S_CARD, SND_PCM_STREAM_PLAYBACK,
-                  rate, i2s_format, I2S_CHANNELS) < 0) {
+                  lrck_rate, i2s_format, I2S_CHANNELS) < 0) {
         close_pcms();
         return -1;
     }
@@ -595,6 +621,22 @@ int main(void) {
     signal(SIGINT, sighandler);
     signal(SIGTERM, sighandler);
 
+    /* Real-time scheduling: prevent buffer overruns from scheduler latency.
+     * DSD is extremely sensitive — even 5ms delay corrupts the bitstream.
+     * SCHED_FIFO priority 70 (below IRQ threads ~50, above normal audio ~60). */
+    {
+        struct sched_param sp = { .sched_priority = 70 };
+        if (sched_setscheduler(0, SCHED_FIFO, &sp) == 0)
+            printf("[RT] SCHED_FIFO priority %d set\n", sp.sched_priority);
+        else
+            fprintf(stderr, "[RT] WARNING: Cannot set SCHED_FIFO: %s (running as normal priority)\n",
+                    strerror(errno));
+    }
+
+    /* Lock all pages in memory — prevent page faults during audio routing */
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) == 0)
+        printf("[RT] Memory locked (no page faults)\n");
+
     printf("═══════════════════════════════════════════════════════════\n");
     printf("  UAC2 -> I2S Router (uevent-based, PureCore compatible)\n");
     printf("═══════════════════════════════════════════════════════════\n\n");
@@ -615,13 +657,9 @@ int main(void) {
         return 1;
     }
 
-    /* Apply actual channel count from UAC2 gadget configuration */
-    if (channels > 0)
-        I2S_CHANNELS = channels;
-
     printf("UAC2 Configuration (static):\n");
     printf("  Format:   %d bytes (%d-bit)\n", format_bytes, format_bytes * 8);
-    printf("  Channels: %d\n\n", I2S_CHANNELS);
+    printf("  Channels: %d\n\n", channels);
 
     if (format_bytes != 4) {
         printf("WARNING: UAC2 format is not 32-bit. Recommended:\n");
@@ -770,6 +808,40 @@ int main(void) {
         }
 
         if (frames > 0) {
+            /* DSD data dump: save first 8KB + hex print first 4 frames */
+            if (is_current_dsd && !dsd_dump_done) {
+                FILE *df = fopen("/tmp/dsd_usb_dump.raw", "wb");
+                if (df) {
+                    size_t dump_bytes = frames * I2S_CHANNELS * 4;
+                    if (dump_bytes > 8192) dump_bytes = 8192;
+                    fwrite(buffer, 1, dump_bytes, df);
+                    fclose(df);
+                    printf("[DSD DUMP] Saved %zu bytes to /tmp/dsd_usb_dump.raw\n", dump_bytes);
+                }
+                /* Print first 4 frames (4 × 2ch × 4bytes = 32 bytes) as hex */
+                unsigned char *b = (unsigned char *)buffer;
+                int dump_frames = (frames < 4) ? frames : 4;
+                printf("[DSD DUMP] First %d frames (L=4bytes R=4bytes per frame):\n", dump_frames);
+                for (int f = 0; f < dump_frames; f++) {
+                    int off = f * I2S_CHANNELS * 4;
+                    printf("  Frame %d: L=[%02x %02x %02x %02x] R=[%02x %02x %02x %02x]\n",
+                           f, b[off], b[off+1], b[off+2], b[off+3],
+                           b[off+4], b[off+5], b[off+6], b[off+7]);
+                }
+                fflush(stdout);
+                dsd_dump_done = 1;
+            }
+
+            /* DSD byte-swap: USB RAW_DATA byte order [oldest..newest] differs
+             * from ALSA DSD_U32_LE [newest..oldest]. Without bswap, VDW=16
+             * I2S sends 8-bit groups in wrong temporal order → violet noise. */
+            if (is_current_dsd) {
+                uint32_t *w = (uint32_t *)buffer;
+                size_t nwords = frames * I2S_CHANNELS;
+                for (size_t i = 0; i < nwords; i++)
+                    w[i] = BSWAP32(w[i]);
+            }
+
             snd_pcm_sframes_t written = snd_pcm_writei(pcm_playback, buffer, frames);
 
             /* Start I2S playback on first successful write */

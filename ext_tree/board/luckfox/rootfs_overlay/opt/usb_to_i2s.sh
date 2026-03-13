@@ -13,11 +13,15 @@ ln -sf  /etc/rc.pure/S95uac2_router /etc/init.d/S99uac2_router
 # Set mode file
 echo "enabled" > "$MODE_FILE"
 
-# 1. Switch ALSA to I2S (8-channel TDM mode for USBtoI2S)
 rm -f /etc/asound.conf
-ln -sf /etc/asound.8ch /etc/asound.conf
-sed -i 's/^SUBMODE=.*$/SUBMODE=8ch/' /etc/i2s.conf
+ln -sf /etc/asound.std /etc/asound.conf
+sed -i 's/^SUBMODE=.*$/SUBMODE=std/' /etc/i2s.conf
+sed -i 's/^MCLK=.*$/MCLK=1024/' /etc/i2s.conf
 echo I2S > /etc/output
+
+# DSD byte order: uac2_router does bswap32 on USB DSD data to match
+# ALSA DSD_U32_LE convention, so dsd_sample_swap=1 (default) is correct
+# for both USB and NAA paths. No need to change it here.
 
 # 2. Switch USB to gadget mode
 echo "Switching USB to gadget mode..."
