@@ -16,13 +16,14 @@
 
 #define UAC2_CARD "hw:1,0"
 #define I2S_CARD "hw:0,0"
-#define PERIOD_FRAMES 512  /* Back to original for stereo operation */
+#define PERIOD_FRAMES 2048  /* Large period for XRUN protection (music listening) */
 
 /* New sysfs interface from the modified u_audio.c driver */
 #define SYSFS_UAC2_PATH "/sys/class/u_audio"
 #define SYSFS_RATE_FILE "rate"
 #define SYSFS_FORMAT_FILE "format"
 #define SYSFS_CHANNELS_FILE "channels"
+#define SYSFS_FEEDBACK_FILE "feedback"
 
 /* Fixed format for I2S (upgraded to 8-channel 7.1 surround) */
 #define I2S_FORMAT_PCM SND_PCM_FORMAT_S32_LE  /* PCM: 32-bit */
@@ -53,6 +54,8 @@ static int consecutive_errors = 0;
 static int i2s_started = 0;  /* Track if I2S playback has been started */
 static int dsd_dump_done = 0; /* DSD data dump flag */
 static int is_current_dsd = 0; /* Current mode is DSD */
+static int pitch_load_pending = 0; /* Deferred pitch load after stream starts */
+static unsigned int pitch_load_value = 0; /* Value to load */
 
 /* Byte-swap macro for DSD 32-bit words.
  * USB RAW_DATA sends DSD bytes oldest-first: [B0(oldest) B1 B2 B3(newest)]
@@ -95,6 +98,129 @@ static unsigned int current_period_size = PERIOD_FRAMES;
 #define BUFFER_MAX_SIZE (PERIOD_FRAMES * 32)   /* Maximum buffer */
 #define BUFFER_TARGET_SIZE (PERIOD_FRAMES * 4) /* Target buffer */
 #define STABILITY_THRESHOLD 10      /* Stable after 10 checks */
+
+/* Forward declaration — defined later in file */
+static int read_sysfs_int(const char *filename);
+
+/* Pitch learning: track running average of feedback for save/restore.
+ * Uses U-Boot env variable "feedback_pitch" (works on squashfs too).
+ * Saves only when oscillation has settled (min/max range < threshold). */
+static long pitch_ema = 0;          /* EMA of pitch × 256 (fixed-point) */
+static int pitch_samples = 0;       /* Number of samples collected */
+static unsigned int pitch_last_saved = 0; /* Last value written to NAND */
+static unsigned long pitch_loop_counter = 0;  /* Main loop iteration counter */
+static int pitch_min = 1001000;     /* Min pitch in current window */
+static int pitch_max = 999000;      /* Max pitch in current window */
+static int pitch_window_count = 0;  /* Samples in current window */
+#define PITCH_READ_INTERVAL 500     /* Read sysfs every N iterations (~1 sec) */
+#define PITCH_SETTLE_SAMPLES 60     /* Need ~60 samples (~1 min) in window */
+#define PITCH_EMA_ALPHA 8           /* EMA alpha = 1/8 (slow tracking) */
+#define PITCH_STABLE_RANGE 150      /* Max min-max range to consider stable (PPM) */
+#define PITCH_SAVE_THRESHOLD 50     /* Only write NAND if delta > 50 PPM */
+
+/* Load saved pitch from U-Boot env (deferred — written after stream starts) */
+static void load_saved_pitch(void) {
+    FILE *pp = popen("fw_printenv -n feedback_pitch 2>/dev/null", "r");
+    if (!pp) return;
+
+    unsigned int saved_pitch = 0;
+    if (fscanf(pp, "%u", &saved_pitch) == 1 &&
+        saved_pitch >= 999000 && saved_pitch <= 1001000) {
+        pitch_load_pending = 1;
+        pitch_load_value = saved_pitch;
+        pitch_ema = (long)saved_pitch * 256;
+        pitch_samples = PITCH_SETTLE_SAMPLES;  /* Already settled */
+        pitch_last_saved = saved_pitch;
+        printf("[PITCH] Loaded pitch %u from U-Boot env (will apply after stream starts)\n",
+               saved_pitch);
+    }
+    pclose(pp);
+}
+
+/* Apply saved pitch to sysfs (call after first successful read) */
+static void apply_saved_pitch(void) {
+    if (!pitch_load_pending) return;
+    pitch_load_pending = 0;
+
+    char path[512];
+    snprintf(path, sizeof(path), "%s/%s", uac_card_path, SYSFS_FEEDBACK_FILE);
+    FILE *fw = fopen(path, "w");
+    if (fw) {
+        fprintf(fw, "%u", pitch_load_value);
+        fclose(fw);
+        printf("[PITCH] Applied saved pitch %u to sysfs (PI frozen for 5 min)\n",
+               pitch_load_value);
+    }
+}
+
+/* Save current pitch average to U-Boot env (only if significantly changed) */
+static void save_pitch(void) {
+    if (pitch_samples < PITCH_SETTLE_SAMPLES) return;
+
+    unsigned int avg_pitch = (unsigned int)(pitch_ema / 256);
+    if (avg_pitch < 999000 || avg_pitch > 1001000) return;
+
+    /* Only write NAND if value changed significantly */
+    int delta = (int)avg_pitch - (int)pitch_last_saved;
+    if (delta < 0) delta = -delta;
+    if (pitch_last_saved != 0 && delta <= PITCH_SAVE_THRESHOLD) return;
+
+    /* Run fw_setenv in background — NAND write blocks for tens of ms,
+     * which causes XRUN at high sample rates (384kHz period=1.3ms). */
+    char val_str[16];
+    snprintf(val_str, sizeof(val_str), "%u", avg_pitch);
+    pid_t pid = fork();
+    if (pid == 0) {
+        /* Child: write to NAND and exit */
+        execlp("fw_setenv", "fw_setenv", "feedback_pitch", val_str, NULL);
+        _exit(1);
+    } else if (pid > 0) {
+        /* Parent: don't wait, continue audio loop.
+         * Zombie will be reaped by init (PID 1). */
+        pitch_last_saved = avg_pitch;
+        printf("[PITCH] Saving pitch %u in background (delta=%d)\n", avg_pitch, delta);
+    } else {
+        fprintf(stderr, "[PITCH] WARNING: fork failed\n");
+    }
+}
+
+/* Update pitch EMA from current sysfs value */
+static void update_pitch_tracking(void) {
+    int pitch = read_sysfs_int(SYSFS_FEEDBACK_FILE);
+    if (pitch < 999000 || pitch > 1001000) return;
+
+    /* Skip samples at saturation limits — controller hasn't converged */
+    if (pitch <= 999502 || pitch >= 1000498) {
+        pitch_samples = 0;  /* Reset — not converged yet */
+        return;
+    }
+
+    if (pitch_samples == 0) {
+        pitch_ema = (long)pitch * 256;
+        pitch_samples = 1;
+    } else {
+        /* EMA: new = old + (val - old) / alpha */
+        pitch_ema += ((long)pitch * 256 - pitch_ema) / PITCH_EMA_ALPHA;
+        pitch_samples++;
+    }
+
+    /* Track min/max in current stability window */
+    if (pitch < pitch_min) pitch_min = pitch;
+    if (pitch > pitch_max) pitch_max = pitch;
+    pitch_window_count++;
+
+    /* Check stability at end of window */
+    if (pitch_window_count >= PITCH_SETTLE_SAMPLES) {
+        int range = pitch_max - pitch_min;
+        if (range <= PITCH_STABLE_RANGE) {
+            save_pitch();
+        }
+        /* Reset window */
+        pitch_min = 1001000;
+        pitch_max = 999000;
+        pitch_window_count = 0;
+    }
+}
 
 static void sighandler(int sig) {
     running = 0;
@@ -445,10 +571,11 @@ static int setup_pcm(snd_pcm_t **pcm, const char *device, snd_pcm_stream_t strea
     if (is_dsd_rate(rate)) {
         period_size = (rate / dsd_base_rate(rate)) * 2048;
     }
-    /* Large buffer = more scheduling headroom.  DSD is bit-sensitive:
-     * even a single overrun corrupts the stream.  16 periods ≈ 23ms at
-     * 352 kHz LRCK — enough to survive worst-case Linux scheduler delays.
-     * snd_pcm_hw_params_set_buffer_size_near() will clamp to hw max. */
+    /* Capture: small period + buffer so kernel PI feedback target (buffer/2)
+     * is reachable.  Playback: large period + buffer for XRUN protection. */
+    if (stream == SND_PCM_STREAM_CAPTURE) {
+        period_size = 512;  /* Small period for capture — PI needs low target */
+    }
     snd_pcm_uframes_t buffer_size = period_size * 16;
 
     if ((err = snd_pcm_open(pcm, device, stream, 0)) < 0) {
@@ -676,6 +803,9 @@ int main(void) {
     printf("Listening for kobject uevent from u_audio driver...\n");
     printf("Waiting for rate changes...\n\n");
 
+    /* Load saved feedback pitch from U-Boot env */
+    load_saved_pitch();
+
     /* Read initial frequency and configure audio */
     int rate = read_sysfs_int(SYSFS_RATE_FILE);
     if (rate > 0) {
@@ -710,9 +840,14 @@ int main(void) {
             }
         }
 
-        /* Elastic buffer drift management (HiEnd seamless operation) */
-        if (pcm_playback) {
-            manage_buffer_drift(pcm_playback);
+        /* Drift compensation handled by kernel PI feedback controller.
+         * manage_buffer_drift disabled — it conflicts with kernel feedback
+         * and incorrectly interprets snd_pcm_avail (free space vs fill). */
+
+        /* Pitch learning: periodically track feedback for save/restore */
+        pitch_loop_counter++;
+        if (pcm_capture && (pitch_loop_counter % PITCH_READ_INTERVAL) == 0) {
+            update_pitch_tracking();
         }
 
         /* Audio routing */
@@ -747,7 +882,9 @@ int main(void) {
                 /* XRUN - try to recover */
                 fprintf(stderr, "[WARN] snd_pcm_wait: XRUN, recovering... (error #%d)\n", consecutive_errors);
                 snd_pcm_prepare(pcm_capture);
+                snd_pcm_start(pcm_capture);
                 snd_pcm_prepare(pcm_playback);
+                i2s_started = 0;  /* Will restart on next successful write */
 
                 /* Reset I2S auto-mute after recovery */
                 if (system("echo 0 > /sys/devices/platform/ffae0000.i2s/mute 2>/dev/null") == 0) {
@@ -782,7 +919,9 @@ int main(void) {
             if (frames == -EPIPE) {
                 fprintf(stderr, "[XRUN] Capture overrun (error #%d)\n", consecutive_errors);
                 snd_pcm_prepare(pcm_capture);
+                snd_pcm_start(pcm_capture);
                 snd_pcm_prepare(pcm_playback);
+                i2s_started = 0;  /* Will restart on next successful write */
 
                 /* Reset I2S auto-mute after XRUN recovery */
                 if (system("echo 0 > /sys/devices/platform/ffae0000.i2s/mute 2>/dev/null") == 0) {
@@ -808,6 +947,9 @@ int main(void) {
         }
 
         if (frames > 0) {
+            /* Apply saved pitch now that stream is running */
+            apply_saved_pitch();
+
             /* DSD data dump: save first 8KB + hex print first 4 frames */
             if (is_current_dsd && !dsd_dump_done) {
                 FILE *df = fopen("/tmp/dsd_usb_dump.raw", "wb");
@@ -844,26 +986,19 @@ int main(void) {
 
             snd_pcm_sframes_t written = snd_pcm_writei(pcm_playback, buffer, frames);
 
-            /* Start I2S playback on first successful write */
+            /* Playback auto-starts via start_threshold (buffer/2).
+             * No manual snd_pcm_start — avoids underrun with large buffers. */
             if (written > 0 && !i2s_started) {
-                printf("[START] Starting I2S playback (written %ld frames)\n", written);
+                i2s_started = 1;
+                printf("[START] I2S playback buffering (auto-start at threshold)\n");
                 fflush(stdout);
-
-                int start_result = snd_pcm_start(pcm_playback);
-                if (start_result == 0) {
-                    i2s_started = 1;
-                    printf("[START] I2S playback started successfully\n");
-                    fflush(stdout);
-                } else {
-                    printf("[ERROR] Failed to start I2S playback: %s\n", snd_strerror(start_result));
-                    fflush(stdout);
-                }
             }
 
             if (written < 0) {
                 if (written == -EPIPE) {
                     fprintf(stderr, "[XRUN] Playback underrun\n");
                     snd_pcm_prepare(pcm_playback);
+                    i2s_started = 0;  /* Will restart on next successful write */
                 } else if (written == -ESTRPIPE) {
                     while ((written = snd_pcm_resume(pcm_playback)) == -EAGAIN)
                         usleep(10000);
