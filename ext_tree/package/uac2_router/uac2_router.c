@@ -26,7 +26,7 @@
 #include <stdint.h>
 #include <sched.h>
 #include <sys/mman.h>
-#include <time.h>
+/* time.h not needed — status log uses frame counter instead of time() syscall */
 
 /* ── Device constants ─────────────────────────────────────────────── */
 
@@ -404,7 +404,7 @@ int main(void) {
     unsigned long xrun_count = 0;
     unsigned long cap_xrun_count = 0;
     unsigned long cap_frames_total = 0;
-    unsigned long last_status_time = time(NULL);
+    unsigned long last_status_frames = 0;
 
     fflush(stdout);
 
@@ -469,7 +469,7 @@ int main(void) {
             cap_frames_total += got;
             need_prebuffer = 0;
             play_started = 1;
-            last_status_time = time(NULL);  /* Defer first STAT */
+            last_status_frames = cap_frames_total;  /* Defer first STAT */
             continue;
         }
 
@@ -523,15 +523,12 @@ int main(void) {
                 }
             }
 
-            /* Status log (every 10 s, ~40 chars = ~3.5 ms UART) */
-            {
-                unsigned long now = time(NULL);
-                if (now - last_status_time >= 10) {
-                    last_status_time = now;
-                    printf("[S] w=%lu x=%lu cx=%lu cf=%lu\n",
-                           write_count, xrun_count, cap_xrun_count, cap_frames_total);
-                    fflush(stdout);
-                }
+            /* Status log every ~10 s (use frame counter, not time() syscall) */
+            if (cap_frames_total - last_status_frames >= current_rate / 32 * 10) {
+                last_status_frames = cap_frames_total;
+                printf("[S] w=%lu x=%lu cx=%lu cf=%lu\n",
+                       write_count, xrun_count, cap_xrun_count, cap_frames_total);
+                fflush(stdout);
             }
         } else if (frames == -EPIPE) {
             cap_xrun_count++;
