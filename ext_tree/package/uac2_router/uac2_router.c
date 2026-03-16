@@ -32,9 +32,9 @@
 
 #define I2S_CARD        "hw:0,0"
 #define SYSFS_UAC2_PATH "/sys/class/u_audio"
-#define SYSFS_RATE_FILE "rate"
-#define SYSFS_FORMAT_FILE "format"
-#define SYSFS_CHANNELS_FILE "channels"
+#define SYSFS_RATE_FILE      "rate"
+#define SYSFS_FORMAT_FILE    "format"
+#define SYSFS_CHANNELS_FILE  "channels"
 
 #define I2S_FORMAT_PCM  SND_PCM_FORMAT_S32_LE
 #define I2S_FORMAT_DSD  SND_PCM_FORMAT_DSD_U32_LE
@@ -160,7 +160,7 @@ static int setup_pcm(snd_pcm_t **pcm, const char *device, snd_pcm_stream_t strea
 
     if (is_dsd) {
         period_size = 512;
-        buffer_size = (stream == SND_PCM_STREAM_CAPTURE) ? 8192 : 32768;
+        buffer_size = (stream == SND_PCM_STREAM_CAPTURE) ? 65536 : 32768;
     } else {
         period_size = PERIOD_FRAMES;
         if (stream == SND_PCM_STREAM_CAPTURE) {
@@ -168,6 +168,10 @@ static int setup_pcm(snd_pcm_t **pcm, const char *device, snd_pcm_stream_t strea
             if (rate > 192000) period_size = 1024;
         }
         buffer_size = period_size * 16;
+        /* Capture: scale buffer to give PI controller ~180ms headroom
+         * at any rate (same as 8192 frames at 44.1k). */
+        if (stream == SND_PCM_STREAM_CAPTURE && rate > 44100)
+            buffer_size = 65536;
     }
 
     if ((err = snd_pcm_open(pcm, device, stream, 0)) < 0) {
@@ -271,7 +275,7 @@ static int configure_audio(unsigned int rate, int card, char **buffer, size_t *b
     *buffer = realloc(*buffer, *buf_size);
     if (!*buffer) { fprintf(stderr, "Cannot allocate buffer\n"); close_pcms(); return -1; }
 
-    /* Prepare and start capture */
+    /* Prepare and start capture — USB data begins filling the buffer */
     snd_pcm_prepare(pcm_capture);
     snd_pcm_prepare(pcm_playback);
     snd_pcm_start(pcm_capture);
@@ -399,6 +403,7 @@ int main(void) {
 
     int play_started = 0;
     int need_prebuffer = 1;  /* Start with pre-buffering phase */
+
     int consecutive_errors = 0;
     unsigned long write_count = 0;
     unsigned long xrun_count = 0;
@@ -441,6 +446,23 @@ int main(void) {
 
         if (!pcm_capture || !pcm_playback) {
             usleep(100000);
+            if (current_rate > 0) {
+                printf("[REOPEN] Reconfiguring at %u Hz\n", current_rate);
+                if (configure_audio(current_rate, uac_card, &buffer, &buffer_size, &period_size) == 0) {
+                    pb_period = playback_period;
+                    free(accum_buf);
+                    accum_buf = malloc(pb_period * frame_bytes);
+                    accum_pos = 0;
+                    prebuf_max = pb_period * PREBUF_PERIODS;
+                    free(prebuf);
+                    prebuf = malloc(prebuf_max * frame_bytes);
+                    play_started = 0;
+                    need_prebuffer = 1;
+                    write_count = 0;
+                    xrun_count = 0;
+                    cap_xrun_count = 0;
+                }
+            }
             continue;
         }
 
@@ -523,6 +545,7 @@ int main(void) {
                 }
             }
 
+
             /* Status log every ~10 s (use frame counter, not time() syscall) */
             if (cap_frames_total - last_status_frames >= current_rate / 32 * 10) {
                 last_status_frames = cap_frames_total;
@@ -542,7 +565,7 @@ int main(void) {
             usleep(500000);
         } else if (frames < 0) {
             if (++consecutive_errors >= MAX_CONSECUTIVE_ERRORS) {
-                fprintf(stderr, "[ERROR] Too many capture errors, reopening\n");
+                fprintf(stderr, "[ERROR] Too many capture errors (last=%ld), reopening\n", (long)frames);
                 close_pcms();
                 consecutive_errors = 0;
                 play_started = 0;
