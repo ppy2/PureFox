@@ -26,7 +26,16 @@ if (isset($_POST['submode'])) {
 if (isset($_POST['mclk'])) {
     $mclk = $_POST['mclk'];
     if (in_array($mclk, ['512', '1024'])) {
-        exec('/usr/bin/sudo /opt/2_' . $mclk . '.sh 2>&1', $output, $returnVar);
+        // Read current mode (ext/pll) to call the right script
+        $cur_mode = 'ext';
+        if (file_exists($config_file)) {
+            $conf = file_get_contents($config_file);
+            if (preg_match('/^MODE=(\w+)/m', $conf, $m)) {
+                $cur_mode = strtolower($m[1]);
+            }
+        }
+        if (!in_array($cur_mode, ['ext', 'pll'])) $cur_mode = 'ext';
+        exec('/usr/bin/sudo /opt/2_' . $mclk . '_' . $cur_mode . '.sh 2>&1', $output, $returnVar);
     }
 }
 

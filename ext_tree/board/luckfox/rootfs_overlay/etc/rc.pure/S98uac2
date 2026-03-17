@@ -16,8 +16,8 @@
 
 start() {
     echo "Starting PureCore UAC2 gadget..."
-    sleep 2  # Give time for USB initialization
-
+    modprobe dwc3
+    sleep 1  # Give time for USB initialization
     # Check if UDC is available
     if [ ! -d /sys/class/udc ]; then
         echo "UDC not available, skipping PureCore gadget"

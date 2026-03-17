@@ -16,7 +16,7 @@ echo "enabled" > "$MODE_FILE"
 rm -f /etc/asound.conf
 ln -sf /etc/asound.std /etc/asound.conf
 sed -i 's/^SUBMODE=.*$/SUBMODE=std/' /etc/i2s.conf
-sed -i 's/^MCLK=.*$/MCLK=1024/' /etc/i2s.conf
+#sed -i 's/^MCLK=.*$/MCLK=1024/' /etc/i2s.conf
 echo I2S > /etc/output
 
 # DSD byte order: uac2_router does bswap32 on USB DSD data to match
