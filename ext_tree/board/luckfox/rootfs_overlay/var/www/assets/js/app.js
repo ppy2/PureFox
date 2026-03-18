@@ -1234,86 +1234,62 @@ $(document).ready(function () {
     checkUsbToI2sStatus();
 
     // USBtoI2S button click handler - toggle mode
-    $('#usbto-i2s-btn').click(function() {
+    $('#usbto-i2s-btn').click(function(e) {
         const isEnabled = $(this).hasClass('active');
 
         if (isEnabled) {
             // Disable mode
-            const confirmDisable = {
-                'ru': 'Отключить режим USBtoI2S?',
-                'en': 'Disable USBtoI2S mode?',
-                'de': 'USBtoI2S-Modus deaktivieren?',
-                'fr': 'Désactiver le mode USBtoI2S?',
-                'zh': '禁用USBtoI2S模式？'
-            };
+            isAlsaSwitching = true;
+            showSpinner(translations[currentLang]['switching_output']);
 
-            customConfirm(confirmDisable[currentLang] || confirmDisable['en'], function(confirmed) {
-                if (confirmed) {
-                    isAlsaSwitching = true;
-                    showSpinner(translations[currentLang]['switching_output']);
+            // Мгновенная деактивация кнопки
+            $('#usbto-i2s-btn').removeClass('active');
 
-                    // Мгновенная деактивация кнопки
-                    $('#usbto-i2s-btn').removeClass('active');
-
-                    $.ajax({
-                        url: 'usb_to_i2s.php',
-                        method: 'POST',
-                        data: { action: 'disable' },
-                        timeout: 15000,
-                        success: function() {
-                            unlockAlsaToggle();
-                            isAlsaSwitching = false;
-                            hideSpinner();
-                            forceStatusCheck();
-                        },
-                        error: function(xhr, status, error) {
-                            isAlsaSwitching = false;
-                            hideSpinner();
-                            $('#usbto-i2s-btn').addClass('active');
-                            console.error('USBtoI2S disable error:', status, error, 'Response:', xhr.responseText);
-                            customAlert(translations[currentLang]['alsa_error']);
-                        }
-                    });
+            $.ajax({
+                url: 'usb_to_i2s.php',
+                method: 'POST',
+                data: { action: 'disable' },
+                timeout: 15000,
+                success: function() {
+                    unlockAlsaToggle();
+                    isAlsaSwitching = false;
+                    hideSpinner();
+                    forceStatusCheck();
+                },
+                error: function(xhr, status, error) {
+                    isAlsaSwitching = false;
+                    hideSpinner();
+                    $('#usbto-i2s-btn').addClass('active');
+                    console.error('USBtoI2S disable error:', status, error, 'Response:', xhr.responseText);
+                    customAlert(translations[currentLang]['alsa_error']);
                 }
             });
         } else {
             // Enable mode
-            const confirmEnable = {
-                'ru': 'Включить режим USBtoI2S?\nВыход переключится на I2S, USB в режим входа.',
-                'en': 'Enable USBtoI2S mode?\nOutput will switch to I2S, USB to input mode.',
-                'de': 'USBtoI2S-Modus aktivieren?\nAusgabe wechselt zu I2S, USB zu Eingangsmodus.',
-                'fr': 'Activer le mode USBtoI2S?\nLa sortie passera en I2S, USB en mode entrée.',
-                'zh': '启用USBtoI2S模式？\n输出将切换到I2S，USB切换到输入模式。'
-            };
+            isAlsaSwitching = true;
+            showSpinner(translations[currentLang]['switching_output']);
 
-            customConfirm(confirmEnable[currentLang] || confirmEnable['en'], function(confirmed) {
-                if (confirmed) {
-                    isAlsaSwitching = true;
-                    showSpinner(translations[currentLang]['switching_output']);
+            // Мгновенная активация кнопки
+            $('#usbto-i2s-btn').addClass('active');
+            $('.btn-custom').removeClass('active');
 
-                    // Мгновенная активация кнопки
-                    $('#usbto-i2s-btn').addClass('active');
-                    $('.btn-custom').removeClass('active');
-
-                    $.ajax({
-                        url: 'usb_to_i2s.php',
-                        method: 'POST',
-                        data: { action: 'enable' },
-                        timeout: 15000,
-                        success: function() {
-                            lockAlsaToggle();
-                            isAlsaSwitching = false;
-                            hideSpinner();
-                            checkUsbToI2sStatus();
-                        },
-                        error: function(xhr, status, error) {
-                            isAlsaSwitching = false;
-                            hideSpinner();
-                            $('#usbto-i2s-btn').removeClass('active');
-                            console.error('USBtoI2S enable error:', status, error, 'Response:', xhr.responseText);
-                            customAlert(translations[currentLang]['alsa_error']);
-                        }
-                    });
+            $.ajax({
+                url: 'usb_to_i2s.php',
+                method: 'POST',
+                data: { action: 'enable' },
+                timeout: 15000,
+                success: function() {
+                    lockAlsaToggle();
+                    isAlsaSwitching = false;
+                    hideSpinner();
+                    checkUsbToI2sStatus();
+                },
+                error: function(xhr, status, error) {
+                    isAlsaSwitching = false;
+                    hideSpinner();
+                    $('#usbto-i2s-btn').removeClass('active');
+                    console.error('USBtoI2S enable error:', status, error, 'Response:', xhr.responseText);
+                    customAlert(translations[currentLang]['alsa_error']);
                 }
             });
         }
@@ -1580,16 +1556,45 @@ $(document).ready(function () {
     $('button[data-service], #usbto-i2s-btn, #dlna-bridge-btn').each(function() {
         const $button = $(this);
         let isDragging = false;
+        let isSwiping = false;
         
+        // Native click listener in capture phase - blocks click before jQuery handlers
+        this.addEventListener('click', function(e) {
+            if (isSwiping) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                isSwiping = false;
+                return false;
+            }
+        }, true);
+
         // Touch events
         this.addEventListener('touchstart', function(e) {
             startX = e.changedTouches[0].screenX;
+            isSwiping = false;
         }, { passive: true });
+
+        this.addEventListener('touchmove', function(e) {
+            if (!isSwiping) {
+                const currentX = e.changedTouches[0].screenX;
+                const distance = Math.abs(currentX - startX);
+                if (distance > SWIPE_THRESHOLD) {
+                    isSwiping = true;
+                }
+            }
+        }, { passive: false });
 
         this.addEventListener('touchend', function(e) {
             endX = e.changedTouches[0].screenX;
-            handleSwipe($button);
-        }, { passive: true });
+
+            if (isSwiping) {
+                e.preventDefault();
+                handleSwipe($button);
+            }
+
+            isSwiping = false;
+        }, { passive: false });
 
         // Mouse events for desktop
         $button.on('mousedown', function(e) {
