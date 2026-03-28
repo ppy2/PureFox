@@ -1307,6 +1307,12 @@ h1 {
     flex: 0 0 auto;
 }
 
+.i2s-submode-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .i2s-warning {
     margin-top: 5px;
     text-align: left;

@@ -16,6 +16,14 @@ if (isset($_POST['mode'])) {
 // If submode is changed
 if (isset($_POST['submode'])) {
     $submode = $_POST['submode'];
+    // Block non-STD submodes when USB to I2S is active
+    $usbToI2sActive = file_exists('/etc/usb_to_i2s.state');
+    if ($usbToI2sActive && $submode !== 'std') {
+        // Silently ignore non-STD submode changes when USB to I2S is active
+        http_response_code(403);
+        echo 'Submode change not allowed: USB to I2S requires STD mode';
+        exit;
+    }
     if (in_array($submode, ['std', 'lr', 'plr', '8ch'])) {
         $script = "/opt/2_$submode.sh";
         exec('/usr/bin/sudo ' . escapeshellcmd($script) . ' 2>&1', $output, $returnVar);

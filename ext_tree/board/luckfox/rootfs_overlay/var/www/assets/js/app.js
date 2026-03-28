@@ -1209,10 +1209,14 @@ $(document).ready(function () {
                     $('#usbto-i2s-btn').addClass('active');
                     // Also update ALSA UI to I2S
                     updateAlsaUI('i2s');
+                    // Update submode buttons state (lock non-STD)
+                    updateSubmodeButtonsState();
                 } else {
                     // Mode is disabled - unlock toggle and deactivate button
                     unlockAlsaToggle();
                     $('#usbto-i2s-btn').removeClass('active');
+                    // Update submode buttons state (unlock all)
+                    updateSubmodeButtonsState();
                 }
             },
             error: function() {
@@ -1296,6 +1300,22 @@ $(document).ready(function () {
     });
 
     // I2S Modal functions
+    // Helper to lock/unlock submode buttons when USB to I2S is active
+    function updateSubmodeButtonsState() {
+        const usbToI2sEnabled = $('#usbto-i2s-btn').hasClass('active');
+        $('.i2s-submode-btn').each(function() {
+            const btn = $(this);
+            const submode = btn.attr('value');
+            if (usbToI2sEnabled && submode !== 'std') {
+                // Lock non-STD buttons when USB to I2S is active
+                btn.addClass('disabled').prop('disabled', true).removeClass('active');
+            } else {
+                // Unlock all buttons when USB to I2S is disabled
+                btn.removeClass('disabled').prop('disabled', false);
+            }
+        });
+    }
+
     window.openI2SModal = function() {
         // Load current I2S settings
         $.ajax({
@@ -1309,49 +1329,52 @@ $(document).ready(function () {
                 } else {
                     $('#modal-mode-ext').prop('checked', true);
                 }
-                
+
                 // Set MCLK toggle
                 if (data.mclk === '512') {
                     $('#modal-mclk-512').prop('checked', true);
                 } else {
                     $('#modal-mclk-1024').prop('checked', true);
                 }
-                
+
                 // Set PCM swap toggle
                 if (data.pcm_swap === '1') {
                     $('#modal-pcm-swap').prop('checked', true);
                 } else {
                     $('#modal-pcm-normal').prop('checked', true);
                 }
-                
+
                 // Set DSD swap toggle
                 if (data.dsd_swap === '1') {
                     $('#modal-dsd-swap').prop('checked', true);
                 } else {
                     $('#modal-dsd-normal').prop('checked', true);
                 }
-                
+
                 // Set freq swap toggle
                 if (data.freq_swap === '1') {
                     $('#modal-freq-swap').prop('checked', true);
                 } else {
                     $('#modal-freq-normal').prop('checked', true);
                 }
-                
+
                 // Set leftjust toggle
                 if (data.leftjust === '1') {
                     $('#modal-leftjust-on').prop('checked', true);
                 } else {
                     $('#modal-leftjust-off').prop('checked', true);
                 }
-                
+
                 // Set submode buttons active state
                 $('.i2s-submode-btn').removeClass('active');
                 $(`.i2s-submode-btn[value="${data.submode}"]`).addClass('active');
-                
+
+                // Update submode buttons state based on USB to I2S status
+                updateSubmodeButtonsState();
+
                 // Apply translations
                 applyTranslationsToModal();
-                
+
                 // Show modal
                 $('#i2s-modal').addClass('show');
             },
@@ -1447,12 +1470,17 @@ $(document).ready(function () {
 
     // I2S Modal event handlers - submit submode immediately like in original i2s.php
     $(document).on('click', '.i2s-submode-btn', function() {
+        // Ignore clicks on disabled buttons (when USB to I2S is active)
+        if ($(this).hasClass('disabled') || $(this).prop('disabled')) {
+            return;
+        }
+
         $('.i2s-submode-btn').removeClass('active');
         $(this).addClass('active');
-        
+
         const formData = new FormData();
         formData.append('submode', $(this).attr('value'));
-        
+
         // Apply submode setting immediately
         fetch('handle_i2s.php', {
             method: 'POST',
