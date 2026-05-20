@@ -660,7 +660,7 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/drivers/usb/gadget
  #endif
 diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/drivers/usb/gadget/function/u_audio.c linux-rockchip-rk-6.1-rkr6.1_modify/drivers/usb/gadget/function/u_audio.c
 --- linux-rockchip-rk-6.1-rkr6.1_orig/drivers/usb/gadget/function/u_audio.c	2025-07-03 12:59:45.000000000 +0200
-+++ linux-rockchip-rk-6.1-rkr6.1_modify/drivers/usb/gadget/function/u_audio.c	2026-03-18 06:38:36.228617635 +0100
++++ linux-rockchip-rk-6.1-rkr6.1_modify/drivers/usb/gadget/function/u_audio.c	2026-05-20 08:50:50.076105736 +0200
 @@ -23,8 +23,8 @@
  
  #include "u_audio.h"
@@ -1378,7 +1378,7 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/codecs/d
  };
 diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip/rockchip_i2s_tdm.c linux-rockchip-rk-6.1-rkr6.1_modify/sound/soc/rockchip/rockchip_i2s_tdm.c
 --- linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip/rockchip_i2s_tdm.c	2025-07-03 12:59:45.000000000 +0200
-+++ linux-rockchip-rk-6.1-rkr6.1_modify/sound/soc/rockchip/rockchip_i2s_tdm.c	2026-03-12 19:34:54.538451252 +0100
++++ linux-rockchip-rk-6.1-rkr6.1_modify/sound/soc/rockchip/rockchip_i2s_tdm.c	2026-05-20 08:50:50.084105848 +0200
 @@ -1,31 +1,46 @@
 -// SPDX-License-Identifier: GPL-2.0-only
 -// ALSA SoC Audio Layer - Rockchip I2S/TDM Controller driver
@@ -8539,7 +8539,7 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/soc/rockchip
 \ No newline at end of file
 diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/usb/quirks.c linux-rockchip-rk-6.1-rkr6.1_modify/sound/usb/quirks.c
 --- linux-rockchip-rk-6.1-rkr6.1_orig/sound/usb/quirks.c	2025-07-03 12:59:45.000000000 +0200
-+++ linux-rockchip-rk-6.1-rkr6.1_modify/sound/usb/quirks.c	2025-11-24 15:43:05.722086344 +0100
++++ linux-rockchip-rk-6.1-rkr6.1_modify/sound/usb/quirks.c	2026-05-20 09:00:32.987313666 +0200
 @@ -2105,6 +2105,8 @@
  		   QUIRK_FLAG_PLAYBACK_FIRST | QUIRK_FLAG_GENERIC_IMPLICIT_FB),
  	DEVICE_FLG(0x13e5, 0x0001, /* Serato Phono */
@@ -8549,3 +8549,12 @@ diff -Naur --no-dereference linux-rockchip-rk-6.1-rkr6.1_orig/sound/usb/quirks.c
  	DEVICE_FLG(0x154e, 0x1002, /* Denon DCD-1500RE */
  		   QUIRK_FLAG_ITF_USB_DSD_DAC | QUIRK_FLAG_CTL_MSG_DELAY),
  	DEVICE_FLG(0x154e, 0x1003, /* Denon DA-300USB */
+@@ -2199,6 +2201,8 @@
+ 	/* Vendor matches */
+ 	VENDOR_FLG(0x045e, /* MS Lifecam */
+ 		   QUIRK_FLAG_GET_SAMPLE_RATE),
++	VENDOR_FLG(0x2fc6, /* Comture-inc devices */
++		   QUIRK_FLAG_DSD_RAW),
+ 	VENDOR_FLG(0x046d, /* Logitech */
+ 		   QUIRK_FLAG_CTL_MSG_DELAY_1M),
+ 	VENDOR_FLG(0x047f, /* Plantronics */

@@ -10,9 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'enable') {
         // Enable USBtoI2S mode: I2S output + USB gadget mode
-        // First switch I2S to STD mode (required for USB to I2S)
-        exec('/usr/bin/sudo /opt/2_std.sh 2>&1');
-
         $script = '/opt/usb_to_i2s.sh';
         if (!file_exists($script)) {
             http_response_code(500);

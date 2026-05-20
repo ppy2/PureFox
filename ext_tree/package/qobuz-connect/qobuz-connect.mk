@@ -8,7 +8,7 @@ QOBUZ_CONNECT_VERSION = main
 QOBUZ_CONNECT_SITE = https://github.com/ppy2/qobuz-connect-purefox.git
 QOBUZ_CONNECT_SITE_METHOD = git
 QOBUZ_CONNECT_LICENSE = Proprietary
-QOBUZ_CONNECT_DEPENDENCIES = alsa-lib avahi civetweb openssl
+QOBUZ_CONNECT_DEPENDENCIES = alsa-lib avahi civetweb openssl qobuz-connect-assert-hook
 
 define QOBUZ_CONNECT_BUILD_CMDS
 	# Create civetweb library manually since buildroot doesn't install it to staging
@@ -33,8 +33,10 @@ endef
 
 define QOBUZ_CONNECT_INSTALL_TARGET_CMDS
 	$(INSTALL) -d $(TARGET_DIR)/opt/qobuz-connect
-	$(INSTALL) -m 755 $(@D)/build/qobuz_connect_sample_app $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
-#	$(TARGET_STRIP) $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
+	$(INSTALL) -m 755 $(@D)/build/qobuz_connect_sample_app $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect-bin
+	$(INSTALL) -m 755 $(BR2_EXTERNAL_ext_tree_PATH)/package/qobuz-connect-assert-hook/launcher.sh $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
+	chmod +x $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
+#	$(TARGET_STRIP) $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect-bin
 	$(INSTALL) -d $(TARGET_DIR)/usr/lib
 	$(INSTALL) -m 755 $(@D)/sdk/lib/libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/
 #	$(TARGET_STRIP) $(TARGET_DIR)/usr/lib/libqobuz_connect.so.1.0.0

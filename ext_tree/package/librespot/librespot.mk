@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-LIBRESPOT_VERSION = $(call qstrip,$(or $(BR2_PACKAGE_LIBRESPOT_VERSION),v0.8.0))
-#LIBRESPOT_VERSION = $(call qstrip,$(or $(BR2_PACKAGE_LIBRESPOT_VERSION),33bf3a77ed4b549df67e8347d7d6e55b007b3ec2))
+#LIBRESPOT_VERSION = $(call qstrip,$(or $(BR2_PACKAGE_LIBRESPOT_VERSION),v0.8.0))
+LIBRESPOT_VERSION = $(call qstrip,$(or $(BR2_PACKAGE_LIBRESPOT_VERSION),33bf3a77ed4b549df67e8347d7d6e55b007b3ec2))
 LIBRESPOT_SITE = https://github.com/librespot-org/librespot.git
 LIBRESPOT_SITE_METHOD = git
 

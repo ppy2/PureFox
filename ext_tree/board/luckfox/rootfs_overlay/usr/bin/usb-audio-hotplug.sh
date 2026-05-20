@@ -16,12 +16,12 @@ case "$ACTION" in
         echo "USB audio device connected: $MDEV" >> /tmp/usb-hotplug.log
         sleep 1
         # Stop then start audio services (cleaner than restart)
-        /etc/init.d/S01statusmonitor restart
         for service in /etc/init.d/S95*; do
             if [ -x "$service" ]; then
                 "$service" stop
                 "$service" start &
             fi
+        /etc/init.d/S01statusmonitor restart    
         done
         ;;
     remove)
@@ -33,5 +33,6 @@ case "$ACTION" in
         for service in /etc/init.d/S95*; do
             [ -x "$service" ] && "$service" stop &
         done
+        /etc/init.d/S01statusmonitor restart
         ;;
 esac

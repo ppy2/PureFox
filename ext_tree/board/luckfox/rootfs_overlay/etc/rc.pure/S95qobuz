@@ -97,6 +97,7 @@ start() {
     
     renice -15 $$ 
     # Start qobuz-connect (no LD_PRELOAD needed, all parameters embedded)
+    export LD_PRELOAD=/usr/lib/libassert_hook.so
     /opt/qobuz-connect/qobuz-connect -o $OUTPUT_DEVICE > /dev/null 2>&1 &
     sleep 0.5
     if [ -f /tmp/mixer_control_cache ]; then

@@ -7,10 +7,11 @@ menu "Custom packages"
 	source "../ext_tree/package/apscream/Config.in"
 	source "../ext_tree/package/squeezeliteR2/Config.in"
 	source "../ext_tree/package/status-monitor/Config.in"
+	source "../ext_tree/package/qobuz-connect-assert-hook/Config.in"
 	source "../ext_tree/package/qobuz-connect/Config.in"
 	source "../ext_tree/package/tidal-connect/Config.in"
 	source "../ext_tree/package/uac2_router/Config.in"
 	source "../ext_tree/package/buffer_daemon/Config.in"
 	source "../ext_tree/package/dlna_bridge/Config.in"
 	source "../ext_tree/package/snd-screamalsa/Config.in"
- endmenu
+endmenu

@@ -1,0 +1,11 @@
+config BR2_PACKAGE_QOBUZ_CONNECT_ASSERT_HOOK
+	bool "qobuz-connect-assert-hook"
+	help
+	  LD_PRELOAD library that intercepts abort() and __assert_fail()
+	  to prevent crashes from assertion failures in libqobuz_connect.
+	  
+	  This hook converts SIGABRT crashes into graceful exits,
+	  which is useful when Qobuz Connect SDK has race conditions
+	  that cause assertion failures during stream cleanup.
+	  
+	  Usage: LD_PRELOAD=/usr/lib/libassert_hook.so /opt/qobuz-connect/qobuz-connect

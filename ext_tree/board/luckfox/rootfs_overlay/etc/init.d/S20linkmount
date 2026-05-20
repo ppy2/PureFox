@@ -1,5 +1,10 @@
 #!/bin/sh
-bootmedium=spi_nand
+# Auto-detect boot medium
+if [ -d /sys/class/mmc_host/mmc0 ]; then
+    bootmedium=emmc
+else
+    bootmedium=spi_nand
+fi
 linkdev(){
 if [ ! -d "/dev/block/by-name" ];then
 mkdir -p /dev/block/by-name
@@ -153,5 +158,12 @@ fi
 }
 case $1 in start) linkdev;
 mount_part rootfs IGNORE ubifs ;
+# For eMMC: ensure rootfs is expanded to full size
+if [ "$bootmedium" = "emmc" ]; then
+    ROOT_DEV=$(mountpoint -n / | awk '{print $1}')
+    if [ -n "$ROOT_DEV" ]; then
+        resize2fs -f "$ROOT_DEV" 2>/dev/null || true
+    fi
+fi
 ;; linkdev) linkdev ;
 ;; stop) printf stop $0 finished\n ;; *) echo Usage: $0 {start|stop} exit 1 ;; esac

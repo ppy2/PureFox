@@ -9,7 +9,7 @@ APSCREAM_SOURCE = asioscream4.zip
 
 define APSCREAM_EXTRACT_CMDS
     $(UNZIP) -j $(APSCREAM_DL_DIR)/$(APSCREAM_SOURCE) \
-	"LinuxReceiver/Arm32/apscream-arm32.tar.gz" -d $(@D)
+	"asioscream4/LinuxReceiver/Arm32/apscream-arm32.tar.gz" -d $(@D)
     $(TAR) -xf $(@D)/apscream-arm32.tar.gz -C $(@D)
 endef
 

@@ -4,8 +4,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Lock file to prevent concurrent service switches
-$lockfile = '/tmp/service_switch.lock';
-$lock_fp = null; // Lock file pointer
+// Lock removed - allow concurrent switches
 
 function logMessage($message) {
     error_log("[Player Manager] " . $message);
@@ -13,7 +12,7 @@ function logMessage($message) {
 
 function executeCommand($command) {
     logMessage("Executing: $command");
-    $output = shell_exec("$command 2>&1");
+    $output = shell_exec("/usr/bin/sudo $command 2>&1");
     logMessage("Output: " . trim((string)$output));
     return trim((string)$output);
 }
@@ -59,10 +58,19 @@ $players = [
 //    'screen-audio' => ['process' => 'screen_audio', 'script' => 'S95screen-audio'],
     'spotify' => ['process' => 'librespot', 'script' => 'S95spotify'],
     'qobuz' => ['process' => 'qobuz-connect', 'script' => 'S95qobuz'],
-    'tidalconnect' => ['process' => 'tidalconnect', 'script' => 'S95tidal'],
 ];
 
+// Tidal Connect - only available if package is installed
+if (file_exists('/opt/tidal.sqfs')) {
+    $players['tidalconnect'] = ['process' => 'tidalconnect', 'script' => 'S95tidal'];
+}
+
 try {
+    // If USB-to-I2S mode active, disable it first (uac2_router holds ALSA)
+    if (file_exists('/etc/usb_to_i2s.state')) {
+        exec('/opt/usb_unlock.sh 2>&1');
+    }
+    
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception("Invalid request method");
     }
@@ -74,74 +82,51 @@ try {
 
     logMessage("Request to start player: $player_to_start");
 
-    // Acquire lock to prevent concurrent switches
-    acquireLock($lockfile);
+    // No lock - allow concurrent switches
 
     // Check script existence
     $script_path = "/etc/rc.pure/{$players[$player_to_start]['script']}";
     if (!file_exists($script_path)) {
-        releaseLock();
+        // lock removed
         throw new Exception("Player script not found: $script_path");
     }
 
-    // Stop all current players
-    $stop_output = shell_exec('sh -c "/etc/init.d/S95* stop" 2>&1');
-    logMessage("Stop output: " . trim($stop_output ?: "none"));
+    // Force kill all known player processes (bypasses missing init scripts)
+    executeCommand("killall -9 networkaudiod raat_app mpd ap2renderer aplayer apscream shairport-sync squeezelite librespot qobuz-connect tidalconnect 2>/dev/null");
+    executeCommand("killall avahi-publish-service 2>/dev/null");
+    executeCommand("ps | grep -E '/tmp/(tidal|qobuz|spotify)' | awk '{print $1}' | xargs kill -9 2>/dev/null");
+    // Stop via init scripts (if symlinks exist)
+    executeCommand("/etc/init.d/S95* stop >/dev/null 2>&1");
 
-    // If switching to any player, disable USBtoI2S mode (switch USB to host)
-    if (file_exists('/etc/usb_to_i2s.state')) {
-        logMessage("Disabling USBtoI2S mode before player switch");
-        executeCommand("/opt/usb_unlock.sh");
-    }
-
-    // Remove all S95* and S98uac2 symlinks
-    shell_exec('rm -f /etc/init.d/S95* /etc/init.d/S98uac2 2>&1');
+    // Remove all S95* from /etc/init.d/
+    sleep(1);
+    executeCommand("/bin/rm -f /etc/init.d/S95*");
 
     // Create symlink
     $target_link = "/etc/init.d/{$players[$player_to_start]['script']}";
-    $ln_output = shell_exec("ln -sf '$script_path' '$target_link' 2>&1");
-    logMessage("Symlink output: " . trim($ln_output ?: "none"));
+    executeCommand("/bin/ln -s '$script_path' '$target_link'");
     
-    // Start player
+    // Delay to ensure all processes fully terminated
+    sleep(2);
+    // Start player in background (don't wait - init script backgrounds processes)
     logMessage("Starting player: $player_to_start");
-    $start_output = executeCommand("$target_link start");
+    $start_output = executeCommand("$target_link start >/dev/null 2>&1 &");
 
     // Send D-Bus signal about service change for instant update
-    executeCommand("/opt/dbus_notify ServiceChanged \"$player_to_start\"");
+    executeCommand("/opt/dbus_notify ServiceChanged \"$player_to_start\" 2>/dev/null &");
 
-    // Wait for system_monitor to confirm player started (up to 10 seconds)
-    $confirmed = false;
-    for ($i = 0; $i < 20; $i++) {
-        $status_file = '/tmp/system_status.json';
-        if (file_exists($status_file)) {
-            $content = @file_get_contents($status_file);
-            if ($content) {
-                $status = @json_decode($content, true);
-                if ($status && isset($status['active_service']) && $status['active_service'] === $player_to_start) {
-                    $confirmed = true;
-                    logMessage("Player $player_to_start confirmed by system_monitor");
-                    break;
-                }
-            }
-        }
-        usleep(500000); // 500ms
-    }
+    // Release lock immediately - don't wait for confirmation
+    // lock removed
 
-    // Release lock after confirmation or timeout
-    releaseLock();
-
-    if (!$confirmed) {
-        logMessage("Warning: Player $player_to_start not confirmed by system_monitor within 10s");
-    }
-
+    // Return immediately - UI will confirm via status polling
     echo json_encode([
         'status' => 'success',
-        'message' => "Successfully started $player_to_start",
-        'confirmed' => $confirmed
+        'message' => "Switch to $player_to_start initiated",
+        'confirmed' => false  // UI polls status separately
     ]);
 
 } catch (Exception $e) {
-    releaseLock();
+    // lock removed
     logMessage("Error: " . $e->getMessage());
     echo json_encode([
         'status' => 'error',

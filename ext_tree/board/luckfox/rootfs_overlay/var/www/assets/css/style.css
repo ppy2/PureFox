@@ -412,7 +412,7 @@ h1 {
 .btn-custom.warning  { border-left: 5px solid #B8963D; }
 .btn-custom.danger   { border-left: 5px solid #E67400; }
 .btn-custom.info     { border-left: 5px solid #17A2B8; }
-.btn-custom.usb2i2s  { border-left: 5px solid #9B59B6; }
+.btn-custom.usb2i2s { border-left: 5px solid #9B59B6; }
 
 .group .row .btn-custom {
   justify-content: center;
@@ -1305,12 +1305,6 @@ h1 {
     box-sizing: border-box;
     margin: 0;
     flex: 0 0 auto;
-}
-
-.i2s-submode-btn.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    pointer-events: none;
 }
 
 .i2s-warning {

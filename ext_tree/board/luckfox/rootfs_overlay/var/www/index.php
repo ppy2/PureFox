@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio System Control</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo VERSION; ?>&t=<?php echo time(); ?>">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <div class="container">
@@ -39,8 +39,10 @@
     </div>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
         <button class="btn-custom success" data-service="qobuz" data-process="qobuz">Qobuz Connect</button>
-	<button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
-	<button class="btn-custom usb2i2s" id="usbto-i2s-btn">USB to I2S</button>
+	<?php if (file_exists('/opt/tidal.sqfs')): ?>
+                    <button class="btn-custom success" data-service="tidalconnect" data-process="tidalconnect">Tidal Connect</button>
+                    <?php endif; ?>
+	<button class="btn-custom usb2i2s<?php echo file_exists('/etc/usb_to_i2s.state') ? ' active' : ''; ?>" id="usbto-i2s-btn">USB to I2S</button>
 <!--	<button class="btn-custom usb2i2s" id="dlna-bridge-btn">
 	    DLNA Bridge
 	    <a href="#" class="settings-link" id="dlna-settings-btn" onclick="event.preventDefault(); event.stopPropagation(); openDlnaModal(); return false;">
@@ -269,5 +271,14 @@
     <!-- JavaScript includes -->
     <script src="assets/js/jquery-3.7.1.min.js"></script>
     <script src="assets/js/app.js?v=<?php echo VERSION; ?>&t=<?php echo time(); ?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    $.getJSON('usb_to_i2s.php', { action: 'status' }, function(r) {
+      if (r.enabled) $('#usbto-i2s-btn').addClass('active');
+    });
+  }, 1000);
+});
+</script>
 </body>
 </html>

@@ -3,9 +3,12 @@ config BR2_PACKAGE_QOBUZ_CONNECT
 	select BR2_PACKAGE_ALSA_LIB
 	select BR2_PACKAGE_AVAHI
 	select BR2_PACKAGE_CIVETWEB_LIB
+	select BR2_PACKAGE_QOBUZ_CONNECT_ASSERT_HOOK
 	help
 	  Qobuz Connect for building custom Qobuz Connect players.
 	  
 	  Includes the sample console application and all required libraries.
+	  Automatically includes assert-hook to prevent crashes from
+	  assertion failures in libqobuz_connect during stream cleanup.
 	  
 	  https://qobuz.com/
