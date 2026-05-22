@@ -11,15 +11,15 @@ start() {
     fi
     export LD_LIBRARY_PATH=/opt/tidal
     export LD_PRELOAD=/opt/tidal/libdns_sd.so
-    nohup /usr/sbin/tc_volume >/dev/null 2>&1 &
-    nohup /opt/tidal/tidal_connect_application --tc-certificate-path /opt/tidal/T1.dat -f PureFox --model-name PureFox --codec-mqa false --disable-web-security true --log-level 0 >/dev/null 2>&1 &
+    /usr/sbin/tc_volume >/dev/null 2>&1 &
+    tidalconnect --tc-certificate-path /opt/tidal/T1.dat -f PureFox --model-name PureFox --codec-mqa false --disable-web-security true --log-level 0 >/dev/null 2>&1 &
     sleep 2
-    ps | grep -E 'tidal_connect|tc_volume|avahi-publish' | grep -v grep | awk '{print $1}' | while read pid; do
+    ps | grep -E 'tidalconnect|tc_volume|avahi-publish' | grep -v grep | awk '{print $1}' | while read pid; do
         renice -15 $pid 2>/dev/null
     done
 }
 stop() {
-    killall -9 tc_volume tidal_connect_application 2>/dev/null
+    killall -9 tc_volume tidalconnect 2>/dev/null
     killall avahi-publish-service 2>/dev/null
 }
 case "$1" in start) start ;; stop) stop ;; restart) stop; sleep 1; start ;; esac

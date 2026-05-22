@@ -34,19 +34,14 @@ endef
 define QOBUZ_CONNECT_INSTALL_TARGET_CMDS
 	$(INSTALL) -d $(TARGET_DIR)/opt/qobuz-connect
 	$(INSTALL) -m 755 $(@D)/build/qobuz_connect_sample_app $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect-bin
-	$(INSTALL) -m 755 $(BR2_EXTERNAL_ext_tree_PATH)/package/qobuz-connect-assert-hook/launcher.sh $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
 	chmod +x $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect
-#	$(TARGET_STRIP) $(TARGET_DIR)/opt/qobuz-connect/qobuz-connect-bin
 	$(INSTALL) -d $(TARGET_DIR)/usr/lib
 	$(INSTALL) -m 755 $(@D)/sdk/lib/libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/
-#	$(TARGET_STRIP) $(TARGET_DIR)/usr/lib/libqobuz_connect.so.1.0.0
 	ln -sf libqobuz_connect.so.1.0.0 $(TARGET_DIR)/usr/lib/libqobuz_connect.so
 	$(INSTALL) -m 755 $(@D)/third_party/libcjson/lib/libcjson.so.1.7.13 $(TARGET_DIR)/usr/lib/
-#	$(TARGET_STRIP) $(TARGET_DIR)/usr/lib/libcjson.so.1.7.13
 	ln -sf libcjson.so.1.7.13 $(TARGET_DIR)/usr/lib/libcjson.so.1
 	ln -sf libcjson.so.1 $(TARGET_DIR)/usr/lib/libcjson.so
 	$(INSTALL) -m 755 $(@D)/third_party/libuv/lib/libuv.so.1.0.0 $(TARGET_DIR)/usr/lib/
-#	$(TARGET_STRIP) $(TARGET_DIR)/usr/lib/libuv.so.1.0.0
 	ln -sf libuv.so.1.0.0 $(TARGET_DIR)/usr/lib/libuv.so.1
 	ln -sf libuv.so.1 $(TARGET_DIR)/usr/lib/libuv.so
 endef
