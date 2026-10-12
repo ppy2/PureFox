@@ -56,6 +56,7 @@ $services = [
     'aprenderer'  => 'ap2renderer',
     'aplayer'     => 'aplayer',
     'apscream'    => 'apscream',
+    'scream'      => 'scream',
     'lms'         => 'squeezelite',
     'shairport'   => 'shairport-sync',
     'spotify'     => 'librespot',

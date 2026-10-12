@@ -54,6 +54,7 @@ $players = [
     'squeeze2upn' => ['process' => 'squeeze2upn', 'script' => 'S95apsq'],
     'aplayer' => ['process' => 'aplayer', 'script' => 'S95aplayer'],
     'apscream' => ['process' => 'apscream', 'script' => 'S95apscream'],
+    'scream' => ['process' => 'scream', 'script' => 'S95scream'],
     'shairport' => ['process' => 'shairport-sync', 'script' => 'S95shairport'],
     'lms' => ['process' => 'squeezelite', 'script' => 'S95squeezelite'],
 //    'screen-audio' => ['process' => 'screen_audio', 'script' => 'S95screen-audio'],
