@@ -1,0 +1,14 @@
+--2026-10-13 01:47:14--  https://curl.se/ca/cacert.pem
+Resolving curl.se (curl.se)... 151.101.1.91, 151.101.65.91, 151.101.129.91, ...
+Connecting to curl.se (curl.se)|151.101.1.91|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 188900 (184K) [application/x-pem-file]
+Saving to: ‘/home/user/PureFox/buildroot/output/target/etc/ssl/certs/ca-certificates.crt’
+
+     0K .......... .......... .......... .......... .......... 27% 2.34M 0s
+    50K .......... .......... .......... .......... .......... 54% 2.57M 0s
+   100K .......... .......... .......... .......... .......... 81% 3.71M 0s
+   150K .......... .......... .......... ....                 100% 8.05M=0.06s
+
+2026-10-13 01:47:14 (3.15 MB/s) - ‘/home/user/PureFox/buildroot/output/target/etc/ssl/certs/ca-certificates.crt’ saved [188900/188900]
+

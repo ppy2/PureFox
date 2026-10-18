@@ -36,7 +36,12 @@
     		    <img src="assets/img/settings.svg" class="settings-icon" alt="Settings">
     		</a>
 	</button>
-        <button class="btn-custom primary" data-service="scream" data-process="scream">Scream</button>
+        <button class="btn-custom primary" data-service="scream" data-process="scream">
+            Scream
+            <a href="scream_settings.php" class="settings-link" data-lang="settings">
+                <img src="assets/img/settings.svg" class="settings-icon" alt="Settings">
+            </a>
+        </button>
     </div>
         <button class="btn-custom success" data-service="spotify" data-process="spotify">Spotify Connect</button>
         <button class="btn-custom success" data-service="qobuz" data-process="qobuz">Qobuz Connect</button>

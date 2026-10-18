@@ -1,7 +1,38 @@
 #!/bin/sh
+
+CONF=/etc/scream.conf
+
+# read KEY from the config file (numbers and plain words only)
+get_val() {
+    [ -f "$CONF" ] || return 0
+    sed -n "s/^$1=\([A-Za-z0-9]*\)[[:space:]]*\$/\1/p" "$CONF" | head -n 1
+}
+
+load_config() {
+    LATENCY=$(get_val LATENCY)
+    MODE=$(get_val MODE)
+    PORT=$(get_val PORT)
+
+    case "$LATENCY" in ''|*[!0-9]*) LATENCY=50 ;; esac
+    if [ "$LATENCY" -lt 20 ] || [ "$LATENCY" -gt 1000 ]; then
+        LATENCY=50
+    fi
+
+    case "$MODE" in unicast|multicast) ;; *) MODE=unicast ;; esac
+
+    case "$PORT" in ''|*[!0-9]*) PORT=4010 ;; esac
+    if [ "$PORT" -lt 1024 ] || [ "$PORT" -gt 65535 ]; then
+        PORT=4010
+    fi
+
+    ARGS="-o alsa -t $LATENCY -p $PORT"
+    [ "$MODE" = "unicast" ] && ARGS="-u $ARGS"
+}
+
 start() {
-    printf "Starting Scream: "
-    /usr/bin/scream -o alsa -t 50 > /dev/null 2>&1 &
+    load_config
+    printf "Starting Scream (%s, port %s, latency %s ms): " "$MODE" "$PORT" "$LATENCY"
+    /usr/bin/scream $ARGS > /dev/null 2>&1 &
     sleep 0.5
     renice -15 $(pidof scream) 2>/dev/null
     if [ -f /tmp/mixer_control_cache ]; then
@@ -18,12 +49,12 @@ restart() {
     start
 }
 case "$1" in
-    start|stop|restart)
-        "$1"
-        ;;
-    *)
-        echo "Usage: $0 {start|stop|restart}"
-        exit 1
+  start|stop|restart)
+    "$1"
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
 esac
 
 exit $?
